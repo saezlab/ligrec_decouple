@@ -2,7 +2,7 @@
   
 ![landingpage](ligrec_pipe.png)
 
-## Objectives
+## Abstract
   
 The continuous developments of single-cell RNA-Seq (scRNA-Seq) have sparked
 an immense interest in understanding intercellular crosstalk. Multiple
@@ -23,9 +23,9 @@ inference.
 To this end we built [LIANA](https://github.com/saezlab/liana), a framework to decouple the tools from their corresponding resources.
   
   
-## Tools
+### Tools
 
-The tools implemented in this repository are:
+The tools included in this comparison are:
 
 - CellPhoneDB algorithm (via [Squidpy](https://squidpy.readthedocs.io/en/latest/))
 - CellChat
@@ -35,7 +35,7 @@ The tools implemented in this repository are:
 - iTALK
   
   
-## Resources
+### Resources
 
 The following CCC resources are accessible via this pipeline:
 
@@ -56,7 +56,7 @@ The following CCC resources are accessible via this pipeline:
 - OmniPath
   
   
-### OmniPath
+#### OmniPath
   
 All the resources above are retrieved from OmniPath (https://omnipathdb.org/).
 OmniPath itself is also a composite resource combining all the ones listed
@@ -71,35 +71,35 @@ each resource supposed to be identical to its original form, apart from minor
 processing imperfections.
   
   
-### Reshuffled and Default Resources
+#### Reshuffled and Default Resources
   
 Moreover, a Reshuffled resource can be generated via reshuffling any of the
 abovementioned using the `BiRewire` package, and each tool can be run with
 its 'Default' resource, the dataset used in its original publication.
   
   
+### Content, Anylsis, and Data availability
 
-   
-   
+
+### Environment set-up
+# Clone repo
+```{bash}
+git clone https://github.com/saezlab/ligrec_decouple
+```
+
 ```{r}
-library(devtools)  
-Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = TRUE) # ignore warning from iTALK 
-install_github('saezlab/OmnipathR') # install latest version of OmnipathR
-devtools::install_github("sqjin/CellChat")  
-devtools::install_github('msraredon/Connectome', ref = 'master')   
-devtools::install_github('Coolgenome/iTALK', ref = 'biorxiv')   
-# A modified version of SingleCellSignalR (SCA) that enables external resources
-devtools::install_github(repo = "CostaLab/SingleCellSignalR_v1", subdir = "SingleCellSignalR")
-# Install this repos
-devtools::install_github('saezlab/ligrec_decoupler')
+# install all required packages using *renv*
+renv::restore()
 ```
+Also, make sure that [LIANA](https://github.com/saezlab/liana is set up appropriately.
+
+
+#### Analysis Scripts
+Add info how to reproduce the analysis here:
   
-  
-#### Clone NATMI, as it is run via the command line 
-```{sh}
-git clone https://github.com/asrhou/NATMI.git
-```
-  
+#### Data availability 
+Add links to public data, processed data, etc
+
   
 ## References
 Baccin, C., Al-Sabah, J., Velten, L., Helbling, P.M., Grünschläger, F., Hernández-Malmierca, P., Nombela-Arrieta, C., Steinmetz, L.M., Trumpp, A., and Haas, S. (2020). Combined single-cell and spatial transcriptomics reveal the molecular, cellular and spatial bone marrow niche organization. Nat. Cell Biol. 22, 38–48.
