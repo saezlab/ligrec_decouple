@@ -1,5 +1,3 @@
-#  This file is part of the `intercell` R package
-#
 #  Copyright
 #  2021
 #  Saez Lab, Uniklinik RWTH Aachen, Heidelberg University
@@ -7,22 +5,13 @@
 #  Author(s): Daniel Dimitrov
 #             Charlotte Boys
 #             Dénes Türei (turei.denes@gmail.com)
+#             James Nagai
 #
 #  Distributed under the MIT (Expat) License.
 #  See accompanying file `LICENSE` or find a copy at
 #      https://directory.fsf.org/wiki/License:Expat
 #
-#  Git repo: https://github.com/saezlab/ligrec_decoupler
-require(stringr)
-require(tidyverse)
-require(OmnipathR)
-require(magrittr)
-require(proxy)
-require(viridis)
-require(RCurl)
-require(UpSetR)
-source("analysis/result_utils.R")
-source("analysis/plot_utils.R")
+#  Git repo: https://github.com/saezlab/ligrec_decouple
 
 # colors from brewer.pal
 .palette1 <- c(
@@ -1858,4 +1847,15 @@ overheat_save <- function(df, plotname, guide_title){
     print(p)
 
     dev.off()
+}
+
+
+#' Ligand-receptor data for the descriptive part
+#'
+#' Ligands, receptors and connections from each resource in a nested list
+#' of tibbles.
+#'
+#' @seealso \code{\link{compile_ligrec}}
+compile_ligrec_descr <- function(){
+    compile_ligrec(lr_pipeline = FALSE)
 }

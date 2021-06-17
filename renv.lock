@@ -443,6 +443,13 @@
       "Source": "Bioconductor",
       "Hash": "2da24c5f66521d18cff602d324834b20"
     },
+    "UpSetR": {
+      "Package": "UpSetR",
+      "Version": "1.4.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f6ef89503aaff474873f8bc1823894e1"
+    },
     "V8": {
       "Package": "V8",
       "Version": "3.4.2",
@@ -1294,6 +1301,19 @@
       "Repository": "CRAN",
       "Hash": "355993b12fa6e5c9e4b1f9077adabfbd"
     },
+    "liana": {
+      "Package": "liana",
+      "Version": "0.0.1",
+      "Source": "GitHub",
+      "Remotes": "Coolgenome/iTALK, msraredon/Connectome, sqjin/CellChat,\nbioc::3.12/BiRewire",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "liana",
+      "RemoteUsername": "saezlab",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "73180eddbd030f43bd210ab31aff1888e7f784a7",
+      "Hash": "ec8b6cca7ee0beabd066939440cd531c"
+    },
     "lifecycle": {
       "Package": "lifecycle",
       "Version": "1.0.0",
@@ -1859,6 +1879,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "3838071b66e0c566d55cc26bd6e27bf4"
+    },
+    "shadowtext": {
+      "Package": "shadowtext",
+      "Version": "0.0.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c4b74932ce5a1f308a7b20aad7aeb4ed"
     },
     "shape": {
       "Package": "shape",
