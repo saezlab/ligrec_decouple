@@ -433,10 +433,10 @@
     },
     "Seurat": {
       "Package": "Seurat",
-      "Version": "4.0.3",
+      "Version": "3.2.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "7249f329b663f90bf99ffe06097ea3e7"
+      "Hash": "ffcee86b35e60b6cd91ea050d152b1cf"
     },
     "SeuratData": {
       "Package": "SeuratData",
@@ -449,13 +449,6 @@
       "RemoteRef": "HEAD",
       "RemoteSha": "b59556b24d7d6728a5744c9c715dd5f7f32ed7a5",
       "Hash": "e817be819275540145d235b466bb2194"
-    },
-    "SeuratObject": {
-      "Package": "SeuratObject",
-      "Version": "4.0.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "e5959242d66cfe4de9116fdcec327f80"
     },
     "SingleCellExperiment": {
       "Package": "SingleCellExperiment",
@@ -2031,12 +2024,12 @@
       "Repository": "CRAN",
       "Hash": "c1f957f9c7e40091da380da53882ade2"
     },
-    "spatstat.core": {
-      "Package": "spatstat.core",
-      "Version": "2.1-2",
+    "spatstat": {
+      "Package": "spatstat",
+      "Version": "1.64-1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6c1e3cc9e7df1bdfd312e4e75339feae"
+      "Hash": "bf01485c922fd3bb6af165b9304539dd"
     },
     "spatstat.data": {
       "Package": "spatstat.data",
@@ -2044,20 +2037,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "4e8002e034d7d0af852b2bbcce851c2e"
-    },
-    "spatstat.geom": {
-      "Package": "spatstat.geom",
-      "Version": "2.2-0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "89a2cf9f52da361959f47036f04afdd1"
-    },
-    "spatstat.sparse": {
-      "Package": "spatstat.sparse",
-      "Version": "2.0-0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "615efff0d33e612b15dc3fc3ba0cc554"
     },
     "spatstat.utils": {
       "Package": "spatstat.utils",
