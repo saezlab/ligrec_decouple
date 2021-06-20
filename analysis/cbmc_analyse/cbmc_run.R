@@ -1,6 +1,7 @@
 # Run on local
 require(liana)
 require(tidyverse)
+require(magrittr)
 
 # Load and and format Data
 SeuratData::InstallData("cbmc")
@@ -16,12 +17,12 @@ cbmcdata@meta.data %<>%
     filter(rna_annotations != "Mouse")
 cbmcdata <- subset(cbmcdata, cells = rownames(cbmcdata@meta.data))
 cbmcdata <- Seurat::SetIdent(cbmcdata, value = cbmcdata@meta.data$rna_annotations)
-saveRDS(cbmcdata, "data/input/cbmc_seurat.rds")
-seurat_object <- readRDS("data/input/cbmc_seurat.rds") %>%
+seurat_object <- cbmcdata %>%
     Seurat::NormalizeData() %>%
     Seurat::FindVariableFeatures()
 seurat_object@meta.data %<>%
     mutate(rna_annotations = as.factor(rna_annotations))
+saveRDS(seurat_object, "data/input/cbmc_seurat.rds")
 
 # Call liana
 cmbc_cc <- liana_wrap(

@@ -91,7 +91,7 @@ git clone https://github.com/saezlab/ligrec_decouple
 # install all required packages using *renv*
 renv::restore()
 ```
-Also, make sure that [LIANA](https://github.com/saezlab/liana is set up appropriately.
+Also, make sure that [LIANA](https://github.com/saezlab/liana) is set up appropriately.
 
 
 #### Analysis Scripts
