@@ -26,89 +26,33 @@ saveRDS(seurat_object, "data/input/cbmc_seurat.rds")
 
 # Call liana
 cmbc_cc <- liana_wrap(
-    seurat_object = cbmcdata,
+    seurat_object = seurat_object,
     resource = c("OmniPath", "CellPhoneDB"),
-    method = c("cellchat", "italk", "natmi", "sca", "squidpy"),
     natmi.params = list(
         expr_file = "em.csv",
         meta_file = "metadata.csv",
-        output_dir = "NATMI_test",
+        output_dir = "NATMI_cbmc",
         assay = "RNA",
         num_cor = 4,
         .format = TRUE,
         .write_data = FALSE,
         .seed = 1004,
-        .natmi_path = "~/Repos/LIANA/NATMI"
-        )
-    )
+        .natmi_path = "~/Repos/LIANA/NATMI"),
+    squidpy.params = list(
+        cluster_key="rna_annotations",
+        n_perms=10000,
+        threshold=0.1,
+        seed=as.integer(1004)
+    ),
+    cellchat.params = list(
+        nboot = 1000,
+        exclude_anns = NULL,
+        thresh = 1,
+        assay = "RNA",
+        .normalize = FALSE,
+        .do_parallel = FALSE,
+        .raw_use = TRUE
+    ))
 
 
-
-# CellChat
-res1 <- call_cellchat(
-    op_resource = NULL,
-    seurat_object = seurat_object,
-    nboot = 10,
-    exclude_anns = NULL,
-    thresh = 1,
-    assay = "RNA",
-    .normalize = FALSE,
-    .do_parallel = FALSE,
-    .raw_use = TRUE
-)
-
-# SCA
-res1 <- call_sca(op_resource = NULL,
-                 seurat_object = seurat_object,
-                 assay = 'RNA',
-                 .format = TRUE,
-                 s.score = 0,
-                 logFC = log2(1.5))
-
-# iTALK
-res1 <- call_italk(op_resource = NULL,
-                   seurat_object = seurat_object,
-                   assay = 'RNA',
-                   .format = TRUE,
-                   .DE = TRUE)
-
-# NATMI
-res1 <- call_natmi(op_resource = select_resource("OmniPath"),
-                   seurat_object = seurat_object,
-                   expr_file = "em.csv",
-                   meta_file = "metadata.csv",
-                   output_dir = "NATMI_cbmc",
-                   assay = "RNA",
-                   num_cor = 4,
-                   .format = TRUE,
-                   .write_data = TRUE,
-                   .seed = 1004,
-                   .natmi_path = "~/Repos/LIANA/NATMI")
-
-# squidpy
-res1 <- call_squidpy(seurat_object = seurat_object,
-                     op_resource = select_resource("OmniPath"),
-                     cluster_key="rna_annotations",
-                     n_perms=10000,
-                     threshold=0.01,
-                     seed=as.integer(1004))
-
-# Connectome
-res1 <- call_connectome(
-    seurat_object = seurat_object,
-    op_resource = select_resource("OmniPath")[[1]], # Default = No sig hits
-    .spatial = FALSE,
-    min.cells.per.ident = 1,
-    p.values = TRUE,
-    calculate.DOR = FALSE,
-    assay = 'RNA',
-    .format = TRUE
-)
-
-
-# Call liana
-cmbc_cc <- liana_wrap(
-    seurat_object = cbmcdata,
-    resource = c("OmniPath", "CellPhoneDB"),
-    method = c("connectome")
-)
+saveRDS(cmbc_cc, "data/output/cbmc_run.rds")
