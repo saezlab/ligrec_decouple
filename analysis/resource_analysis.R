@@ -6,7 +6,7 @@ require(proxy)
 require(viridis)
 require(RCurl)
 require(UpSetR)
-require(liana) # !!! Keep liana seperate branch when final revision is done.
+require(liana)
 require(shadowtext)
 require(logger)
 require(rlang)
