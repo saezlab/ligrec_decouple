@@ -9,6 +9,7 @@ require(Seurat)
 
 cbmcdata <- SeuratData::LoadData("cbmc")
 
+
 cbmcdata@meta.data %<>%
     mutate(celltype = as.factor(rna_annotations)) %>%
     # remove + as it breaks Squidpy
@@ -27,7 +28,6 @@ saveRDS(seurat_object, "data/input/cbmc_seurat.rds")
 
 seurat_object <- readRDS("data/input/cbmc_seurat.rds")
 
-levels(Idents(seurat_object))
 
 
 

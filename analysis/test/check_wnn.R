@@ -49,6 +49,7 @@ adt_props_entity <- props %>%
 adt_means_entity <- means %>%
     filter(entity_symbol %in% op_syms)
 
+# looks okay I guess, obviously need to be normalized before that
 adt_scaled_entity <- adt_means_entity %>%
     pivot_longer(-entity_symbol) %>%
     group_by(entity_symbol) %>%

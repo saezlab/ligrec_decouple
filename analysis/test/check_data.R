@@ -1,4 +1,8 @@
 # Single Cell ----
+require(tidyverse)
+require(Seurat)
+require(SeuratDisk)
+
 # CRC Korean - 18 Clusters
 crc_seurat <- readRDS("data/input/crc_data/crc_korean_form.rds")
 crc_seurat@meta.data
@@ -37,20 +41,33 @@ crc_visium <- readRDS("data/input/crc_data/crc_visium.rds")
 crc_visium@meta.data
 
 
-# BC
+# BC data from Rico's Collab :D
 bc_visium <- readRDS("data/input/bc_data/qc_se_breast_1_full.rds")
 Seurat::Idents(bc_visium)
-bc_visium@meta.data %>% as_tibble()
-
-
+meta <- bc_visium@meta.data %>% as_tibble()
 # only proportions - no labels
+
+
+# BC atlas from Paper
+unique(liana_res$source)
+
+
+# check disgenet
+library(devtools)
+install_bitbucket("ibi_group/disgenet2r") # not how to use this thing
+
+
+
+disg <- read_delim("data/input/curated_gene_disease_associations.tsv",
+           delim = "\t")
+
+disg %>%
+    filter(diseaseType == "group") %>%
+    pluck("diseaseName") %>%
+    unique()
 
 # MERFISH
 
 
-
-# Processed data are also available at SeuratData
-# (https://github.com/satijalab/seurat-data) to facilitate access with
-# a single command (InstallData(ds=’thp1.eccite’)).
 
 
