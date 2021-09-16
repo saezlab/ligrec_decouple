@@ -109,6 +109,7 @@ liana_adt <- liana_res2 %>%
     pivot_longer(-c(adt_scale, adt_mean, adt_prop))
 
 
+
 #' Corr Function
 #' @param df nested df
 #' @param var name of the variable
@@ -131,18 +132,31 @@ adt_corr <- liana_adt %>%
 
 
 # Check correlations
-adt_corr %>%
+mean_corr <- adt_corr %>%
     select(name, mean_model) %>%
-    unnest(cols = c(mean_model))
+    unnest(cols = c(mean_model)) %>%
+    mutate(mean_mlog10p = -log10(p.value)) %>%
+    select(name, mean_mlog10p)
 
-adt_corr %>%
+scale_corr <- adt_corr %>%
     select(name, scale_model) %>%
-    unnest(cols = c(scale_model))
+    unnest(cols = c(scale_model)) %>%
+    mutate(scale_mlog10p = -log10(p.value)) %>%
+    select(name, scale_mlog10p)
 
-adt_corr %>%
+prop_corr <- adt_corr %>%
     select(name, prop_model) %>%
-    unnest(cols = c(prop_model))
+    unnest(cols = c(prop_model)) %>%
+    mutate(prop_mlog10p = -log10(p.value)) %>%
+    select(name, prop_mlog10p)
 
+mean_corr %>%
+    left_join(scale_corr) %>%
+    left_join(prop_corr) %>%
+    dplyr::rename("method" = name) %>%
+    pivot_longer(-method,
+                 names_to = "corr_type") %>%
+    ggplot(aes(x=value, y = corr_type, colour = method, size = 5)) +
+    geom_point() +
+    xlab("-log10 p-value")
 
-mean_corr
-scale_corr
