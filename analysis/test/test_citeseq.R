@@ -4,9 +4,8 @@ require(liana)
 require(tidyverse)
 require(magrittr)
 
-
 # make this thing into a function
-# filter out any interactions that don't include the ADT-RNA intersect to save time.
+# filter out any interactions that don't include the ADT-RNA intersect to save time. - tried gives different results :D
 # perform it with 3 datasets + 3 intervals (0, 0.05, 0.1, 0.2)
 # plot together
 
@@ -57,30 +56,39 @@ saveRDS(seurat_object, "data/input/cmbc_seurat_test.RDS")
 
 
 # RUN LIANA on cbmc test data ----
-liana_res <- liana_wrap(seurat_object,
-                        squidpy.params=list(cluster_key = "seurat_clusters"),
-                        expr_prop = 0.1,
-                        )
-saveRDS(liana_res, "data/output/test_citeseq.RDS")
-
-
-## Read the above results ----
 seurat_object <- readRDS("data/input/cmbc_seurat_test.RDS")
-liana_res <- readRDS("data/output/test_citeseq.RDS")
 
-
-# Get ADT stats ----
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
     assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
     colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
-    )
-op_resource <- select_resource("OmniPath")[[1]]
+)
+
+# get OP and filter by ADTs to reduce comp time
+op_resource <- select_resource("OmniPath")[[1]] %>%
+    filter(target_genesymbol %in% rownames(sce))
+
+liana_res <- liana_wrap(seurat_object,
+                        squidpy.params=list(cluster_key = "seurat_clusters",
+                                            seed = as.integer(1)),
+                        expr_prop = 0.1,
+                        resource = "custom",
+                        external_resource = op_resource,
+                        )
+
+# saveRDS(liana_res, "data/output/test_citeseq.RDS")
+
+## Read the above results
+# liana_res <- readRDS("data/output/test_citeseq.RDS")
+
+
+# Get ADT stats ----
+
 
 # Get Summary per clust ----
 test_summ <- scuttle::summarizeAssayByGroup(sce,
                                             ids = colLabels(sce),
-                                            assay.type = "counts")
+                                            assay.type = "logcounts")
 test_summ@colData
 means <- test_summ@assays@data$mean %>% # gene mean across cell types
     as_tibble(rownames = "entity_symbol")
@@ -122,7 +130,7 @@ adt_scaled_entity %<>%
 
 
 # Basic correlations between LRs and ADT means -----
-liana_res <- liana_res %>% liana_aggregate()
+liana_res %<>% liana_aggregate()
 liana_res2 <- liana_res %>%
     filter(receptor %in% adt_scaled_entity$entity_symbol) %>%
     select(source, ligand, target, receptor, ends_with("rank")) %>%
@@ -152,6 +160,7 @@ corr_fun <- function(df, var){
 }
 
 # run corrs
+set.seed(1)
 adt_corr <- liana_adt %>%
     group_by(name) %>%
     nest() %>%
