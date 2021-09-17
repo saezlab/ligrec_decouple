@@ -4,11 +4,17 @@ require(liana)
 require(tidyverse)
 require(magrittr)
 
+
+
+
 # make this thing into a function
 # filter out any interactions that don't include the ADT-RNA intersect to save time. - tried gives different results :D
 # perform it with 3 datasets + 3 intervals (0, 0.05, 0.1, 0.2)
 # plot together
+# analyse the proportions
 
+# filter out control ADTs,
+# look for alias genesymbols
 
 
 # We Run Kendal Correlation, which supposedly uses tau-b scores (i.e. accounts for ties)
@@ -46,8 +52,21 @@ seurat_object <- NormalizeData(seurat_object,
 saveRDS(seurat_object, "data/input/cmbc_seurat_test.RDS")
 
 
+
 # RUN LIANA on cbmc test data ----
+liana_res <- liana_wrap(seurat_object,
+                        squidpy.params=list(cluster_key = "seurat_clusters",
+                                            seed = as.integer(1)),
+                        expr_prop = 0.2)
+liana_res %<>% liana_aggregate()
+saveRDS(liana_res, "data/output/test_citeseq_02prop.RDS")
+
+
+# CiteSeq ----
+## Read the above results
 seurat_object <- readRDS("data/input/cmbc_seurat_test.RDS")
+liana_res <- readRDS("data/output/test_citeseq_0prop.RDS")
+op_resource <- select_resource("OmniPath")[[1]]
 
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
@@ -56,19 +75,25 @@ sce <- SingleCellExperiment::SingleCellExperiment(
     colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
 )
 
-# get OP
-op_resource <- select_resource("OmniPath")[[1]]
 
-liana_res <- liana_wrap(seurat_object,
-                        squidpy.params=list(cluster_key = "seurat_clusters",
-                                            seed = as.integer(1)),
-                        expr_prop = 0.1
-                        )
 
-saveRDS(liana_res, "data/output/test_citeseq.RDS")
+# check for alias----
+# load the annotation database
+library(org.Hs.eg.db)
 
-## Read the above results
-# liana_res <- readRDS("data/output/test_citeseq.RDS")
+# use sql to get alias table and gene_info table (contains the symbols)
+# first open the database connection
+dbCon <- org.Hs.eg_dbconn()
+# write your SQL query
+sqlQuery <- 'SELECT * FROM alias, gene_info WHERE alias._id == gene_info._id;'
+# execute the query on the database
+aliasSymbol <- DBI::dbGetQuery(dbCon, sqlQuery)
+
+# set up your query genes
+queryGeneNames <- rownames(sce)
+# subset to get your results
+map(queryGeneNames, function(name) aliasSymbol[which(aliasSymbol[,2] == stringr::str_to_upper(name)),5])
+
 
 
 # Get ADT stats ----
@@ -86,22 +111,17 @@ props <- test_summ@assays@data$prop.detected %>% # gene prop
 props
 
 # Format Summary
-op_syms <- c(#op_resource$source_genesymbol, (only receptors)
-             op_resource$target_genesymbol)
+receptor_syms <- c(op_resource$target_genesymbol)
 
 adt_props_entity <- props %>%
-    filter(entity_symbol %in% op_syms) %>%
+    filter(entity_symbol %in% receptor_syms) %>%
     pivot_longer(-entity_symbol,
                  names_to = "cluster",
                  values_to = "adt_prop")
 
 # means
 adt_means_entity <- means %>%
-    filter(entity_symbol %in% op_syms)
-
-# looks okay I guess, obviously need to be normalized before that
-# scale and format
-adt_scaled_entity <- adt_means_entity %>%
+    filter(entity_symbol %in% receptor_syms) %>%
     pivot_longer(-entity_symbol,
                  names_to = "cluster",
                  values_to = "adt_mean") %>%
@@ -111,15 +131,14 @@ adt_scaled_entity <- adt_means_entity %>%
     ungroup()
 
 # join props to means
-adt_scaled_entity %<>%
+adt_means_entity %<>%
     left_join(adt_props_entity) %>%
     dplyr::rename("target" = cluster)
 
 
 # Basic correlations between LRs and ADT means -----
-liana_res %<>% liana_aggregate()
 liana_res2 <- liana_res %>%
-    filter(receptor %in% adt_scaled_entity$entity_symbol) %>%
+    filter(receptor %in% adt_means_entity$entity_symbol) %>%
     select(source, ligand, target, receptor, ends_with("rank")) %>%
     pivot_longer(c(ligand,receptor),
                  names_to = "type",
@@ -128,23 +147,12 @@ liana_res2 <- liana_res %>%
     distinct()
 
 liana_adt <- liana_res2 %>%
-    left_join(adt_scaled_entity) %>%
+    left_join(adt_means_entity) %>%
     select(ends_with("rank"), starts_with("adt")) %>%
     pivot_longer(-c(adt_scale, adt_mean, adt_prop))
 
 
 
-#' Corr Function
-#' @param df nested df
-#' @param var name of the variable
-corr_fun <- function(df, var){
-    cor.test(df[[var]],
-             df$value,
-             method="kendall",
-             exact = FALSE
-    ) %>%
-        broom::tidy()
-}
 
 # run corrs
 set.seed(1)
@@ -177,7 +185,7 @@ prop_corr <- adt_corr %>%
 corr_format <- mean_corr %>%
     # join
     left_join(scale_corr) %>%
-    # left_join(prop_corr) %>%
+    left_join(prop_corr) %>%
     dplyr::rename("method" = name) %>%
     pivot_longer(-method,
                  names_to = "corr_type") %>%
@@ -199,6 +207,7 @@ corr_format %>%
     # rename metrics
     mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
     mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
+    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
     ggplot(aes(x = metric, y = estimate, colour = method, shape = significant)) +
     geom_point(size = 6, position = position_dodge(w = 0.05)) +
     xlab("Expression Type") +
@@ -208,7 +217,14 @@ corr_format %>%
 
 
 # ROC according to Proportion thresholds ----
-hist(adt_means_entity[,-1] %>% as.matrix() %>% as.numeric(), breaks=100)
+# hist(adt_means_entity[,-1] %>% as.matrix() %>% as.numeric(), breaks=100)
 # normalize and cut anything below 0, i.e. assume that its noise
+
+adt_props_entity
+liana_prop <- liana_res2 %>%
+    left_join(adt_props_entity, by = c("target" = "cluster", "entity_symbol"))
+
+
+
 
 
