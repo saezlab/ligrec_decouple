@@ -42,15 +42,6 @@ seurat_object <- NormalizeData(seurat_object,
 # seurat_object <- ScaleData(seurat_object, assay = "ADT")
 
 
-
-# issue with squipy nums - need to fix
-clust.anns <- str_glue("c{levels(seurat_object)}")
-names(clust.anns) <- levels(seurat_object)
-seurat_object <- RenameIdents(seurat_object, clust.anns)
-seurat_object@meta.data <- seurat_object@meta.data %>%
-    mutate(seurat_clusters = as.factor(str_glue("c{seurat_clusters}")))
-Idents(seurat_object)
-seurat_object
 # save test seurat_objcet
 saveRDS(seurat_object, "data/input/cmbc_seurat_test.RDS")
 
@@ -60,35 +51,31 @@ seurat_object <- readRDS("data/input/cmbc_seurat_test.RDS")
 
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
-    assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+    assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+                data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
     colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
 )
 
-# get OP and filter by ADTs to reduce comp time
-op_resource <- select_resource("OmniPath")[[1]] %>%
-    filter(target_genesymbol %in% rownames(sce))
+# get OP
+op_resource <- select_resource("OmniPath")[[1]]
 
 liana_res <- liana_wrap(seurat_object,
                         squidpy.params=list(cluster_key = "seurat_clusters",
                                             seed = as.integer(1)),
-                        expr_prop = 0.1,
-                        resource = "custom",
-                        external_resource = op_resource,
+                        expr_prop = 0.1
                         )
 
-# saveRDS(liana_res, "data/output/test_citeseq.RDS")
+saveRDS(liana_res, "data/output/test_citeseq.RDS")
 
 ## Read the above results
 # liana_res <- readRDS("data/output/test_citeseq.RDS")
 
 
 # Get ADT stats ----
-
-
 # Get Summary per clust ----
 test_summ <- scuttle::summarizeAssayByGroup(sce,
                                             ids = colLabels(sce),
-                                            assay.type = "logcounts")
+                                            assay.type = "data")
 test_summ@colData
 means <- test_summ@assays@data$mean %>% # gene mean across cell types
     as_tibble(rownames = "entity_symbol")
