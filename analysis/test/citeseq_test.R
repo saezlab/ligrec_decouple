@@ -3,7 +3,7 @@ require(Seurat)
 require(liana)
 require(tidyverse)
 require(magrittr)
-
+source("analysis/test/citeseq_src.R")
 
 
 
@@ -65,7 +65,7 @@ saveRDS(liana_res, "data/output/test_citeseq_02prop.RDS")
 # CiteSeq ----
 ## Read the above results
 seurat_object <- readRDS("data/input/cmbc_seurat_test.RDS")
-liana_res <- readRDS("data/output/test_citeseq_0prop.RDS")
+liana_res <- readRDS("data/output/test_citeseq_01prop.RDS")
 op_resource <- select_resource("OmniPath")[[1]]
 
 # convert to singlecell object
@@ -76,43 +76,91 @@ sce <- SingleCellExperiment::SingleCellExperiment(
 )
 
 
+# Filter ADT Controls
+sce <- sce[!(rownames(sce) %in% c("IgG1", "IgG2a", "IgG2b")),]
 
-# check for alias----
-# load the annotation database
-library(org.Hs.eg.db)
 
-# use sql to get alias table and gene_info table (contains the symbols)
-# first open the database connection
-dbCon <- org.Hs.eg_dbconn()
-# write your SQL query
-sqlQuery <- 'SELECT * FROM alias, gene_info WHERE alias._id == gene_info._id;'
-# execute the query on the database
-aliasSymbol <- DBI::dbGetQuery(dbCon, sqlQuery)
 
-# set up your query genes
-queryGeneNames <- rownames(sce)
-# subset to get your results
-map(queryGeneNames, function(name) aliasSymbol[which(aliasSymbol[,2] == stringr::str_to_upper(name)),5])
+# Get gene aliases ----
+# Obtain adt genesymbols
+adt_symbols <- rownames(sce)
+
+# obtain aliases
+alias_table <- get_alias_table()
+
+
+# check adts that are not in the alias_table
+adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% alias_table$alias_symbol)]
+
+# Manually check mismatches
+# i.e. check if any alias is present in OmniPath
+# some e.g. CD3 are proteins with multiple gene subunts
+adt_manual <- list("CD3" = c("CD3D", "CD3E", "CD3E", "CD3G", "CD3Z"),
+     "CD45RA" = "PTPRC",
+     "CD45RO" = "PTPRC",
+     "HLA-DR" = "CD74"
+     ) %>%
+    enframe(name = "adt_symbol",
+            value = "alias_symbol") %>%
+    unnest(alias_symbol)
+
+
+#' Function to convert ADTs to aliases
+#' @param adt_names names to be queried (i.e. sce/seurat rownames)
+adt_match <- map(rownames(sce),
+    function(name){
+
+        alias_table %>%
+            filter(alias_symbol==stringr::str_to_upper(name)) %>%
+            dplyr::rename(adt_symbol = alias_symbol,
+                          alias_symbol = symbol)
+        }) %>%
+    bind_rows()
+
+
+
+# expand to all aliases
+adt_aliases <- bind_rows(adt_manual,
+                         adt_match)
+
+# check if all matched
+adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% stringr::str_to_upper(adt_aliases$adt_symbol))]
+
+
+# ^ this we join to the object to expand to each possible symbol
+# check which ones match any gene in the object
 
 
 
 # Get ADT stats ----
-# Get Summary per clust ----
+# Get Summary per clust and Join alias_symbols ----
 test_summ <- scuttle::summarizeAssayByGroup(sce,
                                             ids = colLabels(sce),
                                             assay.type = "data")
 test_summ@colData
 means <- test_summ@assays@data$mean %>% # gene mean across cell types
-    as_tibble(rownames = "entity_symbol")
+    as_tibble(rownames = "entity_symbol") %>%
+    mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+    left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
+    dplyr::select(-c(entity_symbol)) %>%
+    dplyr::select(entity_symbol = alias_symbol, everything())
 means
 
 props <- test_summ@assays@data$prop.detected %>% # gene prop
-    as_tibble(rownames = "entity_symbol")
+    as_tibble(rownames = "entity_symbol") %>%
+    mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+    left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
+    dplyr::select(-c(entity_symbol)) %>%
+    dplyr::select(entity_symbol = alias_symbol, everything())
 props
 
-# Format Summary
+
+# Get Symbols of Receptors in OP
 receptor_syms <- c(op_resource$target_genesymbol)
 
+
+# Format Means and Proportion Stats
+# props
 adt_props_entity <- props %>%
     filter(entity_symbol %in% receptor_syms) %>%
     pivot_longer(-entity_symbol,
@@ -139,7 +187,7 @@ adt_means_entity %<>%
 # Basic correlations between LRs and ADT means -----
 liana_res2 <- liana_res %>%
     filter(receptor %in% adt_means_entity$entity_symbol) %>%
-    select(source, ligand, target, receptor, ends_with("rank")) %>%
+    dplyr::select(source, ligand, target, receptor, ends_with("rank")) %>%
     pivot_longer(c(ligand,receptor),
                  names_to = "type",
                  values_to = "entity_symbol") %>%
@@ -148,13 +196,11 @@ liana_res2 <- liana_res %>%
 
 liana_adt <- liana_res2 %>%
     left_join(adt_means_entity) %>%
-    select(ends_with("rank"), starts_with("adt")) %>%
+    dplyr::select(ends_with("rank"), starts_with("adt")) %>%
     pivot_longer(-c(adt_scale, adt_mean, adt_prop))
 
 
-
-
-# run corrs
+# run corrs -----
 set.seed(1)
 adt_corr <- liana_adt %>%
     group_by(name) %>%
@@ -166,21 +212,21 @@ adt_corr <- liana_adt %>%
 
 # Check correlations
 mean_corr <- adt_corr %>%
-    select(name, mean_model) %>%
+    dplyr::select(name, mean_model) %>%
     unnest(cols = c(mean_model)) %>%
     mutate(mean_mlog10p = -log10(p.value)) %>%
-    select(name, mean_pval = p.value, mean_estimate = estimate)
+    dplyr::select(name, mean_pval = p.value, mean_estimate = estimate)
 
 scale_corr <- adt_corr %>%
-    select(name, scale_model) %>%
+    dplyr::select(name, scale_model) %>%
     unnest(cols = c(scale_model)) %>%
-    select(name, scale_pval = p.value, scale_estimate = estimate)
+    dplyr::select(name, scale_pval = p.value, scale_estimate = estimate)
 
 prop_corr <- adt_corr %>%
-    select(name, prop_model) %>%
+    dplyr::select(name, prop_model) %>%
     unnest(cols = c(prop_model)) %>%
     mutate(prop_mlog10p = -log10(p.value)) %>%
-    select(name, prop_pval = p.value, prop_estimate = estimate)
+    dplyr::select(name, prop_pval = p.value, prop_estimate = estimate)
 
 corr_format <- mean_corr %>%
     # join
@@ -193,7 +239,7 @@ corr_format <- mean_corr %>%
     pivot_wider(names_from = stat,
                 values_from = value) %>%
     mutate(significant = if_else(pval <= 0.05, TRUE, FALSE)) %>%
-    select(-pval) %>%
+    dplyr::select(-pval) %>%
     ungroup()
 
 # plot
