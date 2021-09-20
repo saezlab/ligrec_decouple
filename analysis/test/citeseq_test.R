@@ -82,19 +82,20 @@ get_adt_summary <- function(seurat_object,){
 
 
 ## Read the above results
-seurat_object <- readRDS("data/input/cmbc_seurat_test.RDS")
-liana_res <- readRDS("data/output/test_citeseq_01prop.RDS")
+seurat_object <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs_seurat.RDS")
+liana_res <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs-liana_res-0.1.RDS")
 
 # Get Symbols of Receptors from OP
 op_resource <- select_resource("OmniPath")[[1]]
 receptor_syms <- c(op_resource$target_genesymbol)
-
+cluster_key <- "seurat_clusters"
+# ^ inputs
 
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
     assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
                 data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
-    colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
+    colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
 )
 
 # Filter ADT Controls
@@ -104,59 +105,107 @@ sce <- sce[!(rownames(sce) %in% c("IgG1", "IgG2a", "IgG2b")),]
 
 # Get gene aliases ----
 # Obtain adt genesymbols
-adt_symbols <- rownames(sce)
-
-# obtain aliases
-alias_table <- get_alias_table()
-
-
-# check adts that are not in the alias_table
-adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% alias_table$alias_symbol)]
-
-# Manually check mismatches
-# i.e. check if any alias is present in OmniPath
-# some e.g. CD3 are proteins with multiple gene subunts
-adt_manual <- list("CD3" = c("CD3D", "CD3E", "CD3E", "CD3G", "CD3Z"),
-     "CD45RA" = "PTPRC",
-     "CD45RO" = "PTPRC",
-     "HLA-DR" = "CD74"
-     ) %>%
-    enframe(name = "adt_symbol",
-            value = "alias_symbol") %>%
-    unnest(alias_symbol)
-
-#' convert ADTs to aliases
-#' @param adt_names names to be queried (i.e. sce/seurat rownames)
-adt_match <- map(adt_symbols,
-                 function(name){
-                     alias_table %>%
-                         filter(alias_symbol==stringr::str_to_upper(name)) %>%
-                         dplyr::rename(adt_symbol = alias_symbol,
-                                       alias_symbol = symbol)
-                 }) %>% bind_rows()
-
-# expand to all aliases
-adt_aliases <- bind_rows(adt_manual,
-                         adt_match)
-
-# check if all matched
-adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% stringr::str_to_upper(adt_aliases$adt_symbol))]
-
-
-# ^ this we join to the object to expand to each possible symbol
-# check which ones match any gene in the object
-
-
+adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce))
+adt_aliases
 
 # Get ADT stats ----
+adt_means <- get_adt_means(sce = sce,
+              receptor_syms = op_resource$target_genesymbol)
+
+# Join to liana results
+liana_res2 <- liana_res %>%
+    filter(receptor %in% adt_means$entity_symbol) %>%
+    dplyr::select(source, ligand, target, receptor, ends_with("rank")) %>%
+    pivot_longer(c(ligand,receptor),
+                 names_to = "type",
+                 values_to = "entity_symbol") %>%
+    filter(type == "receptor") %>%
+    distinct()
+
+liana_adt <- liana_res2 %>%
+    left_join(adt_means) %>%
+    dplyr::select(ends_with("rank"), starts_with("adt")) %>%
+    pivot_longer(-c(adt_scale, adt_mean))
+
+
+set.seed(1)
+adt_corr <- liana_adt %>%
+    group_by(name) %>%
+    nest() %>%
+    mutate(mean_model = map(data, ~corr_fun(.x, var="adt_mean"))) %>%
+    mutate(scale_model = map(data, ~corr_fun(.x, var="adt_scale")))
+
+
+
+
+
+
+
+# Check correlations
+mean_corr <- adt_corr %>%
+    dplyr::select(name, mean_model) %>%
+    unnest(cols = c(mean_model)) %>%
+    mutate(mean_mlog10p = -log10(p.value)) %>%
+    dplyr::select(name, mean_pval = p.value, mean_estimate = estimate)
+
+scale_corr <- adt_corr %>%
+    dplyr::select(name, scale_model) %>%
+    unnest(cols = c(scale_model)) %>%
+    dplyr::select(name, scale_pval = p.value, scale_estimate = estimate)
+
+
+corr_format <- mean_corr %>%
+    # join
+    left_join(scale_corr) %>%
+    dplyr::rename("method" = name) %>%
+    pivot_longer(-method,
+                 names_to = "corr_type") %>%
+    separate(corr_type, into = c("metric", "stat")) %>%
+    pivot_wider(names_from = stat,
+                values_from = value) %>%
+    mutate(significant = if_else(pval <= 0.05, TRUE, FALSE)) %>%
+    dplyr::select(-pval) %>%
+    ungroup()
+
+
+
+# plot
+corr_format %>%
+    # remove Mean/Median ranks
+    filter(!(method %in% c("median_rank", "mean_rank"))) %>%
+    # rename methods
+    mutate(method = str_to_title(method)) %>%
+    mutate(method = gsub("\\..*","",method)) %>%
+    mutate(estimate = -1*estimate) %>% # reverse negative estimates
+    # rename metrics
+    mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
+    mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
+    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
+    ggplot(aes(x = metric, y = estimate, colour = method, shape = significant)) +
+    geom_point(size = 6, position = position_dodge(w = 0.05)) +
+    xlab("Expression Type") +
+    ylab("Kendal's tau Correlation Coefficients") +
+    theme_minimal(base_size = 24) +
+    labs(colour = "Method", shape="Significant")
+
+
+
+
 # Get Summary per clust and Join alias_symbols ----
 test_summ <- scuttle::summarizeAssayByGroup(sce,
                                             ids = colLabels(sce),
-                                            assay.type = "data")
+                                            assay.type = "data",
+                                            statistics = c("mean",
+                                                           "prop.detected"))
+
+
+
 test_summ@colData
 means <- test_summ@assays@data$mean %>% # gene mean across cell types
     as_tibble(rownames = "entity_symbol") %>%
     mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+    # Join alias names and rename entity symbol to newly-obtained alias symbol
+    # purpose being to be able to join to the gene symbols in the RNA assay
     left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
     dplyr::select(-c(entity_symbol)) %>%
     dplyr::select(entity_symbol = alias_symbol, everything())
