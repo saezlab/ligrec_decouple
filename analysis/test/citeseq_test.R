@@ -63,10 +63,32 @@ saveRDS(liana_res, "data/output/test_citeseq_02prop.RDS")
 
 
 # CiteSeq ----
+
+
+# Function
+get_adt_summary <- function(seurat_object,){
+    # Get Symbols of Receptors from OP
+    op_resource <- select_resource("OmniPath")[[1]]
+    receptor_syms <- c(op_resource$target_genesymbol)
+
+    # convert to singlecell object
+    sce <- SingleCellExperiment::SingleCellExperiment(
+        assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+                    data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+        colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
+    )
+}
+
+
+
 ## Read the above results
 seurat_object <- readRDS("data/input/cmbc_seurat_test.RDS")
 liana_res <- readRDS("data/output/test_citeseq_01prop.RDS")
+
+# Get Symbols of Receptors from OP
 op_resource <- select_resource("OmniPath")[[1]]
+receptor_syms <- c(op_resource$target_genesymbol)
+
 
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
@@ -74,7 +96,6 @@ sce <- SingleCellExperiment::SingleCellExperiment(
                 data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
     colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
 )
-
 
 # Filter ADT Controls
 sce <- sce[!(rownames(sce) %in% c("IgG1", "IgG2a", "IgG2b")),]
@@ -104,20 +125,15 @@ adt_manual <- list("CD3" = c("CD3D", "CD3E", "CD3E", "CD3G", "CD3Z"),
             value = "alias_symbol") %>%
     unnest(alias_symbol)
 
-
-#' Function to convert ADTs to aliases
+#' convert ADTs to aliases
 #' @param adt_names names to be queried (i.e. sce/seurat rownames)
-adt_match <- map(rownames(sce),
-    function(name){
-
-        alias_table %>%
-            filter(alias_symbol==stringr::str_to_upper(name)) %>%
-            dplyr::rename(adt_symbol = alias_symbol,
-                          alias_symbol = symbol)
-        }) %>%
-    bind_rows()
-
-
+adt_match <- map(adt_symbols,
+                 function(name){
+                     alias_table %>%
+                         filter(alias_symbol==stringr::str_to_upper(name)) %>%
+                         dplyr::rename(adt_symbol = alias_symbol,
+                                       alias_symbol = symbol)
+                 }) %>% bind_rows()
 
 # expand to all aliases
 adt_aliases <- bind_rows(adt_manual,
@@ -155,8 +171,6 @@ props <- test_summ@assays@data$prop.detected %>% # gene prop
 props
 
 
-# Get Symbols of Receptors in OP
-receptor_syms <- c(op_resource$target_genesymbol)
 
 
 # Format Means and Proportion Stats
