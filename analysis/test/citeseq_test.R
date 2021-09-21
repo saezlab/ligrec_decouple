@@ -81,20 +81,14 @@ get_adt_summary <- function(seurat_object,){
 
 
 
-## Read the above results
+## Load Seurat Object
 seurat_object <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs_seurat.RDS")
-liana_adt <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs-liana_res-0.1.RDS") %>%
-    liana_format_adt()
-
-
-
-
 
 # Get Symbols of Receptors from OP
 op_resource <- select_resource("OmniPath")[[1]]
 receptor_syms <- c(op_resource$target_genesymbol)
 cluster_key <- "seurat_clusters"
-# ^ inputs
+# ^ inputs (+ liana res)
 
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
@@ -113,54 +107,24 @@ sce <- sce[!(rownames(sce) %in% c("IgG1", "IgG2a", "IgG2b")),]
 adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce))
 adt_aliases
 
-# Get ADT stats ----
+# Get ADT stats and bind to LIANA res ----
 adt_means <- get_adt_means(sce = sce,
                            receptor_syms = op_resource$target_genesymbol)
+# bind to LIANA res
+liana_adt <- liana_format_adt(liana_res = readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs-liana_res-0.1.RDS"),
+                              adt_means = adt_means)
 
-# Join to liana results
-set.seed(1)
-adt_corr <- liana_adt %>%
-    group_by(name) %>%
-    nest() %>%
-    mutate(mean_model = map(data, ~corr_fun(.x, var="adt_mean"))) %>%
-    mutate(scale_model = map(data, ~corr_fun(.x, var="adt_scale")))
-
-
-
-# Check correlations
-mean_corr <- adt_corr %>%
-    dplyr::select(name, mean_model) %>%
-    unnest(cols = c(mean_model)) %>%
-    mutate(mean_mlog10p = -log10(p.value)) %>%
-    dplyr::select(name, mean_pval = p.value, mean_estimate = estimate)
-
-scale_corr <- adt_corr %>%
-    dplyr::select(name, scale_model) %>%
-    unnest(cols = c(scale_model)) %>%
-    dplyr::select(name, scale_pval = p.value, scale_estimate = estimate)
-
-
-corr_format <- mean_corr %>%
-    # join
-    left_join(scale_corr) %>%
-    dplyr::rename("method" = name) %>%
-    pivot_longer(-method,
-                 names_to = "corr_type") %>%
-    separate(corr_type, into = c("metric", "stat")) %>%
-    pivot_wider(names_from = stat,
-                values_from = value) %>%
-    mutate(significant = if_else(pval <= 0.05, TRUE, FALSE)) %>%
-    dplyr::select(-pval) %>%
-    ungroup()
+# Get Correlations ----
+set.seed(2) # actually does nothing
+adt_corr2 <- get_adt_correlations(liana_adt)
 
 # plot
-corr_format %>%
+adt_corr %>%
     # remove Mean/Median ranks
     filter(!(method %in% c("median_rank", "mean_rank"))) %>%
     # rename methods
     mutate(method = str_to_title(method)) %>%
-    mutate(method = gsub("\\..*","",method)) %>%
-    mutate(estimate = -1*estimate) %>% # reverse negative estimates
+    mutate(method = gsub("\\..*","", method)) %>%
     # rename metrics
     mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
     mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
@@ -171,6 +135,7 @@ corr_format %>%
     ylab("Kendal's tau Correlation Coefficients") +
     theme_minimal(base_size = 24) +
     labs(colour = "Method", shape="Significant")
+
 
 
 
