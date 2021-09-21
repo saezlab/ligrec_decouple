@@ -47,7 +47,7 @@ corr_list_01 <- list.files(citeseq_dir) %>%
     }) %>% setNames(list.files(citeseq_dir))
 
 # Plot LR-ADT corr per dataset
-corr_list  %>%
+corr_list %>%
     enframe() %>%
     unnest(value) %>%
     # remove Mean/Median ranks

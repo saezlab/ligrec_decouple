@@ -101,8 +101,10 @@ adt_lrcorr_summed %>%
 ### Step-by-Step ----
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
-    assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
-                data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+    assays=list(
+        counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+        data = GetAssayData(seurat_object, assay = "ADT", slot = "data")
+        ),
     colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
 )
 
@@ -116,16 +118,34 @@ sce <- sce[!(rownames(sce) %in% c("IgG1", "IgG2a", "IgG2b")),]
 adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce))
 adt_aliases
 
+
 # Get ADT stats and bind to LIANA res ----
 adt_means <- get_adt_means(sce = sce,
-                           receptor_syms = op_resource$target_genesymbol)
-# bind to LIANA res
+                           receptor_syms = op_resource$target_genesymbol,
+                           adt_aliases)
+
+
+
+# Correlation between ADT-Gene (for receptors as baseline) ----
+assays_corr <- get_assays_corr(seurat_object,
+                               cluster_key = "seurat_clusters",
+                               adt_means = adt_means)
+
+
+
+
+# Get LR-ADT Correlations ----
+# bind ADT means to LIANA res
 liana_adt <- liana_format_adt(liana_res = liana_res,
                               adt_means = adt_means)
 
-# Get Correlations ----
 set.seed(2) # actually does nothing
 adt_corr <- get_adt_correlations(liana_adt)
+
+
+#
+adt_corr %<>% bind_rows(assays_corr) %>%
+    mutate(metric = gsub("\\_.*","", metric))
 
 # plot
 adt_corr %>%
@@ -147,7 +167,62 @@ adt_corr %>%
 
 
 
+# Get RNA-ADT corr ----
+# get adt aliases
+sce_rna <- SingleCellExperiment::SingleCellExperiment(
+    assays=list(
+        counts = GetAssayData(seurat_object, assay = "RNA", slot = "counts"),
+        data = GetAssayData(seurat_object, assay = "RNA", slot = "data")
+    ),
+    colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
+)
 
+# called adt_means but simply runs means on sce object and formats the output
+mean_summary <- scuttle::summarizeAssayByGroup(sce_rna,
+                                               ids = colLabels(sce_rna),
+                                               assay.type = "data",
+                                               statistics = c("mean"))
+rna_means <- mean_summary@assays@data$mean %>%
+    # gene mean across cell types
+    as_tibble(rownames = "entity_symbol") %>%
+    mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+    # Join alias names and rename entity symbol to newly-obtained alias symbol
+    # purpose being to be able to join to the gene symbols in the RNA assay
+    # left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
+    # dplyr::select(-c(entity_symbol)) %>%
+    # keep only receptors present in OP
+    filter(entity_symbol %in% receptor_syms) %>%
+    pivot_longer(-entity_symbol,
+                 names_to = "target",
+                 values_to = "rna_mean") %>%
+    group_by(entity_symbol) %>%
+    # obtain across cluster scaled means
+    mutate(rna_scale = scale(rna_mean)) %>%
+    unnest(rna_scale) %>%
+    ungroup()
+
+
+
+rna_adt_join <- adt_aliases %>%
+    left_join(adt_means, by = c("alias_symbol"="entity_symbol")) %>%
+    left_join(rna_means, by = c("alias_symbol" = "entity_symbol", "target")) %>%
+    na.omit()
+
+
+mean_corr <- cor.test(rna_adt_join$adt_mean,
+                      rna_adt_join$rna_mean,
+                      method = "kendal") %>%
+    broom::tidy() %>%
+    mutate(metric = "mean")
+
+scale_corr <- cor.test(rna_adt_join$adt_scale,
+                       rna_adt_join$rna_scale,
+                       method = "kendal") %>%
+    broom::tidy() %>%
+    mutate(metric = "scale")
+
+bind_rows(mean_corr,
+          scale_corr)
 # Get Summary per clust and Join alias_symbols ----
 test_summ <- scuttle::summarizeAssayByGroup(sce,
                                             ids = colLabels(sce),

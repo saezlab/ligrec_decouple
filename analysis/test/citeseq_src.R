@@ -65,11 +65,83 @@ wrap_adt_corr <- function(seurat_object,
     # Get correlations between RNA-LR scores and ADT means
     adt_corr <- get_adt_correlations(liana_adt)
 
+    # Get correlation between ADT-RNA assays (receptors alone)
+    assays_corr <- get_assays_corr(seurat_object,
+                                   adt_means = adt_means,
+                                   adt_aliases = adt_aliases,
+                                   cluster_key = "seurat_clusters")
+
+    adt_corr %<>% bind_rows(assays_corr) %>%
+        mutate(metric = gsub("\\_.*","", metric))
+
     return(adt_corr)
 }
 
 
 
+#' Obtain ADT and RNA correlation
+#' @param seurat_object seurat object with RNA assay
+#' @param adt_means mean adt abundance per cluster, obtained via `get_adt_means`
+#' @param adt_aliases as obtained from `get_adt_aliases`
+#' @param cluster_key seurat cluster variable name
+#'
+#' @returns 2 row tibble, a row for correlation mean and scaled RNA-ADT
+get_assays_corr <- function(seurat_object,
+                            adt_means,
+                            adt_aliases,
+                            cluster_key = "seurat_clusters"){
+
+    sce_rna <- SingleCellExperiment::SingleCellExperiment(
+        assays=list(
+            counts = GetAssayData(seurat_object, assay = "RNA", slot = "counts"),
+            data = GetAssayData(seurat_object, assay = "RNA", slot = "data")
+        ),
+        colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
+    )
+
+    # called adt_means but simply runs means on sce object and formats the output
+    mean_summary <- scuttle::summarizeAssayByGroup(sce_rna,
+                                                   ids = colLabels(sce_rna),
+                                                   assay.type = "data",
+                                                   statistics = c("mean"))
+    rna_means <- mean_summary@assays@data$mean %>%
+        # gene mean across cell types
+        as_tibble(rownames = "entity_symbol") %>%
+        mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+        # keep only receptors present in OP
+        filter(entity_symbol %in% receptor_syms) %>%
+        pivot_longer(-entity_symbol,
+                     names_to = "target",
+                     values_to = "rna_mean") %>%
+        group_by(entity_symbol) %>%
+        # obtain across cluster scaled means
+        mutate(rna_scale = scale(rna_mean)) %>%
+        unnest(rna_scale) %>%
+        ungroup()
+
+    rna_adt_join <- adt_aliases %>%
+        left_join(adt_means, by = c("alias_symbol"="entity_symbol")) %>%
+        left_join(rna_means, by = c("alias_symbol" = "entity_symbol", "target")) %>%
+        na.omit()
+
+    mean_corr <- cor.test(rna_adt_join$adt_mean,
+                          rna_adt_join$rna_mean,
+                          method = "kendal") %>%
+        broom::tidy() %>%
+        mutate(metric = "mean")
+
+    scale_corr <- cor.test(rna_adt_join$adt_scale,
+                           rna_adt_join$rna_scale,
+                           method = "kendal") %>%
+        broom::tidy() %>%
+        mutate(metric = "scale")
+
+    adt_rna_corr <- bind_rows(mean_corr, scale_corr) %>%
+        mutate(method = "RNA-ADT") %>%
+        mutate(significant = if_else(p.value <= 0.05, TRUE, FALSE)) %>%
+        dplyr::select(method, estimate, metric, significant)
+    return(adt_rna_corr)
+}
 
 #' Correlation Helper Function
 #' @param df nested df
@@ -194,8 +266,7 @@ wrap_liana_wrap <- function(subdir, dir, expr_prop){
                             resource = "OmniPath",
                             expr_prop = expr_prop)
     # aggregate method results
-    liana_res %<>% liana_aggregate() %>%
-        mutate("expr_prop" = expr_prop)
+    liana_res %<>% liana_aggregate()
 
     message(str_glue("Saving liana_res to: ",
                      file.path(dir, subdir,
@@ -356,3 +427,4 @@ get_adt_correlations <- function(liana_adt){
         # reverse negative estimates (reverse rank - highest to first)
         mutate(estimate = -1*estimate)
 }
+
