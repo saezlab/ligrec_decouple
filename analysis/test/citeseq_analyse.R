@@ -32,7 +32,10 @@ corr_list <- list.files(citeseq_dir) %>%
                     cluster_key = "seurat_clusters",
                     liana_pattern = "liana_res-0.RDS"
         )
-    }) %>% setNames(list.files(citeseq_dir))
+    }) %>% setNames(list.files(citeseq_dir)) %>%
+    enframe() %>%
+    unnest(value) %>%
+    rename(dataset = name)
 
 corr_list_01 <- list.files(citeseq_dir) %>%
     map(function(subdir){
@@ -42,12 +45,13 @@ corr_list_01 <- list.files(citeseq_dir) %>%
                     cluster_key = "seurat_clusters",
                     liana_pattern = "liana_res-0.1.RDS"
         )
-    }) %>% setNames(list.files(citeseq_dir))
+    }) %>% setNames(list.files(citeseq_dir)) %>%
+    enframe() %>%
+    unnest(value) %>%
+    rename(dataset = name)
 
-# Plot LR-ADT corr per dataset
+# Plot LR-ADT corr per dataset (dotplot)
 corr_list %>%
-    enframe() %>%
-    unnest(value) %>%
     # remove Mean/Median ranks
     filter(!(method %in% c("median_rank", "mean_rank"))) %>%
     # rename methods
@@ -57,17 +61,35 @@ corr_list %>%
     mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
     mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
     mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
-    ggplot(aes(x = metric, y = estimate, colour = method, shape = name)) +
+    ggplot(aes(x = metric, y = estimate, colour = method, shape = dataset)) +
     geom_point(size = 6, position = position_dodge(w = 0.05)) +
     xlab("Expression Type") +
     ylab("Kendal's tau Correlation Coefficients") +
     theme_minimal(base_size = 24) +
     labs(colour = "Method", shape="Dataset")
 
-# plot with expr_prop 0.1
+
+
+corr_list %>%
+    # remove Mean/Median ranks
+    filter(!(method %in% c("median_rank", "mean_rank"))) %>%
+    # rename methods
+    mutate(method = str_to_title(method)) %>%
+    mutate(method = gsub("\\..*","", method)) %>%
+    # rename metrics
+    mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
+    mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
+    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
+    ggplot(aes(x = factor(method), y = estimate)) +
+    geom_boxplot(aes(fill = method), alpha = 0.20) +
+    geom_jitter(aes(color = method, shape = dataset), size = 4) +
+    xlab("") +
+    ylab("Kendal's tau Coefficient") +
+    theme_minimal(base_size = 24) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    facet_wrap(~metric, scales = "free")
+
 corr_list_01 %>%
-    enframe() %>%
-    unnest(value) %>%
     # remove Mean/Median ranks
     filter(!(method %in% c("median_rank", "mean_rank"))) %>%
     # rename methods
@@ -77,12 +99,11 @@ corr_list_01 %>%
     mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
     mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
     mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
-    ggplot(aes(x = metric, y = estimate, colour = method, shape = name)) +
-    geom_point(size = 6, position = position_dodge(w = 0.05)) +
-    xlab("Expression Type") +
-    ylab("Kendal's tau Correlation Coefficients") +
+    ggplot(aes(x = factor(method), y = estimate)) +
+    geom_boxplot(aes(fill = method), alpha = 0.20) +
+    geom_jitter(aes(color = method, shape = dataset), size = 4) +
+    xlab("") +
+    ylab("Kendal's tau Coefficient") +
     theme_minimal(base_size = 24) +
-    labs(colour = "Method", shape="Dataset")
-
-
-
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    facet_wrap(~metric, scales = "free")
