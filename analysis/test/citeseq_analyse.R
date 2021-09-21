@@ -13,9 +13,9 @@ citeseq_dir <- "data/input/citeseq/"
 # Iterate over all citeseq directories (i.e. datasets)
 list.files(citeseq_dir) %T>%
     # Load .h5 mat and cluster each, and save the appropriate Seurat object
-    # map(~load_and_cluster(subdir = .x, dir = citeseq_dir)) %T>%
+    map(~load_and_cluster(subdir = .x, dir = citeseq_dir)) %T>%
     # Run liana without expr_prop filtering
-    # map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0)) %T>%
+    map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0)) %T>%
     # Run liana with expr_prop filtering
     map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0.1))
 

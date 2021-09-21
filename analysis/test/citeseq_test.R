@@ -83,7 +83,12 @@ get_adt_summary <- function(seurat_object,){
 
 ## Read the above results
 seurat_object <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs_seurat.RDS")
-liana_res <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs-liana_res-0.1.RDS")
+liana_adt <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs-liana_res-0.1.RDS") %>%
+    liana_format_adt()
+
+
+
+
 
 # Get Symbols of Receptors from OP
 op_resource <- select_resource("OmniPath")[[1]]
@@ -110,34 +115,15 @@ adt_aliases
 
 # Get ADT stats ----
 adt_means <- get_adt_means(sce = sce,
-              receptor_syms = op_resource$target_genesymbol)
+                           receptor_syms = op_resource$target_genesymbol)
 
 # Join to liana results
-liana_res2 <- liana_res %>%
-    filter(receptor %in% adt_means$entity_symbol) %>%
-    dplyr::select(source, ligand, target, receptor, ends_with("rank")) %>%
-    pivot_longer(c(ligand,receptor),
-                 names_to = "type",
-                 values_to = "entity_symbol") %>%
-    filter(type == "receptor") %>%
-    distinct()
-
-liana_adt <- liana_res2 %>%
-    left_join(adt_means) %>%
-    dplyr::select(ends_with("rank"), starts_with("adt")) %>%
-    pivot_longer(-c(adt_scale, adt_mean))
-
-
 set.seed(1)
 adt_corr <- liana_adt %>%
     group_by(name) %>%
     nest() %>%
     mutate(mean_model = map(data, ~corr_fun(.x, var="adt_mean"))) %>%
     mutate(scale_model = map(data, ~corr_fun(.x, var="adt_scale")))
-
-
-
-
 
 
 
@@ -167,8 +153,6 @@ corr_format <- mean_corr %>%
     dplyr::select(-pval) %>%
     ungroup()
 
-
-
 # plot
 corr_format %>%
     # remove Mean/Median ranks
@@ -187,7 +171,6 @@ corr_format %>%
     ylab("Kendal's tau Correlation Coefficients") +
     theme_minimal(base_size = 24) +
     labs(colour = "Method", shape="Significant")
-
 
 
 
