@@ -1,0 +1,358 @@
+#' ADT-LR correlation pipeline Helper/Loader Function
+#' @param
+#' @inheritParams wrap_adt_corr
+#'
+#' @returns a tibble with summarized ADT-LR correlations
+#'
+#' @details Simply loads the needed seurat and liana objects and calls the
+#' `wrap_adt_corr` function/pipeline.
+#' `seurat_object_path` = seurat_object.RDS path
+#' `liana_res_path` = liana_res.RDS path
+load_adt_lr <- function(subdir = subdir,
+                        dir,
+                        sobj_pattern = "_seurat.RDS",
+                        liana_pattern,
+                        op_resource,
+                        cluster_key){
+
+    seurat_object_path <- list.subfiles(subdir = subdir,
+                                        dir = citeseq_dir,
+                                        pattern = sobj_pattern)
+
+
+    liana_res_path <- list.subfiles(subdir = subdir,
+                                    dir = citeseq_dir,
+                                    pattern = liana_pattern)
+
+    wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
+                  liana_res = readRDS(liana_res_path),
+                  op_resource,
+                  cluster_key)
+}
+
+
+#' ADT-LR correlation pipeline wrapper function
+#' @param seurat_object seurat_object with RNA and ADT assays
+#' @param op_resource omnipath-formatted resource
+#' @param cluster_key name of the vector in the seurat metadata
+#' @param liana_res liana results obtained for the same dataset as above
+#'
+#' @returns a tibble with summarized ADT-LR correlations
+wrap_adt_corr <- function(seurat_object,
+                          liana_res,
+                          op_resource,
+                          cluster_key){
+    # Get Symbols of Receptors from OP
+    receptor_syms <- c(op_resource$target_genesymbol)
+
+    # convert to singlecell object
+    sce <- SingleCellExperiment::SingleCellExperiment(
+        assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+                    data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+        colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
+    )
+
+    # Obtain adt genesymbols
+    adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce))
+
+    # Get ADT stats and bind to LIANA res
+    adt_means <- get_adt_means(sce = sce,
+                               receptor_syms = receptor_syms,
+                               adt_aliases = adt_aliases)
+    liana_adt <- liana_format_adt(liana_res = liana_res,
+                                  adt_means = adt_means)
+
+    # Get correlations between RNA-LR scores and ADT means
+    adt_corr <- get_adt_correlations(liana_adt)
+
+    return(adt_corr)
+}
+
+
+
+
+#' Correlation Helper Function
+#' @param df nested df
+#' @param var name of the variable
+#'
+#' @return cor.test result as tibble
+corr_fun <- function(df, var, method = "kendall"){
+    cor.test(df[[var]],
+             df$value,
+             method=method,
+             exact = FALSE
+    ) %>% broom::tidy()
+}
+
+
+#' Obtain ADT genes alias table
+#' @returns a table with gene symbol alaiases
+get_alias_table <- function(){
+
+    # load the annotation database
+    require(org.Hs.eg.db)
+
+    # first open the database connection
+    dbCon <- org.Hs.eg_dbconn()
+
+    # SQL query to get alias table and gene_info table
+    sql_query <- 'SELECT * FROM alias, gene_info WHERE alias._id == gene_info._id;'
+
+    # execute the query on the database
+    alias_table <- DBI::dbGetQuery(dbCon, sql_query) %>%
+        dplyr::select(-c("_id", "gene_name")) %>%
+        dplyr::select(-c("_id")) %>% # present twice for some reason
+        as_tibble()
+
+
+    return(alias_table)
+}
+
+
+#' Helper function to load 10x citeseq matrix, cluster, and save to file
+#' @param dir directory of all citeseq datasets
+#' @param subdir subdirectories with h5 files
+#' @param define the pattern to be loaded - i.e. .h5 for the 10x matrices
+#'
+#' @details saves the newly created seurat object in the appropriate subdir
+load_and_cluster <- function(dir, subdir, pattern = ".h5"){
+    message(str_glue("Loading: ",
+                     list.subfiles(subdir = subdir,
+                                   dir = dir,
+                                   pattern = pattern)
+    ))
+
+    # Load matrix
+    mats <- Seurat:::Read10X_h5(list.subfiles(subdir = subdir,
+                                              dir = dir,
+                                              pattern = pattern))
+    # remove adt_prefix and filter controls
+    rownames(mats$`Antibody Capture`) %<>%
+        gsub("\\_.*","", .) %>%
+        .[!grepl("control", .)]
+
+    # Convert to Seurat object and run default analysis
+    # (into function with silhuette score optimization)
+    seurat_object <- SeuratObject::CreateSeuratObject(counts = mats$`Gene Expression`)
+    seurat_object[["ADT"]] <- CreateAssayObject(counts = mats$`Antibody Capture`)
+    seurat_object %<>%
+        FindVariableFeatures(verbose = FALSE) %>%
+        NormalizeData(verbose = FALSE) %>%
+        ScaleData() %>%
+        RunPCA(verbose = FALSE) %>%
+        FindNeighbors(reduction = "pca") %>%
+        # need to optimize silhuette scores, and save the 'best' to seurat_clusters
+        FindClusters(resolution = 0.4, verbose = FALSE)
+
+    # Normalize ADT
+    seurat_object <- NormalizeData(seurat_object,
+                                   assay = "ADT",
+                                   normalization.method = "CLR")
+
+    # save the object
+    saveRDS(seurat_object,
+            file.path(dir, subdir, str_glue(subdir,
+                                            "seurat.RDS",
+                                            .sep="_")))
+}
+
+#' helper function to list files in a subdirectory
+#' @param subdir subdirectory in which to look for the files
+#' @param dir directory in which the subdir is located
+#' @inheritParams list.files
+#'
+#' @returns returns the full path and the file name
+list.subfiles <- function(subdir, dir, pattern = ".h5"){
+    file_p <- list.files(file.path(dir, subdir), pattern = pattern)
+    full_p <- file.path(dir, subdir, file_p)
+
+    return(full_p)
+}
+
+
+
+#' run LIANA on newly created Seurat files
+#' @param subdir
+#' @param dir
+#' @param expr_prop
+wrap_liana_wrap <- function(subdir, dir, expr_prop){
+    message(str_glue("Loading: ",
+                     list.subfiles(subdir = subdir,
+                                   dir = dir,
+                                   pattern = "_seurat.RDS")
+    ))
+
+    # load object
+    seurat_object <- readRDS(list.subfiles(subdir = subdir,
+                                           dir = dir,
+                                           pattern = "_seurat.RDS"))
+
+    # run liana
+    liana_res <- liana_wrap(seurat_object,
+                            squidpy.params=list(cluster_key = "seurat_clusters",
+                                                seed = as.integer(1)),
+                            resource = "OmniPath",
+                            expr_prop = expr_prop)
+    # aggregate method results
+    liana_res %<>% liana_aggregate() %>%
+        mutate("expr_prop" = expr_prop)
+
+    message(str_glue("Saving liana_res to: ",
+                     file.path(dir, subdir,
+                               str_glue(subdir,
+                                        "liana_res",
+                                        expr_prop,
+                                        ".RDS",
+                                        .sep="_")))
+    )
+
+    # save results
+    saveRDS(liana_res,
+            file.path(dir, subdir, str_glue(subdir,
+                                            "liana_res-{expr_prop}.RDS",
+                                            .sep="-")))
+}
+
+
+
+
+#' Function to obtain all aliases for the ADT assay of the Seurat object
+#' @param adt_symbols ADT names - i.e. rownames(sce or seurat_object)
+#' @returns A tibble with ADT names and associated gene aliases
+get_adt_aliases <- function(adt_symbols){
+
+    # obtain aliases
+    alias_table <- get_alias_table()
+
+    # check adts that are not in the alias_table
+    missing_adts <- adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% alias_table$alias_symbol)]
+    message(str_glue("Mismatched (to be taken from manual annotations): ",
+                     glue::glue_collapse(missing_adts, sep = ", ")))
+
+    # Manually check mismatches
+    # i.e. check if any alias is present in OmniPath
+    # some e.g. CD3 are proteins with multiple gene subunts
+    adt_manual <- list(
+        # aliases obtained from GeneCards
+        "CD3" = c("CD3D", "CD3E", "CD3E", "CD3G", "CD3Z"),
+        "CD45RA" = "PTPRC",
+        "CD45RO" = "PTPRC",
+        "HLA-DR" = "CD74"
+    ) %>%
+        enframe(name = "adt_symbol",
+                value = "alias_symbol") %>%
+        unnest(alias_symbol) %>%
+        # only keep the ones that are in the object
+        filter(!(alias_symbol %in% missing_adts))
+
+
+    #' convert ADTs to aliases
+    #' @param adt_names names to be queried (i.e. sce/seurat rownames)
+    adt_match <- map(adt_symbols,
+                     function(name){
+                         alias_table %>%
+                             filter(alias_symbol==stringr::str_to_upper(name)) %>%
+                             dplyr::rename(adt_symbol = alias_symbol,
+                                           alias_symbol = symbol)
+                     }) %>% bind_rows()
+
+    # expand to all aliases
+    adt_aliases <- bind_rows(adt_manual,
+                             adt_match)
+
+    # check if all matched
+    mismatched_adts <- adt_symbols[!(stringr::str_to_upper(adt_symbols) %in%
+                                         stringr::str_to_upper(adt_aliases$adt_symbol))]
+    message("Missing (should be only the controls): ",
+            glue::glue_collapse(mismatched_adts, sep = ", "))
+
+    return(adt_aliases)
+}
+
+
+
+
+#' Obtain formatted across cluster means
+#' @param sce SingleCellExperiment object with an active ADT assay
+#' @param receptor_syms Receptor symbols obtained from OmniPath
+#' @param adt_aliases tibble with ADT names and gene aliases for these proteins
+#'
+#' @returns a tibble with adt_means and adt_scale per cluster
+get_adt_means <- function(sce,
+                          receptor_syms,
+                          adt_aliases){
+    mean_summary <- scuttle::summarizeAssayByGroup(sce,
+                                                   ids = colLabels(sce),
+                                                   assay.type = "data",
+                                                   statistics = c("mean"))
+    mean_summary@assays@data$mean %>%
+        # gene mean across cell types
+        as_tibble(rownames = "entity_symbol") %>%
+        mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+        # Join alias names and rename entity symbol to newly-obtained alias symbol
+        # purpose being to be able to join to the gene symbols in the RNA assay
+        left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
+        dplyr::select(-c(entity_symbol)) %>%
+        dplyr::select(entity_symbol = alias_symbol, everything()) %>%
+        # keep only receptors present in OP
+        filter(entity_symbol %in% receptor_syms) %>%
+        pivot_longer(-entity_symbol,
+                     names_to = "target",
+                     values_to = "adt_mean") %>%
+        group_by(entity_symbol) %>%
+        # obtain across cluster scaled means
+        mutate(adt_scale = scale(adt_mean)) %>%
+        unnest(adt_scale) %>%
+        ungroup()
+}
+
+
+#' Format LIANA to ADT correlation pipeline
+#' @param liana_res aggregated LIANA res table
+#' @param adt_means adt means summary formatted as from `get_adt_means()`
+#'
+#' @returns a tibble with liana results for each receptor formatted according to
+#' the ADT correlation pipeline
+liana_format_adt <- function(liana_res, adt_means){
+    liana_res %>%
+        filter(receptor %in% adt_means$entity_symbol) %>%
+        dplyr::select(source, ligand, target, receptor, ends_with("rank")) %>%
+        pivot_longer(c(ligand,receptor),
+                     names_to = "type",
+                     values_to = "entity_symbol") %>%
+        filter(type == "receptor") %>%
+        distinct() %>%
+        left_join(adt_means, by = c("target", "entity_symbol")) %>%
+        dplyr::select(ends_with("rank"), starts_with("adt")) %>%
+        pivot_longer(-c(adt_scale, adt_mean),
+                     names_to = "method_name")
+}
+
+#' Obtain Correlations between LR-scores and ADT means
+#'
+#' @param liana_adt liana results joined to ADT summaries, as obtained from
+#' `liana_format_adt()`
+#'
+#' @returns A tibble with method, metric, positive correlation estimates, and
+#' whether the estimate is significant
+#'
+#' @details Note that since the ranks are ascending i.e. the most relevant
+#' LR score for each method has a rank of 1, so I flip sign of the correlation
+#' (i.e. highest rank number to highest expression)
+get_adt_correlations <- function(liana_adt){
+    liana_adt %>%
+        # obtain correlations
+        group_by(method_name) %>%
+        nest() %>%
+        mutate(mean_model = map(data, ~corr_fun(.x, var="adt_mean"))) %>%
+        mutate(scale_model = map(data, ~corr_fun(.x, var="adt_scale"))) %>%
+        ungroup() %>%
+        # format correlations
+        dplyr::select(-data) %>%
+        pivot_longer(-method_name, names_to = "metric") %>%
+        unnest(value) %>%
+        mutate(significant = if_else(p.value <= 0.05, TRUE, FALSE)) %>%
+        dplyr::select(method = method_name, metric, estimate, significant) %>%
+        # reverse negative estimates (reverse rank - highest to first)
+        mutate(estimate = -1*estimate)
+}
