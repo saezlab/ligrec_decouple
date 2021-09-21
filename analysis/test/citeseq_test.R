@@ -62,34 +62,43 @@ liana_res %<>% liana_aggregate()
 saveRDS(liana_res, "data/output/test_citeseq_02prop.RDS")
 
 
-# CiteSeq ----
-
-
-# Function
-get_adt_summary <- function(seurat_object,){
-    # Get Symbols of Receptors from OP
-    op_resource <- select_resource("OmniPath")[[1]]
-    receptor_syms <- c(op_resource$target_genesymbol)
-
-    # convert to singlecell object
-    sce <- SingleCellExperiment::SingleCellExperiment(
-        assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
-                    data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
-        colData=DataFrame(label=seurat_object@meta.data$seurat_clusters)
-    )
-}
-
-
-
+# Run CiteSeq Correlation pipeline ----
 ## Load Seurat Object
-seurat_object <- readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs_seurat.RDS")
+seurat_object <- readRDS("data/input/citeseq/5k_pbmcs_nextgem/5k_pbmcs_nextgem_seurat.RDS")
 
 # Get Symbols of Receptors from OP
 op_resource <- select_resource("OmniPath")[[1]]
 receptor_syms <- c(op_resource$target_genesymbol)
 cluster_key <- "seurat_clusters"
-# ^ inputs (+ liana res)
+liana_res <- readRDS("data/input/citeseq/5k_pbmcs_nextgem/5k_pbmcs_nextgem-liana_res-0.RDS")
 
+adt_lrcorr_summed <- wrap_adt_corr(seurat_object = seurat_object,
+                                   liana_res = liana_res,
+                                   op_resource = op_resource,
+                                   cluster_key = "seurat_clusters")
+
+adt_lrcorr_summed %>%
+    # remove Mean/Median ranks
+    filter(!(method %in% c("median_rank", "mean_rank"))) %>%
+    # rename methods
+    mutate(method = str_to_title(method)) %>%
+    mutate(method = gsub("\\..*","", method)) %>%
+    # rename metrics
+    mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
+    mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
+    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
+    ggplot(aes(x = metric, y = estimate, colour = method, shape = significant)) +
+    geom_point(size = 6, position = position_dodge(w = 0.05)) +
+    xlab("Expression Type") +
+    ylab("Kendal's tau Correlation Coefficients") +
+    theme_minimal(base_size = 24) +
+    labs(colour = "Method", shape="Significant")
+
+
+
+
+
+### Step-by-Step ----
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
     assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
@@ -111,12 +120,12 @@ adt_aliases
 adt_means <- get_adt_means(sce = sce,
                            receptor_syms = op_resource$target_genesymbol)
 # bind to LIANA res
-liana_adt <- liana_format_adt(liana_res = readRDS("data/input/citeseq/5k_pbmcs/5k_pbmcs-liana_res-0.1.RDS"),
+liana_adt <- liana_format_adt(liana_res = liana_res,
                               adt_means = adt_means)
 
 # Get Correlations ----
 set.seed(2) # actually does nothing
-adt_corr2 <- get_adt_correlations(liana_adt)
+adt_corr <- get_adt_correlations(liana_adt)
 
 # plot
 adt_corr %>%
