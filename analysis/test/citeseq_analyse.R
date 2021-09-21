@@ -4,9 +4,7 @@ require(SeuratDisk)
 require(liana)
 require(tidyverse)
 require(magrittr)
-
 source("analysis/test/citeseq_src.R")
-
 
 citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
