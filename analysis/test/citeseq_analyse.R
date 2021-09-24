@@ -16,12 +16,18 @@ op_resource <- select_resource("OmniPath")[[1]]
 
 # Iterate over all citeseq directories (i.e. datasets)
 list.files(citeseq_dir) %T>%
-    # Load .h5 mat and cluster each, and save the appropriate Seurat object
+    # Load 10x .h5 mat and cluster each, and save the appropriate Seurat object
     # map(~load_and_cluster(subdir = .x, dir = citeseq_dir, pattern = ".h5")) %T>%
     # Run liana without expr_prop filtering
-    map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0)) %T>%
+    # map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0)) %T>%
     # Run liana with expr_prop filtering
     map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0.1))
+    # Run with the original methods
+    # map(~wrap_liana_wrap(subdir = .x,
+    #                      dir = citeseq_dir,
+    #                      expr_prop = 0.1, # only applied to Squidpy and cellchat
+    #                      method = c("call_natmi", "call_connectome", "logfc",
+    #                                 "cellchat", "call_sca", "squidpy")))
 
 
 corr_list <- list.files(citeseq_dir) %>%

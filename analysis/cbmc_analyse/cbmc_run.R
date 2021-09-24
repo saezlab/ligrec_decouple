@@ -26,7 +26,7 @@ seurat_object@meta.data %<>%
     mutate(rna_annotations = as.factor(rna_annotations))
 saveRDS(seurat_object, "data/input/cbmc_seurat.rds")
 
-seurat_object <- readRDS("data/input/cbmc_seurat.rds")
+seurat_object <- readRDS("data/input/cbmc_seurat.RDS")
 
 
 

@@ -1,36 +1,3 @@
-#' ADT-LR correlation pipeline Helper/Loader Function
-#' @param
-#' @inheritParams wrap_adt_corr
-#'
-#' @returns a tibble with summarized ADT-LR correlations
-#'
-#' @details Simply loads the needed seurat and liana objects and calls the
-#' `wrap_adt_corr` function/pipeline.
-#' `seurat_object_path` = seurat_object.RDS path
-#' `liana_res_path` = liana_res.RDS path
-load_adt_lr <- function(subdir = subdir,
-                        dir,
-                        sobj_pattern = "_seurat.RDS",
-                        liana_pattern,
-                        op_resource,
-                        cluster_key){
-
-    seurat_object_path <- list.subfiles(subdir = subdir,
-                                        dir = citeseq_dir,
-                                        pattern = sobj_pattern)
-
-
-    liana_res_path <- list.subfiles(subdir = subdir,
-                                    dir = citeseq_dir,
-                                    pattern = liana_pattern)
-
-    wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
-                  liana_res = readRDS(liana_res_path),
-                  op_resource,
-                  cluster_key)
-}
-
-
 #' ADT-LR correlation pipeline wrapper function
 #' @param seurat_object seurat_object with RNA and ADT assays
 #' @param op_resource omnipath-formatted resource
@@ -76,6 +43,40 @@ wrap_adt_corr <- function(seurat_object,
         mutate(metric = gsub("\\_.*","", metric))
 
     return(adt_corr)
+}
+
+
+
+#' ADT-LR correlation pipeline Helper/Loader Function
+#' @param
+#' @inheritParams wrap_adt_corr
+#'
+#' @returns a tibble with summarized ADT-LR correlations
+#'
+#' @details Simply loads the needed seurat and liana objects and calls the
+#' `wrap_adt_corr` function/pipeline.
+#' `seurat_object_path` = seurat_object.RDS path
+#' `liana_res_path` = liana_res.RDS path
+load_adt_lr <- function(subdir = subdir,
+                        dir,
+                        sobj_pattern = "_seurat.RDS",
+                        liana_pattern,
+                        op_resource,
+                        cluster_key){
+
+    seurat_object_path <- list.subfiles(subdir = subdir,
+                                        dir = citeseq_dir,
+                                        pattern = sobj_pattern)
+
+
+    liana_res_path <- list.subfiles(subdir = subdir,
+                                    dir = citeseq_dir,
+                                    pattern = liana_pattern)
+
+    wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
+                  liana_res = readRDS(liana_res_path),
+                  op_resource,
+                  cluster_key)
 }
 
 
@@ -246,10 +247,15 @@ list.subfiles <- function(subdir, dir, pattern = ".h5"){
 
 
 #' run LIANA on newly created Seurat files
-#' @param subdir
-#' @param dir
-#' @param expr_prop
-wrap_liana_wrap <- function(subdir, dir, expr_prop){
+#' @param subdir subdirectory
+#' @param dir directory of citeseq input and output
+#' @param expr_prop proportion expressed
+#' @param method liana wrap method
+wrap_liana_wrap <- function(subdir,
+                            dir,
+                            expr_prop,
+                            method = c("natmi", "connectome", "logfc",
+                                       "cellchat", "sca", "squidpy")){
     message(str_glue("Loading: ",
                      list.subfiles(subdir = subdir,
                                    dir = dir,
@@ -266,6 +272,7 @@ wrap_liana_wrap <- function(subdir, dir, expr_prop){
                             squidpy.params=list(cluster_key = "seurat_clusters",
                                                 seed = as.integer(1)),
                             resource = "OmniPath",
+                            method = method,
                             expr_prop = expr_prop)
     # aggregate method results
     liana_res %<>% liana_aggregate()

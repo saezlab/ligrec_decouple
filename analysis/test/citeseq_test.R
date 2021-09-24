@@ -7,6 +7,7 @@ source("analysis/test/citeseq_src.R")
 
 
 
+
 # make this thing into a function
 # filter out any interactions that don't include the ADT-RNA intersect to save time. - tried gives different results :D
 # perform it with 3 datasets + 3 intervals (0, 0.05, 0.1, 0.2)
@@ -21,6 +22,8 @@ source("analysis/test/citeseq_src.R")
 # Only 7 receptors match to OmniPath LRs, if I consider also ligands it would be a higher number,
 # but very similar, but it would need to be separately, i.e. by source and target, so it becomes confusing
 # and in my opinion redundant - ligand and receptors overlap also.
+
+
 
 
 # Load matrix and convert to Seurat object ----
@@ -40,6 +43,13 @@ seurat_object %<>%
     RunPCA(verbose = TRUE) %>%
     FindNeighbors(reduction = "pca") %>%
     FindClusters(resolution = 0.4, verbose = TRUE)
+
+clust.anns <- str_glue("c{levels(seurat_object)}")
+names(clust.anns) <- levels(seurat_object)
+seurat_object <- RenameIdents(seurat_object, clust.anns)
+seurat_object@meta.data <- seurat_object@meta.data %>%
+    mutate(seurat_clusters = as.factor(str_glue("c{seurat_clusters}")))
+Idents(seurat_object)
 
 # Normalize ADT
 seurat_object <- NormalizeData(seurat_object,
@@ -65,6 +75,16 @@ saveRDS(liana_res, "data/output/test_citeseq_02prop.RDS")
 # Run CiteSeq Correlation pipeline ----
 ## Load Seurat Object
 seurat_object <- readRDS("data/input/citeseq/5k_pbmcs_nextgem/5k_pbmcs_nextgem_seurat.RDS")
+clust.anns <- str_glue("c{levels(seurat_object)}")
+names(clust.anns) <- levels(seurat_object)
+seurat_object <- RenameIdents(seurat_object, clust.anns)
+seurat_object@meta.data <- seurat_object@meta.data %>%
+    mutate(seurat_clusters = as.factor(str_glue("c{seurat_clusters}")))
+Idents(seurat_object)
+liana_wrap <- liana_wrap(seurat_object,
+                         method="call_natmi")
+
+
 
 # Get Symbols of Receptors from OP
 op_resource <- select_resource("OmniPath")[[1]]
