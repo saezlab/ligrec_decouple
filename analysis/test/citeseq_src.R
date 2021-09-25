@@ -36,11 +36,12 @@ wrap_adt_corr <- function(seurat_object,
     assays_corr <- get_assays_corr(seurat_object,
                                    adt_means = adt_means,
                                    adt_aliases = adt_aliases,
-                                   cluster_key = "seurat_clusters",
+                                   cluster_key = cluster_key,
                                    receptor_syms = receptor_syms)
 
     adt_corr %<>% bind_rows(assays_corr) %>%
-        mutate(metric = gsub("\\_.*","", metric))
+        mutate(metric = gsub("\\_.*","", metric)) %>%
+        mutate(n_genes = length(unique(adt_means$entity_symbol)))
 
     return(adt_corr)
 }
@@ -63,6 +64,8 @@ load_adt_lr <- function(subdir = subdir,
                         liana_pattern,
                         op_resource,
                         cluster_key){
+
+    message(str_glue("Calculating correlations on: {subdir}"))
 
     seurat_object_path <- list.subfiles(subdir = subdir,
                                         dir = citeseq_dir,
@@ -162,13 +165,16 @@ corr_fun <- function(df, var, method = "kendall"){
 
 #' Obtain ADT genes alias table
 #' @returns a table with gene symbol alaiases
-get_alias_table <- function(){
-
-    # load the annotation database
-    require(org.Hs.eg.db)
+get_alias_table <- function(organism="human"){
 
     # first open the database connection
-    dbCon <- org.Hs.eg_dbconn()
+    if(organism=="human"){
+        require(org.Hs.eg.db)
+        dbCon <- org.Hs.eg_dbconn()
+    } else if(organism=="mouse"){
+        require(org.Mm.eg.db)
+        dbCon <- org.Mm.eg_dbconn()
+    }
 
     # SQL query to get alias table and gene_info table
     sql_query <- 'SELECT * FROM alias, gene_info WHERE alias._id == gene_info._id;'
@@ -299,10 +305,11 @@ wrap_liana_wrap <- function(subdir,
 #' Function to obtain all aliases for the ADT assay of the Seurat object
 #' @param adt_symbols ADT names - i.e. rownames(sce or seurat_object)
 #' @returns A tibble with ADT names and associated gene aliases
-get_adt_aliases <- function(adt_symbols){
+get_adt_aliases <- function(adt_symbols,
+                            organism = "human"){
 
     # obtain aliases
-    alias_table <- get_alias_table()
+    alias_table <- get_alias_table(organism)
 
     # check adts that are not in the alias_table
     missing_adts <- adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% alias_table$alias_symbol)]
@@ -459,8 +466,8 @@ convert_to_murine <- function(op_resource){
                              mart = human,
                              martL = mouse,
                              attributesL = c("mgi_symbol")) %>%
-        rename(human_symbol = HGNC.symbol,
-               murine_symbol = MGI.symbol) %>%
+        dplyr::rename(human_symbol = HGNC.symbol,
+                      murine_symbol = MGI.symbol) %>%
         as_tibble()
 
     # intentionally we introduce duplicates, if needed
@@ -471,5 +478,7 @@ convert_to_murine <- function(op_resource){
         mutate(target_genesymbol = murine_symbol, .keep = "unused") %>%
         left_join(symbols_tibble, by=c("source_genesymbol"="human_symbol")) %>%
         mutate(source_genesymbol = murine_symbol, .keep = "unused") %>%
-        filter(!is.na(target_genesymbol) | !is.na(source_genesymbol))
+        filter(!is.na(target_genesymbol) | !is.na(source_genesymbol)) %>%
+        filter(!is.na(target_genesymbol)) %>%
+        filter(!is.na(source_genesymbol))
 }

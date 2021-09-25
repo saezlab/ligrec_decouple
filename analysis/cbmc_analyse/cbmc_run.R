@@ -8,23 +8,24 @@ require(Seurat)
 # SeuratData::InstallData("cbmc")
 
 cbmcdata <- SeuratData::LoadData("cbmc")
-
-
 cbmcdata@meta.data %<>%
     mutate(celltype = as.factor(rna_annotations)) %>%
     # remove + as it breaks Squidpy
     mutate(rna_annotations = str_replace_all(rna_annotations, "[+]", "")) %>%
     mutate(rna_annotations = str_replace(rna_annotations, "/", " "))  %>%
     mutate(rna_annotations = if_else(rna_annotations=="B", "B cell", rna_annotations)) %>%
-    filter(!(rna_annotations %in% c("Mouse", "Multiplets")))
+    # filter multiplets and mouse droplets
+    filter(!(rna_annotations %in% c("Mouse", "Multiplets", "T Mono doublets")))
 cbmcdata <- subset(cbmcdata, cells = rownames(cbmcdata@meta.data))
 cbmcdata <- Seurat::SetIdent(cbmcdata, value = cbmcdata@meta.data$rna_annotations)
 seurat_object <- cbmcdata %>%
     Seurat::NormalizeData() %>%
     Seurat::FindVariableFeatures()
+# name to seurat_cluster for consistency with other cmbc seurat objects
 seurat_object@meta.data %<>%
-    mutate(rna_annotations = as.factor(rna_annotations))
-saveRDS(seurat_object, "data/input/cbmc_seurat.rds")
+    mutate(seurat_clusters = as.factor(rna_annotations))
+Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
+saveRDS(seurat_object, "data/input/citeseq/cmbcs/cbmc_seurat.RDS")
 
 seurat_object <- readRDS("data/input/cbmc_seurat.RDS")
 

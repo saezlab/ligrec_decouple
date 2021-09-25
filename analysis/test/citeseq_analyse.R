@@ -107,9 +107,18 @@ corr_list_01 %>%
     mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
     ggplot(aes(x = factor(method), y = estimate)) +
     geom_boxplot(aes(fill = method), alpha = 0.20) +
-    geom_jitter(aes(color = method, shape = dataset), size = 4) +
+    geom_jitter(aes(color = method, shape = dataset, size = n_genes)) +
     xlab("") +
     ylab("Kendal's tau Coefficient") +
     theme_minimal(base_size = 24) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     facet_wrap(~metric, scales = "free")
+
+
+
+
+# CBMC test
+seurat_object = readRDS("data/input/citeseq/cmbcs/cbmc_seurat.RDS")
+test <- liana_wrap(seurat_object = seurat_object) %>%
+    liana_aggregate()
+saveRDS(test, "data/input/citeseq/cmbcs/cmbcs-liana_res-0.1.RDS")

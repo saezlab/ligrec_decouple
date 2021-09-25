@@ -392,5 +392,73 @@ liana_prop <- liana_res2 %>%
 
 
 
+### Run on Murine -----
+seurat_object <- readRDS("data/input/citeseq/spleen_lymph_206//spleen_lymph_206_seurat.RDS")
+op_resource <- liana::select_resource("OmniPath")[[1]] %>%
+    convert_to_murine()
+
+murine_liana <- liana_wrap(seurat_object,
+                           resource = "custom",
+                           external_resource = op_resource,
+                           expr_prop = 0.1)
+
+murine_liana$cellchat
+murine_liana$squidpy
 
 
+genes <- rownames(seurat_object)[rownames(seurat_object) %in%
+                            union(op_resource$target_genesymbol,
+                                  op_resource$source_genesymbol)]
+
+
+
+prots <- rownames(seurat_object@assays$ADT) %>%
+    as_tibble() %>%
+    filter(!str_detect(value, "Ctrl"))  %>%
+    filter(!str_detect(value, "Ligand")) %>%
+    mutate(adt = gsub("^[^-]+-\\s*", "", value)) %>%
+    mutate(adt = gsub("-[^-]*$", "", adt)) %>%
+    mutate(adt = gsub(")", "", adt)) %>%
+    separate(adt, into = c("adt", "add"), sep = "\\(")
+
+syms <- get_adt_aliases(str_to_title(prots$adt),
+                         organism = "mouse")
+
+murine_adt <- get_alias_table(organism = "mouse")
+
+syms[str_to_title(syms$alias_symbol) %in% genes,]
+
+genes[order(genes)]
+
+# Manual annotations obtained via NCBI, ENSMBL, and from the ADT's descriptions
+# With priority given to the ADT description
+# Cd107a = Lamp1
+# Cd11a = Itgal
+# Cd11b = Itgam
+# Cd11c = Itgax
+# Cd120b = Tnfrsf1b
+# Cd137 = Tnfrsf9
+# Cd14 = Cd14
+# Cd140a = Pdgfra
+# Cd152 = Ctla4
+# Cd159a = Klrc1
+# Cd16-32 = Fcgr3
+# Cd160 = By55
+# Cd163 = Cd163
+# Cd169 = c("Siglec-1", "Siglec1", "Sn")
+# Cd170 = c("Singlec-F")
+# Cd172 = "Sirpa"
+# Cd182 = Cxcr2
+# Cd183 = Cxcr3
+# Cd185 = Cxcr5
+# Cd186 = Cxcr6
+# Cd198 = Cxcr8
+# Cd200R3 = "Cd200r3"
+# Cd201 = "Procr"
+# Cd204 = "Msr1"
+# Cd207 = "CD207"
+# Cd21-Cd35 = c("Cr2","Cr1")
+# Cd22 = "Cd22"
+# Cd226 = "Dnam-1"
+# Cd253 = "Trail"
+# Cd26 = c("DPP-4","Dpp4", "Dpp-4)

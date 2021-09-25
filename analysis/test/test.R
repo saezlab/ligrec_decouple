@@ -55,3 +55,5 @@ res1 <- call_connectome(
 res1 <- liana_wrap(seurat_object,
                    method = c('italk', 'sca','connectome'),
                    resource = c('OmniPath'))
+
+
