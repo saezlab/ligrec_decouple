@@ -11,9 +11,7 @@ wrap_adt_corr <- function(seurat_object,
                           cluster_key,
                           organism = "human"){
     # Get Symbols of Receptors from OP
-    receptor_syms <- ifelse(rep(organism=="human", length(op_resource$target_genesymbol)),
-                            stringr::str_to_upper(op_resource$target_genesymbol),
-                            stringr::str_to_title(op_resource$target_genesymbol))
+    receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
 
     # convert to singlecell object
     sce <- SingleCellExperiment::SingleCellExperiment(
@@ -21,20 +19,29 @@ wrap_adt_corr <- function(seurat_object,
                     data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
         colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
     )
+    # Symbols from ADT assay
+    adt_symbols <- rownames(sce)
 
     # Obtain adt genesymbols
     if(organism == "mouse"){
         # obtain both mouse and human but convert to title
-        adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+        adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
                                        organism = "mouse") %>%
-            bind_rows(get_adt_aliases(adt_symbols = rownames(sce),
+            bind_rows(get_adt_aliases(adt_symbols = adt_symbols,
                                       organism = "human")) %>%
             mutate(across(everything(), str_to_title)) %>%
             distinct()
         } else{
-        adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+        adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
                                        organism = organism)
     }
+
+    # check if all matched
+    mismatched_adts <- adt_symbols[!(str_to_symbol(adt_symbols, organism) %in%
+                                         str_to_symbol(adt_aliases$adt_symbol, organism))]
+    message("Missing (ideally none): ",
+            glue::glue_collapse(mismatched_adts, sep = ", "))
+
 
 
     # Get ADT stats and bind to LIANA res
@@ -59,6 +66,7 @@ wrap_adt_corr <- function(seurat_object,
                                    receptor_syms = receptor_syms,
                                    organism = organism)
 
+    # format and count number of ADTs used in correlation
     adt_corr %<>% bind_rows(assays_corr) %>%
         mutate(metric = gsub("\\_.*","", metric)) %>%
         mutate(n_genes = length(unique(adt_means$entity_symbol)))
@@ -134,9 +142,7 @@ get_assays_corr <- function(seurat_object,
     rna_means <- mean_summary@assays@data$mean %>%
         # gene mean across cell types
         as_tibble(rownames = "entity_symbol") %>%
-        mutate(entity_symbol = ifelse(rep(organism=="human", length(entity_symbol)),
-                                      stringr::str_to_upper(entity_symbol),
-                                      stringr::str_to_title(entity_symbol))) %>%
+        mutate(entity_symbol = str_to_symbol(entity_symbol, organism)) %>%
         # keep only receptors present in OP
         filter(entity_symbol %in% receptor_syms) %>%
         pivot_longer(-entity_symbol,
@@ -335,7 +341,8 @@ get_adt_aliases <- function(adt_symbols,
     alias_table <- get_alias_table(organism)
 
     # check adts that are not in the alias_table
-    missing_adts <- adt_symbols[!(stringr::str_to_upper(adt_symbols) %in% alias_table$alias_symbol)]
+    missing_adts <- adt_symbols[!(str_to_symbol(adt_symbols, organism) %in%
+                                      str_to_symbol(alias_table$alias_symbol, organism))]
     message(str_glue("Mismatched (to be taken from manual annotations): ",
                      glue::glue_collapse(missing_adts, sep = ", ")))
 
@@ -352,16 +359,66 @@ get_adt_aliases <- function(adt_symbols,
             "HLA-DR" = "CD74"
         )
     } else if(organism=="mouse"){
-
+        manual_list <- list(
+            CD105 = c("Eng", "Endo"),
+            CD107a = c("Lamp1", "Perk"),
+            CD120b = c("Tnfrsf1b", "Tnfr2"),
+            CD16.32 = "Fcgr3",
+            CD198 = "Cxcr8",
+            CD199 = c("Ccr9", "Cmkbr10"),
+            CD201 = c("Procr", "Epcr"),
+            CD21.CD35 = c("Cr2","Cr1"),
+            CD278.1 = c("Icos, Ailim"),
+            CD300c.d = c("Cd300c", "Clm6"),
+            CD301a = c("Mgl", "Mgl1"),
+            CD301b= c("Mgl2"),
+            CD309.1 = c("Kdr","Flk1"),
+            CD326 = c("Epcam", "Tacstd1"),
+            CD34.1 = "CD34",
+            CD45.1 = c("Ptprc"),
+            CD45.2 = c("Ptprc"),
+            CD45R.B220 = c("Ptprc"),
+            CD49a = c("Itga1"),
+            CD90.1 = c("Thy1", "Thy-1"),
+            CD90.2 = c("Thy1", "Thy-1"),
+            D62E = c("Sele", "Elam-1"),
+            F4.80 = c("Adgre4", "Emr4"),
+            FceRIa = c("Fcer1g", "Fce1g"),
+            FolateReceptorb = c("Folr2", "Fbp2", "Folbp2"),
+            IL.21Receptor = c("Il21r", "Nilr"),
+            IL.33Ra = c("Il1rl1", "Ly84", "St2", "Ste2"),
+            Ly.49A = c("Klra1", "Ly-49", "Ly-49a", "Ly49", "Ly49A"),
+            Ly.6A.E = c("Sca-1", "Ly6e"),
+            Ly.6G = "Ly6g6e",
+            Ly.6G.Ly.6C = "Gr-1",
+            MAdCAM.1 = "Madcam1",
+            Mac.2 = "Lgals3",
+            NK.1.1 = c("Klrb1c", "Ly55c", "Nkrp1c"),
+            P2X7R = "P2rx7",
+            # leave out T-cell Receptor variants
+            # TCRVb13.1 = "Trbv13",
+            # TCRVb5.1,
+            # TCRVb8.1,
+            # TCRVr1.1.Cr4,
+            # TCRVr2,
+            # TCRVr3,
+            # TCRbchain,
+            # TCRr.d,
+            Tim.4 = c("Timd4", "Tim4"),
+            anti.P2RY12 = c("P2ry12", "P2y12")#,
+            # integrinb7,
+            # B6,
+            # B6.1
+        )
     }
-
 
     adt_manual <- manual_list %>%
         enframe(name = "adt_symbol",
                 value = "alias_symbol") %>%
         unnest(alias_symbol) %>%
         # only keep the ones that are in the object
-        filter(!(alias_symbol %in% missing_adts))
+        filter(!(alias_symbol %in% missing_adts)) %>%
+        mutate(across(.cols = everything(), ~str_to_symbol(string = .x,organism=organism)))
 
 
     #' convert ADTs to aliases
@@ -369,7 +426,7 @@ get_adt_aliases <- function(adt_symbols,
     adt_match <- map(adt_symbols,
                      function(name){
                          alias_table %>%
-                             filter(alias_symbol==stringr::str_to_upper(name)) %>%
+                             filter(alias_symbol==str_to_symbol(name, organism)) %>%
                              dplyr::rename(adt_symbol = alias_symbol,
                                            alias_symbol = symbol)
                      }) %>% bind_rows()
@@ -377,12 +434,6 @@ get_adt_aliases <- function(adt_symbols,
     # expand to all aliases
     adt_aliases <- bind_rows(adt_manual,
                              adt_match)
-
-    # check if all matched
-    mismatched_adts <- adt_symbols[!(stringr::str_to_upper(adt_symbols) %in%
-                                         stringr::str_to_upper(adt_aliases$adt_symbol))]
-    message("Missing (should be only the controls): ",
-            glue::glue_collapse(mismatched_adts, sep = ", "))
 
     return(adt_aliases)
 }
@@ -409,9 +460,7 @@ get_adt_means <- function(sce,
         # gene mean across cell types
         as_tibble(rownames = "entity_symbol") %>%
         rowwise() %>%
-        mutate(entity_symbol = ifelse(rep(organism=="human", length(entity_symbol)),
-                                      stringr::str_to_upper(entity_symbol),
-                                      stringr::str_to_title(entity_symbol))) %>%
+        mutate(entity_symbol = str_to_symbol(entity_symbol, organism)) %>%
         # Join alias names and rename entity symbol to newly-obtained alias symbol
         # purpose being to be able to join to the gene symbols in the RNA assay
         left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
