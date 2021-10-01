@@ -176,14 +176,8 @@ seurat_object <- readRDS("data/input/citeseq/spleen_lymph_206/spleen_lymph_206_s
 liana_res <- readRDS("data/input/citeseq/spleen_lymph_206/spleen_lymph_206-liana_res-0.1.RDS")
 murine_resource <- liana::select_resource("OmniPath")[[1]] %>%
     convert_to_murine()
-
-
-xd <- load_adt_lr(dir = citeseq_dir,
-                  subdir = "spleen_lymph_206",
-                  op_resource = op_resource,
-                  cluster_key = "seurat_clusters", # intentionally converted to this name
-                  liana_pattern = "liana_res-0.1.RDS"
-                  )
+cluster_key = "seurat_clusters"
+organism = "mouse"
 
 xx <- wrap_adt_corr(seurat_object = seurat_object,
                     liana_res = liana_res,
@@ -192,13 +186,14 @@ xx <- wrap_adt_corr(seurat_object = seurat_object,
                     organism = "mouse"
                     )
 
+xx
+
 ##
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
     assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
                 data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
-    colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
-)
+    colData=DataFrame(label=seurat_object@meta.data[[cluster_key]]))
 
 # Obtain adt genesymbols
 adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
@@ -225,7 +220,9 @@ liana_adt <- liana_format_adt(liana_res = liana_res,
 
 #
 # Get Symbols of Receptors from OP
-receptor_syms <- c(op_resource$target_genesymbol)
+receptor_syms <- ifelse(rep(organism=="human", length(op_resource$target_genesymbol)),
+                        stringr::str_to_upper(op_resource$target_genesymbol),
+                        stringr::str_to_title(op_resource$target_genesymbol))
 
 # convert to singlecell object
 sce <- SingleCellExperiment::SingleCellExperiment(
@@ -249,6 +246,36 @@ if(organism == "mouse"){
 }
 
 
+
+mean_summary <- scuttle::summarizeAssayByGroup(sce,
+                                               ids = colLabels(sce),
+                                               assay.type = "data",
+                                               statistics = c("mean"))
+
+xd <- mean_summary@assays@data$mean %>%
+    # gene mean across cell types
+    as_tibble(rownames = "entity_symbol") %>%
+    rowwise() %>%
+    mutate(entity_symbol = ifelse(organism=="human",
+                                  stringr::str_to_upper(entity_symbol),
+                                  stringr::str_to_title(entity_symbol))) %>%
+    # Join alias names and rename entity symbol to newly-obtained alias symbol
+    # purpose being to be able to join to the gene symbols in the RNA assay
+    left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
+    dplyr::select(-c(entity_symbol)) %>%
+    dplyr::select(entity_symbol = alias_symbol, everything()) %>%
+    # # keep only receptors present in OP
+    filter(entity_symbol %in% stringr::str_to_title(receptor_syms)) %>%
+    pivot_longer(-entity_symbol,
+                 names_to = "target",
+                 values_to = "adt_mean") %>%
+    group_by(entity_symbol) %>%
+    # obtain across cluster scaled means
+    mutate(adt_scale = scale(adt_mean)) %>%
+    unnest(adt_scale) %>%
+    ungroup()
+
+
 # Get ADT stats and bind to LIANA res
 adt_means <- get_adt_means(sce = sce,
                            receptor_syms = receptor_syms,
@@ -265,4 +292,5 @@ assays_corr <- get_assays_corr(seurat_object,
                                adt_means = adt_means,
                                adt_aliases = adt_aliases,
                                cluster_key = cluster_key,
-                               receptor_syms = receptor_syms)
+                               receptor_syms = receptor_syms,
+                               organism = organism)

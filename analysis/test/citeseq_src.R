@@ -11,7 +11,9 @@ wrap_adt_corr <- function(seurat_object,
                           cluster_key,
                           organism = "human"){
     # Get Symbols of Receptors from OP
-    receptor_syms <- c(op_resource$target_genesymbol)
+    receptor_syms <- ifelse(rep(organism=="human", length(op_resource$target_genesymbol)),
+                            stringr::str_to_upper(op_resource$target_genesymbol),
+                            stringr::str_to_title(op_resource$target_genesymbol))
 
     # convert to singlecell object
     sce <- SingleCellExperiment::SingleCellExperiment(
@@ -36,6 +38,7 @@ wrap_adt_corr <- function(seurat_object,
 
 
     # Get ADT stats and bind to LIANA res
+    message("Calculating ADT Means")
     adt_means <- get_adt_means(sce = sce,
                                receptor_syms = receptor_syms,
                                adt_aliases = adt_aliases,
@@ -44,14 +47,17 @@ wrap_adt_corr <- function(seurat_object,
                                   adt_means = adt_means)
 
     # Get correlations between RNA-LR scores and ADT means
+    message("Calculating ADT-LR Correlations")
     adt_corr <- get_adt_correlations(liana_adt)
 
     # Get correlation between ADT-RNA assays (receptors alone)
+    message("Calculating RNA-ADT Correlations")
     assays_corr <- get_assays_corr(seurat_object,
                                    adt_means = adt_means,
                                    adt_aliases = adt_aliases,
                                    cluster_key = cluster_key,
-                                   receptor_syms = receptor_syms)
+                                   receptor_syms = receptor_syms,
+                                   organism = organism)
 
     adt_corr %<>% bind_rows(assays_corr) %>%
         mutate(metric = gsub("\\_.*","", metric)) %>%
@@ -109,7 +115,8 @@ get_assays_corr <- function(seurat_object,
                             adt_means,
                             adt_aliases,
                             cluster_key = "seurat_clusters",
-                            receptor_syms){
+                            receptor_syms,
+                            organism){
 
     sce_rna <- SingleCellExperiment::SingleCellExperiment(
         assays=list(
@@ -127,7 +134,9 @@ get_assays_corr <- function(seurat_object,
     rna_means <- mean_summary@assays@data$mean %>%
         # gene mean across cell types
         as_tibble(rownames = "entity_symbol") %>%
-        mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+        mutate(entity_symbol = ifelse(rep(organism=="human", length(entity_symbol)),
+                                      stringr::str_to_upper(entity_symbol),
+                                      stringr::str_to_title(entity_symbol))) %>%
         # keep only receptors present in OP
         filter(entity_symbol %in% receptor_syms) %>%
         pivot_longer(-entity_symbol,
@@ -333,13 +342,21 @@ get_adt_aliases <- function(adt_symbols,
     # Manually check mismatches
     # i.e. check if any alias is present in OmniPath
     # some e.g. CD3 are proteins with multiple gene subunts
-    adt_manual <- list(
-        # aliases obtained from GeneCards
-        "CD3" = c("CD3D", "CD3E", "CD3E", "CD3G", "CD3Z"),
-        "CD45RA" = "PTPRC",
-        "CD45RO" = "PTPRC",
-        "HLA-DR" = "CD74"
-    ) %>%
+
+    if(organism=="human"){
+        manual_list <- list(
+            # aliases obtained from GeneCards
+            "CD3" = c("CD3D", "CD3E", "CD3E", "CD3G", "CD3Z"),
+            "CD45RA" = "PTPRC",
+            "CD45RO" = "PTPRC",
+            "HLA-DR" = "CD74"
+        )
+    } else if(organism=="mouse"){
+
+    }
+
+
+    adt_manual <- manual_list %>%
         enframe(name = "adt_symbol",
                 value = "alias_symbol") %>%
         unnest(alias_symbol) %>%
@@ -392,7 +409,7 @@ get_adt_means <- function(sce,
         # gene mean across cell types
         as_tibble(rownames = "entity_symbol") %>%
         rowwise() %>%
-        mutate(entity_symbol = ifelse(organism=="human",
+        mutate(entity_symbol = ifelse(rep(organism=="human", length(entity_symbol)),
                                       stringr::str_to_upper(entity_symbol),
                                       stringr::str_to_title(entity_symbol))) %>%
         # Join alias names and rename entity symbol to newly-obtained alias symbol
@@ -500,4 +517,16 @@ convert_to_murine <- function(op_resource){
         filter(!is.na(target_genesymbol) | !is.na(source_genesymbol)) %>%
         filter(!is.na(target_genesymbol)) %>%
         filter(!is.na(source_genesymbol))
+}
+
+#' Helper function to convert from str to symbol
+#' @param
+#' @inheritDotParams str_to_title
+#'
+str_to_symbol <- function(string, organism,...){
+    if(organism=="human"){
+        str_to_upper(string, ...)
+    } else if(organism=="mouse"){
+        str_to_title(string, ...)
+    }
 }
