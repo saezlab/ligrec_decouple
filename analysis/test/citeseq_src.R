@@ -91,7 +91,8 @@ load_adt_lr <- function(subdir = subdir,
                         sobj_pattern = "_seurat.RDS",
                         liana_pattern,
                         op_resource,
-                        cluster_key){
+                        cluster_key,
+                        organism = "human"){
 
     message(str_glue("Calculating correlations on: {subdir}"))
 
@@ -107,7 +108,8 @@ load_adt_lr <- function(subdir = subdir,
     wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
                   liana_res = readRDS(liana_res_path),
                   op_resource,
-                  cluster_key)
+                  cluster_key,
+                  organism = organism)
 }
 
 
@@ -289,8 +291,7 @@ list.subfiles <- function(subdir, dir, pattern = ".h5"){
 wrap_liana_wrap <- function(subdir,
                             dir,
                             expr_prop,
-                            method = c("natmi", "connectome", "logfc",
-                                       "cellchat", "sca", "squidpy")){
+                            ...){
     message(str_glue("Loading: ",
                      list.subfiles(subdir = subdir,
                                    dir = dir,
@@ -304,11 +305,8 @@ wrap_liana_wrap <- function(subdir,
 
     # run liana
     liana_res <- liana_wrap(seurat_object,
-                            squidpy.params=list(cluster_key = "seurat_clusters",
-                                                seed = as.integer(1)),
-                            resource = "OmniPath",
-                            method = method,
-                            expr_prop = expr_prop)
+                            expr_prop = expr_prop,
+                            ...)
     # aggregate method results
     liana_res %<>% liana_aggregate()
 
