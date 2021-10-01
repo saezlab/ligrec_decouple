@@ -21,7 +21,7 @@ list.files(citeseq_dir) %T>%
     # Run liana without expr_prop filtering
     # map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0)) %T>%
     # Run liana with expr_prop filtering
-    map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0.1))
+    # map(~wrap_liana_wrap(subdir = .x, dir = citeseq_dir, expr_prop = 0.1))
     # Run with the original methods
     # map(~wrap_liana_wrap(subdir = .x,
     #                      dir = citeseq_dir,
@@ -45,16 +45,27 @@ corr_list <- list.files(citeseq_dir) %>%
 
 corr_list_01 <- list.files(citeseq_dir) %>%
     map(function(subdir){
-        load_adt_lr(dir = citeseq_dir,
-                    subdir = subdir,
-                    op_resource = op_resource,
-                    cluster_key = "seurat_clusters",
-                    liana_pattern = "liana_res-0.1.RDS"
-        )
+        # If mouse, load convert use murine-specific conversion
+        if(stringr::str_detect(subdir, pattern = "spleen")){
+        } else { # human
+            load_adt_lr(dir = citeseq_dir,
+                        subdir = subdir,
+                        op_resource = op_resource,
+                        cluster_key = "seurat_clusters",
+                        liana_pattern = "liana_res-0.1.RDS"
+            )
+        }
+
     }) %>% setNames(list.files(citeseq_dir)) %>%
     enframe() %>%
     unnest(value) %>%
     rename(dataset = name)
+
+
+
+
+
+
 
 # Plot LR-ADT corr per dataset (dotplot)
 corr_list %>%
@@ -122,3 +133,136 @@ seurat_object = readRDS("data/input/citeseq/cmbcs/cbmc_seurat.RDS")
 test <- liana_wrap(seurat_object = seurat_object) %>%
     liana_aggregate()
 saveRDS(test, "data/input/citeseq/cmbcs/cmbcs-liana_res-0.1.RDS")
+
+
+
+### Run on Murine -----
+seurat_object <- readRDS("data/input/citeseq/spleen_lymph_206//spleen_lymph_206_seurat.RDS")
+op_resource <- liana::select_resource("OmniPath")[[1]] %>%
+    convert_to_murine()
+
+murine_liana_206 <- liana_wrap(seurat_object,
+                               resource = "custom",
+                               external_resource = op_resource,
+                               expr_prop = 0.1,
+                               cellchat.params=list(organism="mouse"))
+
+# everything to title (some that are nottotitle will be mismatched otherwise, due to the upper of squidpy)
+murine_liana %<>% map(function(res) res %>% mutate_at(.vars = c("ligand", "receptor"), str_to_title))
+
+murine_liana %<>% liana_aggregate
+saveRDS(murine_liana_206, "data/input/citeseq/spleen_lymph_206/spleen_lymph_206-liana_res-0.1.RDS")
+
+
+
+# 111 ----
+seurat_object <- readRDS("data/input/citeseq/spleen_lymph_101/spleen_lymph_111_seurat.RDS")
+op_resource <- liana::select_resource("OmniPath")[[1]] %>%
+    convert_to_murine()
+
+murine_liana_111 <- liana_wrap(seurat_object,
+                               resource = "custom",
+                               external_resource = op_resource,
+                               expr_prop = 0.1,
+                               cellchat.params=list(organism="mouse"))
+
+murine_liana_111$squidpy %<>%
+    mutate_at(.vars = c("ligand", "receptor"), str_to_title)
+murine_liana_111 %<>% liana_aggregate
+saveRDS(murine_liana_111, "data/input/citeseq/spleen_lymph_101//spleen_lymph_111-liana_res-0.1.RDS")
+
+### Murine Corr
+seurat_object <- readRDS("data/input/citeseq/spleen_lymph_206/spleen_lymph_206_seurat.RDS")
+liana_res <- readRDS("data/input/citeseq/spleen_lymph_206/spleen_lymph_206-liana_res-0.1.RDS")
+murine_resource <- liana::select_resource("OmniPath")[[1]] %>%
+    convert_to_murine()
+
+
+xd <- load_adt_lr(dir = citeseq_dir,
+                  subdir = "spleen_lymph_206",
+                  op_resource = op_resource,
+                  cluster_key = "seurat_clusters", # intentionally converted to this name
+                  liana_pattern = "liana_res-0.1.RDS"
+                  )
+
+xx <- wrap_adt_corr(seurat_object = seurat_object,
+                    liana_res = liana_res,
+                    op_resource = murine_resource,
+                    cluster_key = "seurat_clusters", # constently using to this name
+                    organism = "mouse"
+                    )
+
+##
+# convert to singlecell object
+sce <- SingleCellExperiment::SingleCellExperiment(
+    assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+                data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+    colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
+)
+
+# Obtain adt genesymbols
+adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+                               organism = "mouse") %>%
+    bind_rows(get_adt_aliases(adt_symbols = rownames(sce),
+                              organism = "human")) %>%
+    mutate(across(everything(), str_to_title)) %>%
+    distinct()
+
+# Get Symbols of Receptors from OP
+receptor_syms <- c(murine_resource$target_genesymbol)
+
+
+# Get ADT stats and bind to LIANA res
+adt_means <- get_adt_means(sce = sce,
+                           receptor_syms = receptor_syms,
+                           adt_aliases = adt_aliases,
+                           organism = "mouse")
+
+liana_adt <- liana_format_adt(liana_res = liana_res,
+                              adt_means = adt_means)
+
+
+
+#
+# Get Symbols of Receptors from OP
+receptor_syms <- c(op_resource$target_genesymbol)
+
+# convert to singlecell object
+sce <- SingleCellExperiment::SingleCellExperiment(
+    assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+                data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+    colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
+)
+
+# Obtain adt genesymbols
+if(organism == "mouse"){
+    # obtain both mouse and human but convert to title
+    adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+                                   organism = "mouse") %>%
+        bind_rows(get_adt_aliases(adt_symbols = rownames(sce),
+                                  organism = "human")) %>%
+        mutate(across(everything(), str_to_title)) %>%
+        distinct()
+} else{
+    adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+                                   organism = organism)
+}
+
+
+# Get ADT stats and bind to LIANA res
+adt_means <- get_adt_means(sce = sce,
+                           receptor_syms = receptor_syms,
+                           adt_aliases = adt_aliases,
+                           organism = organism)
+liana_adt <- liana_format_adt(liana_res = liana_res,
+                              adt_means = adt_means)
+
+# Get correlations between RNA-LR scores and ADT means
+adt_corr <- get_adt_correlations(liana_adt)
+
+# Get correlation between ADT-RNA assays (receptors alone)
+assays_corr <- get_assays_corr(seurat_object,
+                               adt_means = adt_means,
+                               adt_aliases = adt_aliases,
+                               cluster_key = cluster_key,
+                               receptor_syms = receptor_syms)

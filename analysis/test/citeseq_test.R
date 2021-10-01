@@ -397,15 +397,40 @@ seurat_object <- readRDS("data/input/citeseq/spleen_lymph_206//spleen_lymph_206_
 op_resource <- liana::select_resource("OmniPath")[[1]] %>%
     convert_to_murine()
 
-murine_liana <- liana_wrap(seurat_object,
-                           resource = "custom",
-                           external_resource = op_resource,
-                           expr_prop = 0.1)
+murine_liana_206 <- liana_wrap(seurat_object,
+                               resource = "custom",
+                               external_resource = op_resource,
+                               expr_prop = 0.1,
+                               cellchat.params=list(organism="mouse"))
 
-murine_liana$cellchat
-murine_liana$squidpy
+# everything to title (some that are nottotitle will be mismatched otherwise, due to the upper of squidpy)
+murine_liana %<>% map(function(res) res %>% mutate_at(.vars = c("ligand", "receptor"), str_to_title))
+
+murine_liana %<>% liana_aggregate
+saveRDS(murine_liana_206, "data/input/citeseq/spleen_lymph_206/spleen_lymph_206-liana_res-0.1.RDS")
 
 
+
+# 111 ----
+seurat_object <- readRDS("data/input/citeseq/spleen_lymph_101/spleen_lymph_111_seurat.RDS")
+op_resource <- liana::select_resource("OmniPath")[[1]] %>%
+    convert_to_murine()
+
+murine_liana_111 <- liana_wrap(seurat_object,
+                               resource = "custom",
+                               external_resource = op_resource,
+                               expr_prop = 0.1,
+                               cellchat.params=list(organism="mouse"))
+
+murine_liana_111$squidpy %<>%
+    mutate_at(.vars = c("ligand", "receptor"), str_to_title)
+murine_liana_111 %<>% liana_aggregate
+saveRDS(murine_liana_111, "data/input/citeseq/spleen_lymph_101//spleen_lymph_111-liana_res-0.1.RDS")
+
+
+
+
+### Manually convert
 genes <- rownames(seurat_object)[rownames(seurat_object) %in%
                             union(op_resource$target_genesymbol,
                                   op_resource$source_genesymbol)]
@@ -422,37 +447,44 @@ prots <- rownames(seurat_object@assays$ADT) %>%
     separate(adt, into = c("adt", "add"), sep = "\\(")
 
 syms <- get_adt_aliases(str_to_title(prots$adt),
-                         organism = "mouse")
+                        organism = "human") %>%
+    bind_rows(get_adt_aliases(str_to_title(prots$adt),
+                              organism = "mouse")) %>%
+    mutate(across(everything(), str_to_title)) %>%
+    distinct()
+
 
 murine_adt <- get_alias_table(organism = "mouse")
 
-syms[str_to_title(syms$alias_symbol) %in% genes,]
+syms[str_to_title(syms$alias_symbol) %in% str_to_title(genes),]
+syms[str_to_title(syms$adt_symbol) %in% str_to_title(genes),]
+
 
 genes[order(genes)]
 
 # Manual annotations obtained via NCBI, ENSMBL, and from the ADT's descriptions
 # With priority given to the ADT description
-# Cd107a = Lamp1
-# Cd11a = Itgal
-# Cd11b = Itgam
-# Cd11c = Itgax
-# Cd120b = Tnfrsf1b
-# Cd137 = Tnfrsf9
-# Cd14 = Cd14
-# Cd140a = Pdgfra
+# Cd107a = "Lamp1"
+# Cd11a = "Itgal"
+# Cd11b = "Itgam"
+# Cd11c = "Itgax"
+# Cd120b = "Tnfrsf1b"
+# Cd137 = "Tnfrsf9"
+# Cd14 = "Cd14"
+# Cd140a = "Pdgfra"
 # Cd152 = Ctla4
-# Cd159a = Klrc1
-# Cd16-32 = Fcgr3
-# Cd160 = By55
-# Cd163 = Cd163
+# Cd159a = "Klrc1"
+# Cd16-32 = "Fcgr3"
+# Cd160 = "By55"
+# Cd163 = "Cd163"
 # Cd169 = c("Siglec-1", "Siglec1", "Sn")
 # Cd170 = c("Singlec-F")
 # Cd172 = "Sirpa"
-# Cd182 = Cxcr2
-# Cd183 = Cxcr3
-# Cd185 = Cxcr5
-# Cd186 = Cxcr6
-# Cd198 = Cxcr8
+# Cd182 = "Cxcr2"
+# Cd183 = "Cxcr3"
+# Cd185 = "Cxcr5"
+# Cd186 = "Cxcr6"
+# Cd198 = "Cxcr8"
 # Cd200R3 = "Cd200r3"
 # Cd201 = "Procr"
 # Cd204 = "Msr1"
@@ -462,3 +494,31 @@ genes[order(genes)]
 # Cd226 = "Dnam-1"
 # Cd253 = "Trail"
 # Cd26 = c("DPP-4","Dpp4", "Dpp-4)
+# Cd270 = c("Hvem", "Tnfrsf14")#
+# Cd272 = c("Btla")
+# Cd273 = "Pdcd1lg2"
+# Cd274 = "Cd274"
+# Cd278 = Cd278
+# Cd279 = c("B7h1", "Cd279", "Pdcd1l1", "Pdcd1lg1", "Pdl1")
+# Cd28 = "Cd28"
+# Cd300lg = Cd300lg
+# Cd301a = c("Mgl", "Mgl1", "CD301", "CD301a")
+# Cd301b = c("Mgl2", "CD301b")
+# Cd304 = c("Nrp1")
+# Cd309 = c("CD309", "Vegfr2-Flk-1", "Kdr")
+# Cd31 = c("Pecam1", "Pecam-1")
+
+adt_mat <- GetAssayData(seurat_object, assay = "ADT", slot = "data")
+
+
+rownames(adt_tab) %<>%
+    strsplit(split="_") %>%
+    map(function(spl)  gsub("\\(.*","", spl[[2]])) %>%
+    make.names(unique = TRUE)
+
+
+
+
+adt_mat <- adt_mat[!str_detect(rownames(adt_mat), "Ctrl"),]
+seurat_object@assays$ADT <- Seurat::CreateAssayObject(Z)
+

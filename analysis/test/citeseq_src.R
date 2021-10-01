@@ -8,7 +8,8 @@
 wrap_adt_corr <- function(seurat_object,
                           liana_res,
                           op_resource,
-                          cluster_key){
+                          cluster_key,
+                          organism = "human"){
     # Get Symbols of Receptors from OP
     receptor_syms <- c(op_resource$target_genesymbol)
 
@@ -20,12 +21,25 @@ wrap_adt_corr <- function(seurat_object,
     )
 
     # Obtain adt genesymbols
-    adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce))
+    if(organism == "mouse"){
+        # obtain both mouse and human but convert to title
+        adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+                                       organism = "mouse") %>%
+            bind_rows(get_adt_aliases(adt_symbols = rownames(sce),
+                                      organism = "human")) %>%
+            mutate(across(everything(), str_to_title)) %>%
+            distinct()
+        } else{
+        adt_aliases <- get_adt_aliases(adt_symbols = rownames(sce),
+                                       organism = organism)
+    }
+
 
     # Get ADT stats and bind to LIANA res
     adt_means <- get_adt_means(sce = sce,
                                receptor_syms = receptor_syms,
-                               adt_aliases = adt_aliases)
+                               adt_aliases = adt_aliases,
+                               organism = organism)
     liana_adt <- liana_format_adt(liana_res = liana_res,
                                   adt_means = adt_means)
 
@@ -367,15 +381,20 @@ get_adt_aliases <- function(adt_symbols,
 #' @returns a tibble with adt_means and adt_scale per cluster
 get_adt_means <- function(sce,
                           receptor_syms,
-                          adt_aliases){
+                          adt_aliases,
+                          organism = "human"){
     mean_summary <- scuttle::summarizeAssayByGroup(sce,
                                                    ids = colLabels(sce),
                                                    assay.type = "data",
                                                    statistics = c("mean"))
+
     mean_summary@assays@data$mean %>%
         # gene mean across cell types
         as_tibble(rownames = "entity_symbol") %>%
-        mutate(entity_symbol = stringr::str_to_upper(entity_symbol)) %>%
+        rowwise() %>%
+        mutate(entity_symbol = ifelse(organism=="human",
+                                      stringr::str_to_upper(entity_symbol),
+                                      stringr::str_to_title(entity_symbol))) %>%
         # Join alias names and rename entity symbol to newly-obtained alias symbol
         # purpose being to be able to join to the gene symbols in the RNA assay
         left_join(adt_aliases, by = c("entity_symbol"="adt_symbol")) %>%
