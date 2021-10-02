@@ -291,6 +291,7 @@ list.subfiles <- function(subdir, dir, pattern = ".h5"){
 wrap_liana_wrap <- function(subdir,
                             dir,
                             expr_prop,
+                            organism = "human",
                             ...){
     message(str_glue("Loading: ",
                      list.subfiles(subdir = subdir,
@@ -308,7 +309,14 @@ wrap_liana_wrap <- function(subdir,
                             expr_prop = expr_prop,
                             ...)
     # aggregate method results
-    liana_res %<>% liana_aggregate()
+    liana_res %<>%
+        # standardize symbols
+        map(function(res) res %>%
+                mutate(across(c(ligand, receptor),
+                              ~str_to_symbol(string = .x,
+                                             organism=organism)))
+            ) %>%
+        liana_aggregate()
 
     message(str_glue("Saving liana_res to: ",
                      file.path(dir, subdir,
@@ -316,8 +324,7 @@ wrap_liana_wrap <- function(subdir,
                                         "liana_res",
                                         expr_prop,
                                         ".RDS",
-                                        .sep="_")))
-    )
+                                        .sep="_"))))
 
     # save results
     saveRDS(liana_res,

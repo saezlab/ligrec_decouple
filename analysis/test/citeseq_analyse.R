@@ -45,8 +45,7 @@ list.files(citeseq_dir) %T>%
                             cellchat.params=list(organism="mouse",
                                                  nboot = 100),
                             resource = "custom",
-                            external_resource = murine_resource,
-                            method = c("squidpy", "cellchat")
+                            external_resource = murine_resource
                             )
         } else { # human
             wrap_liana_wrap(subdir = subdir,
@@ -58,8 +57,7 @@ list.files(citeseq_dir) %T>%
                                                 seed = as.integer(1)),
                             cellchat.params=list(nboot = 100),
                             resource = "custom",
-                            external_resource = op_resource,
-                            method = c("squidpy", "cellchat"))
+                            external_resource = op_resource)
         }
     }) %>% setNames(list.files(citeseq_dir)) %>%
     enframe() %>%
@@ -67,7 +65,7 @@ list.files(citeseq_dir) %T>%
     rename(dataset = name)
 
 
-corr_list_01 <- list.files(citeseq_dir)[6] %>%
+corr_table <- list.files(citeseq_dir) %>%
     map(function(subdir){
         # If mouse, load convert use murine-specific conversion
         if(stringr::str_detect(subdir, pattern = "spleen")){
@@ -87,13 +85,13 @@ corr_list_01 <- list.files(citeseq_dir)[6] %>%
             )
         }
 
-    }) %>% setNames(list.files(citeseq_dir)[6]) %>%
+    }) %>% setNames(list.files(citeseq_dir)) %>%
     enframe() %>%
     unnest(value) %>%
     rename(dataset = name)
 
 
-corr_list_01 %>%
+corr_table %>%
     # remove Mean/Median ranks
     filter(!(method %in% c("median_rank", "mean_rank"))) %>%
     # rename methods
