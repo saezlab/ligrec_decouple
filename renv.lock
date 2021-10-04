@@ -357,6 +357,31 @@
       "Repository": "CRAN",
       "Hash": "911f943cfcffda79fe989835b2148fc3"
     },
+    "SeuratData": {
+      "Package": "SeuratData",
+      "Version": "0.2.1",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "seurat-data",
+      "RemoteUsername": "satijalab",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "b59556b24d7d6728a5744c9c715dd5f7f32ed7a5",
+      "Hash": "e817be819275540145d235b466bb2194"
+    },
+    "SeuratDisk": {
+      "Package": "SeuratDisk",
+      "Version": "0.0.0.9019",
+      "Source": "GitHub",
+      "Remotes": "satijalab/seurat-data",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "seurat-disk",
+      "RemoteUsername": "mojaveazure",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "163f1aade5bac38ed1e9e9c912283a7e74781610",
+      "Hash": "85629b6fec50b2632b8b3402ff86cc58"
+    },
     "SeuratObject": {
       "Package": "SeuratObject",
       "Version": "4.0.2",
@@ -1005,6 +1030,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "10bec8a8264f3eb59531e8c4c0303f96"
+    },
+    "hdf5r": {
+      "Package": "hdf5r",
+      "Version": "1.3.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "84b0ad170aee2b4236062a97b00a9a00"
     },
     "here": {
       "Package": "here",
