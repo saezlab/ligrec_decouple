@@ -8,6 +8,10 @@ library(SPOTlight)
 library(igraph)
 library(RColorBrewer)
 
+require(Seurat)
+require(liana)
+##
+
 # load sc
 path_to_data <- system.file(package = "SPOTlight")
 cortex_sc <- readRDS(glue::glue("{path_to_data}/allen_cortex_dwn.rds"))
@@ -59,3 +63,87 @@ spotlight_ls <- spotlight_deconvolution(
     )
 
 saveRDS(object = spotlight_ls, file = here::here("data/spotlight_ls.rds"))
+
+
+### LIANA on cortex -----
+require(liana)
+require(tidyverse)
+require(magrittr)
+require("biomaRt")
+
+#' Basic function to convert human to mouse genesymbols (temporary solution)
+#' @param op_resource omnipath_resource as obtained via `liana::select_resource`
+#'
+#' @details adapted from https://www.r-bloggers.com/2016/10/converting-mouse-to-human-gene-names-with-biomart-package/
+convert_to_murine <- function(op_resource){
+
+    # query biomaRt databases
+    human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+    mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+
+    # obtain tibble with human and murine genesymbol
+    symbols_tibble <- getLDS(attributes = c("hgnc_symbol"),
+                             filters = "hgnc_symbol",
+                             values = union(op_resource$source_genesymbol,
+                                            op_resource$target_genesymbol),
+                             mart = human,
+                             martL = mouse,
+                             attributesL = c("mgi_symbol")) %>%
+        dplyr::rename(human_symbol = HGNC.symbol,
+                      murine_symbol = MGI.symbol) %>%
+        as_tibble()
+
+    # intentionally we introduce duplicates, if needed
+    # these should be resolved when LIANA is called
+    # as inappropriately matched genes will not be assigned any values
+    op_resource %>%
+        left_join(symbols_tibble, by=c("target_genesymbol"="human_symbol")) %>%
+        mutate(target_genesymbol = murine_symbol, .keep = "unused") %>%
+        left_join(symbols_tibble, by=c("source_genesymbol"="human_symbol")) %>%
+        mutate(source_genesymbol = murine_symbol, .keep = "unused") %>%
+        filter(!is.na(target_genesymbol) | !is.na(source_genesymbol)) %>%
+        filter(!is.na(target_genesymbol)) %>%
+        filter(!is.na(source_genesymbol))
+}
+
+# Run LIANA ----
+# Format for LIANA
+cortex_sc@meta.data %<>%
+    mutate(subclass = str_replace_all(subclass, "[/]", ".")) %>%
+    mutate(subclass = as.factor(subclass))
+Idents(cortex_sc) <- cortex_sc@meta.data$subclass
+
+cortex_sc <- subset(cortex_sc, cells = rownames(cortex_sc@meta.data))
+Seurat::DefaultAssay(cortex_sc) <- "RNA"
+cortex_sc %<>% NormalizeData()
+GetAssayData(cortex_sc)
+
+
+# Run
+op_resource <- select_resource("OmniPath")[[1]] %>%
+    convert_to_murine()
+
+liana_res <- liana_wrap(cortex_sc,
+                        cellchat.params=list(organism="mouse"),
+                        resource = "custom",
+                        external_resource = op_resource,
+                        expr_prop=0.1)
+
+# squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
+liana_res$squidpy %<>%
+    mutate_at(.vars = c("ligand", "receptor"), str_to_title)
+saveRDS(liana_res, "data/spotlight_liana.rds")
+
+
+# Load Liana
+liana_res <- readRDS("data/spotlight_liana.rds")
+liana_res %<>% liana_aggregate()
+
+
+
+# Spatial-Corr ROC here ----
+
+
+
+
+# Simple correlation between z-transformed scores and the cell-cell proportion correlations -----
