@@ -45,7 +45,8 @@ list.files(citeseq_dir) %T>%
                             cellchat.params=list(organism="mouse",
                                                  nboot = 100),
                             resource = "custom",
-                            external_resource = murine_resource
+                            external_resource = murine_resource,
+                            organism = "mouse"
                             )
         } else { # human
             wrap_liana_wrap(subdir = subdir,
@@ -57,7 +58,9 @@ list.files(citeseq_dir) %T>%
                                                 seed = as.integer(1)),
                             cellchat.params=list(nboot = 100),
                             resource = "custom",
-                            external_resource = op_resource)
+                            external_resource = op_resource,
+                            organism = "human"
+                            )
         }
     }) %>% setNames(list.files(citeseq_dir)) %>%
     enframe() %>%
@@ -81,7 +84,8 @@ corr_table <- list.files(citeseq_dir) %>%
                         subdir = subdir,
                         op_resource = op_resource,
                         cluster_key = "seurat_clusters",
-                        liana_pattern = "liana_res-0.1.RDS"
+                        liana_pattern = "liana_res-0.1.RDS",
+                        organism = "human"
             )
         }
 
@@ -89,7 +93,7 @@ corr_table <- list.files(citeseq_dir) %>%
     enframe() %>%
     unnest(value) %>%
     rename(dataset = name)
-
+saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations.RDS")
 
 corr_table %>%
     # remove Mean/Median ranks
@@ -98,7 +102,8 @@ corr_table %>%
     mutate(method = str_to_title(method)) %>%
     mutate(method = gsub("\\..*","", method)) %>%
     # rename metrics
-    mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
+    filter(metric=="mean") %>%
+    # mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
     mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
     mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
     ggplot(aes(x = factor(method), y = estimate)) +

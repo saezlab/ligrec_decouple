@@ -1,0 +1,133 @@
+---
+title: "Convert Murine Anndatas to Seurat objects and save"
+author: "Daniel Dimitrov"
+date: "9/24/2021"
+output: html_document
+---
+
+
+## Load Required Libs
+```{r setup, include=FALSE}
+require(tidyverse)
+require(reticulate)
+require(Seurat)
+require(magrittr)
+```
+
+```{python pysetup}
+import scanpy as sc
+import pandas as pd
+import numpy as np
+import anndata2ri
+```
+
+
+```{python get_adt_fun}
+"""""
+Title: Function to return the adt assay from the murine datasets
+
+params:
+    anndata - anndata with ADT expression array in obsm,
+    barcodes taken from metadata and column names from uns
+    
+returns: an ADT df
+"""""
+def get_adt_fun(anndata):
+    adt_df = pd.DataFrame(anndata.obsm['protein_expression'],
+             index = anndata.obs.index,
+             columns=anndata.uns['protein_names'])
+    adt_df = adt_df.T         
+    return(adt_df)
+```
+
+
+```{r ann2seurat_fun}
+#' Function to convert the ADT anndata to Seurat object with filtered metadata
+#' @param anndata anndata object
+#' @details assigns new clusters to seurat_clusters
+ann2seurat <- function(anndata){
+    # Get the expression matrix
+    exprs <- t(py$anndata$X)
+    colnames(exprs) <- py$anndata$obs_names$to_list()
+    rownames(exprs) <- py$anndata$var_names$to_list()
+    # Create the Seurat object
+    seurat_object <- CreateSeuratObject(exprs)
+    # Set the expression assay
+    seurat_object <- SetAssayData(seurat_object, "counts", exprs)
+    # Add observation metadata
+    seurat_object <- AddMetaData(seurat_object, py$anndata$obs)
+    
+    # get adt mat
+    adt_df <- py$get_adt_fun(py$anndata)
+    # Filter Ligands and Controls
+    adt_df <- adt_df[!str_detect(rownames(adt_df), "Ctrl"),]
+    adt_df <- adt_df[!str_detect(rownames(adt_df), "Ligand"),]
+    
+    # Rename features 
+    rownames(adt_df) %<>%
+    strsplit(split="_") %>%
+    map(function(spl)  gsub("\\(.*","", spl[[2]])) %>%
+    make.names(unique = TRUE)
+    
+    # Add ADT assay to s_o
+    seurat_object@assays$ADT <- Seurat::CreateAssayObject(adt_df)
+    
+    # Reformat Meta
+    seurat_object@meta.data
+    seurat_object@meta.data %<>%
+        # remove + as it breaks Squidpy
+        mutate(seurat_clusters = str_replace_all(cell_types, "[+]", "")) %>%
+        mutate(seurat_clusters = str_replace(seurat_clusters, "/", " ")) %>%
+        # Filter low quality clusters and multiplets
+        filter(!str_detect(seurat_clusters, pattern = "quality")) %>%
+        filter(!str_detect(seurat_clusters, pattern = "doublet")) %>%
+        mutate(seurat_clusters = as.factor(seurat_clusters))
+    
+    # subset expr. mat
+    seurat_object <- subset(seurat_object,
+                            cells = rownames(seurat_object@meta.data))
+    
+    # log norm RNA
+    seurat_object %<>% Seurat::NormalizeData()
+    # CLR norm ADT
+    seurat_object <- Seurat::NormalizeData(seurat_object,
+                                           assay = "ADT",
+                                           normalization.method = "CLR")
+    
+    Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
+    
+    return(seurat_object)
+}
+
+```
+
+## 111 ADT Dataset
+```{python load_object111}
+anndata = sc.read_h5ad("data/input/citeseq/spleen_lymph_101/spleen_lymph_111.h5ad")
+```
+
+```{r convert2seurat_101}
+so_101 <- ann2seurat(py$anndata)
+saveRDS(so_101, "data/input/citeseq/spleen_lymph_101/spleen_lymph_101_seurat.RDS")
+rm(so_101)
+gc()
+```
+
+## 206 ADT Dataset
+```{python load_object206}
+anndata = sc.read_h5ad("data/input/citeseq/spleen_lymph_206/spleen_lymph_206.h5ad")
+```
+Get raw ADT names and save (used to fix mismatches due to formatting)
+```{r raw_adt_names}
+# get adt mat
+adt_df <- py$get_adt_fun(py$anndata)
+saveRDS(adt_df, "data/input/citeseq/adt_raw.RDS")
+```
+
+```{r convert2seurat_206}
+so_206 <- ann2seurat(py$anndata)
+saveRDS(so_206, "data/input/citeseq/spleen_lymph_206/spleen_lymph_206_seurat.RDS")
+rm(so_206)
+gc()
+```
+

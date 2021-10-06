@@ -258,6 +258,13 @@ load_and_cluster <- function(dir, subdir, pattern = ".h5"){
         # need to optimize silhuette scores, and save the 'best' to seurat_clusters
         FindClusters(resolution = 0.4, verbose = FALSE)
 
+    # Change cluster names (CellChat does not allow 0s...)
+    # Squidpy splits clusters at _
+    seurat_object@meta.data %<>%
+        mutate(seurat_clusters = str_glue("cluster.{seurat_clusters}"))
+    Seurat::Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
+
+
     # Normalize ADT
     seurat_object <- NormalizeData(seurat_object,
                                    assay = "ADT",
@@ -579,7 +586,7 @@ convert_to_murine <- function(op_resource){
 #' @param
 #' @inheritDotParams str_to_title
 #'
-str_to_symbol <- function(string, organism,...){
+str_to_symbol <- function(string, organism, ...){
     if(organism=="human"){
         str_to_upper(string, ...)
     } else if(organism=="mouse"){

@@ -412,7 +412,7 @@ saveRDS(murine_liana_206, "data/input/citeseq/spleen_lymph_206/spleen_lymph_206-
 
 
 # 111 ----
-seurat_object <- readRDS("data/input/citeseq/spleen_lymph_101/spleen_lymph_111_seurat.RDS")
+seurat_object <- readRDS("data/input/citeseq/spleen_lymph_101/spleen_lymph_101_seurat.RDS")
 op_resource <- liana::select_resource("OmniPath")[[1]] %>%
     convert_to_murine()
 
@@ -427,6 +427,14 @@ murine_liana_111$squidpy %<>%
 murine_liana_111 %<>% liana_aggregate
 saveRDS(murine_liana_111, "data/input/citeseq/spleen_lymph_101//spleen_lymph_111-liana_res-0.1.RDS")
 
+
+xd <- load_adt_lr(dir = citeseq_dir,
+                  subdir = "spleen_lymph_101",
+                  op_resource = murine_resource,
+                  cluster_key = "seurat_clusters",
+                  liana_pattern = "liana_res-0.1.RDS",
+                  organism = "mouse"
+                  )
 
 
 
