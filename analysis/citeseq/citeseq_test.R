@@ -581,9 +581,5 @@ adt_mat <- GetAssayData(seurat_object, assay = "ADT", slot = "data")
 
 
 
-
-
-
-
 adt_mat <- adt_mat[!str_detect(rownames(adt_mat), "Ctrl"),]
 
