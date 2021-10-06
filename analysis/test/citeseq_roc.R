@@ -13,7 +13,7 @@ source("analysis/citeseq/citeseq_src.R")
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- select_resource("OmniPath")[[1]] %>%
     convert_to_murine()
-arbitrary_thresh = 1.282 # alpha = 0.1
+arbitrary_thresh = 1.282 # one-tailed alpha = 0.1
 citeseq_dir <- "data/input/citeseq/"
 
 
@@ -33,7 +33,7 @@ test <- generate_specificity_roc(seurat_object = seurat_object,
 
 
 ### RUN all sets ----
-roc_tibble <- list.files(citeseq_dir) %>%
+pr_roc_tibble <- list.files(citeseq_dir) %>%
     # Get ROCS
     map(function(subdir){
         # Run LIANA /w mouse specific
@@ -64,11 +64,24 @@ roc_tibble <- list.files(citeseq_dir) %>%
     rename(dataset = name)
 
 
-roc_tibble
+df_roc <- pr_roc_tibble %>%
+    dplyr::select(dataset, method_name, roc) %>%
+    unnest(roc)
 
-
-
-
+roc_heat <- df_roc %>%
+    as.data.frame() %>%
+    dplyr::select(dataset, method_name, auc) %>%
+    distinct() %>%
+    pivot_wider(names_from = method_name, values_from = auc) %>%
+    column_to_rownames("dataset") %>%
+    pheatmap(.,
+             cluster_rows = FALSE,
+             cluster_cols = FALSE,
+             treeheight_col = 0,
+             treeheight_row = 0,
+             display_numbers = TRUE,
+             silent = TRUE)
+roc_heat
 
 
 
