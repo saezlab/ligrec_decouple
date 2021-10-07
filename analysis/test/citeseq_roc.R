@@ -17,7 +17,7 @@ arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 citeseq_dir <- "data/input/citeseq/"
 
 
-# test
+# test ----
 seurat_object <- readRDS("data/input/citeseq/10k_pbmcs/10k_pbmcs_seurat.RDS")
 liana_res <- readRDS("data/input/citeseq/10k_pbmcs/10k_pbmcs-liana_res-0.1.RDS")
 cluster_key = "seurat_clusters"
@@ -105,39 +105,21 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
     enframe() %>%
     unnest(value) %>%
     rename(dataset = name)
+saveRDS(pr_roc_tibble, "data/output/citeseq_out/citeseq_aurocs.RDS")
 
+pr_roc_tibble <- readRDS("data/output/citeseq_out/citeseq_aurocs.RDS")
 
-auc_mat <- pr_roc_tibble %>%
-    dplyr::select(dataset, method_name, roc) %>%
-    unnest(roc) %>%
-    dplyr::select(dataset, method_name, auc) %>%
-    distinct() %>%
-    pivot_wider(names_from = method_name, values_from = auc) %>%
-    as.data.frame() %>%
-    column_to_rownames("dataset") %>%
-    as.matrix()
+get_auroc_heat(pr_roc_tibble, "prc",
+               heatmap_legend_param = list(title="PRAUC"))
 
-ComplexHeatmap::Heatmap(auc_mat,
-                        col = circlize::colorRamp2(c(auc_min,auc_max),
-                                                   viridis::cividis(2)),
-                        cluster_rows = FALSE,
-                        cluster_columns = FALSE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                            grid::grid.text(sprintf("%.2f", auc_mat[i, j]),
-                                            x, y,
-                                            gp = grid::gpar(fontsize = 12,
-                                                            fontface = "bold",
-                                                            col = "white"))
-                        })
+get_auroc_heat(pr_roc_tibble, "roc",
+               heatmap_legend_param = list(title="AUROC"))
 
 
 
 
-
-## COPY-PASTED - needs to be amended to work with both generate_specificity_roc and liana_adt_whatever
 
 #' ADT-Specificity ROC Helper/Loader Function
-#' @param
 #' @inheritParams generate_specificity_roc
 #'
 #' @returns a tibble with summarized ADT-LR correlations
@@ -316,7 +298,7 @@ generate_specificity_roc <- function(seurat_object,
 
 
 
-#' PLOT TO BE FUNCTION
+#' PLOT TO BE FUNCTION -----
 specificity_summary(adt_rank_roc){
     # ROC DF
     df_roc <- adt_rank_roc %>%

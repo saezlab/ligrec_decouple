@@ -67,7 +67,6 @@ list.files(citeseq_dir) %T>%
     unnest(value) %>%
     rename(dataset = name)
 
-
 corr_table <- list.files(citeseq_dir) %>%
     map(function(subdir){
         # If mouse, load convert use murine-specific conversion
@@ -95,6 +94,7 @@ corr_table <- list.files(citeseq_dir) %>%
     rename(dataset = name)
 saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations.RDS")
 
+corr_table <- readRDS("data/output/citeseq_out/citeseq_correlations.RDS")
 corr_table %>%
     # remove Mean/Median ranks
     filter(!(method %in% c("median_rank", "mean_rank"))) %>%

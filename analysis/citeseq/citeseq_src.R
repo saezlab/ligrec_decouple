@@ -597,15 +597,34 @@ str_to_symbol <- function(string, organism, ...){
 
 
 #' Helper function to produce AUROC heatmap
-#' @param auroc_tibble Tibble with calculated AUROC
+#' @param roc_tibble Tibble with calculated AUROC/PRROC
+#' @param curve type of curve `roc` or `prc`
+#' @inheritDotParams ComplexHeatmap::Heatmap
+#'
 #' @return returns an AUROC or Precision-Recall AUC heatmap
-#' @import ComplexHeatmap ggplot2
-get_auroc_heat <- function(auroc_tibble){
-    auc_mat <- auroc_tibble %>%
-        dplyr::select(dataset, method_name, roc) %>%
-        unnest(roc) %>%
+#' @import ComplexHeatmap ggplot2 viridis
+get_auroc_heat <- function(roc_tibble, curve, ...){
+
+    auc_df <- roc_tibble %>%
+        dplyr::select(dataset, method_name, !!curve) %>%
+        unnest(!!curve)
+
+    auc_min <- min(auc_df$auc)
+    auc_max <- max(auc_df$auc)
+
+    auc_mat <- auc_df %>%
         dplyr::select(dataset, method_name, auc) %>%
         distinct() %>%
+        mutate(method_name = stringr::str_to_title(gsub("\\..*", "", method_name))) %>%
+        mutate(dataset = dplyr::recode(dataset,
+                                       "10k_malt" = "10kMALT",
+                                       "10k_pbmcs" = "10kPBMCs",
+                                       "5k_pbmcs" = "5kPBMCs ",
+                                       "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
+                                       "cmbcs" = "3kCBMCs",
+                                       "spleen_lymph_101" = "SLN111",
+                                       "spleen_lymph_206" = "SLN208"
+        )) %>%
         pivot_wider(names_from = method_name, values_from = auc) %>%
         as.data.frame() %>%
         column_to_rownames("dataset") %>%
@@ -622,7 +641,8 @@ get_auroc_heat <- function(auroc_tibble){
                                                 gp = grid::gpar(fontsize = 12,
                                                                 fontface = "bold",
                                                                 col = "white"))
-                            })
+                            },
+                            ...)
 }
 
 
