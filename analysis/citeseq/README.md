@@ -2,9 +2,11 @@
 
 ## Reproduce Analysis Analysis
 ```
-Run citeseq_convert.Rmd
-source("analysis/citeseq/citeseq_analyse.R")
+Run citeseq_convert.Rmd - convert murine_datasets.h5a to seurat objects
 
+# Run to perform basic analysis on the 10x datasets, LR-ADT_Receptor correlations,
+# and (z-normalized) Receptor abundance specificity ROC
+source("analysis/citeseq/citeseq_analyse.R")
 ```
 
 ## Datasets
