@@ -615,7 +615,16 @@ get_auroc_heat <- function(roc_tibble, curve, ...){
     auc_mat <- auc_df %>%
         dplyr::select(dataset, method_name, auc) %>%
         distinct() %>%
-        mutate(method_name = stringr::str_to_title(gsub("\\..*", "", method_name))) %>%
+        mutate(method_name = gsub("\\..*", "", method_name)) %>%
+        mutate(method_name = dplyr::recode(method_name,
+                                           "squidpy" = "CellPhoneDB",
+                                           "natmi" = "NATMI",
+                                           "logfc" = "LogFC Mean",
+                                           "cellchat" = "CellChat",
+                                           "aggregate_rank" = "Aggregated Ranks",
+                                           "connectome" = "Connectome",
+                                           "sca" = "SingleCellSignalR"
+                                           )) %>%
         mutate(dataset = dplyr::recode(dataset,
                                        "10k_malt" = "10kMALT",
                                        "10k_pbmcs" = "10kPBMCs",
@@ -647,13 +656,11 @@ get_auroc_heat <- function(roc_tibble, curve, ...){
 
 
 
-### ROC funcs -----
+# ROC-Specific funcs -----
 
-#' This function takes the elements of the `activity` column and calculates
-#'    precision-recall and ROC curves (depending on `curve`).
-#' The `activity` column is populated with the output for each stat method and
-#'    results from the `run_benchmark()` function. Each of the elements
-#'    in `activity` are results from runs of the \link{decouple} wrapper.
+
+#' @title Calculate AUROC and PRROC from rank-adt tibbles- `prepare_for_roc`-formated
+#' `adt_rank` elements
 #'
 #' @param df run_benchmark roc column provided as input
 #' @param downsampling logical flag indicating if the number of Negatives
@@ -747,3 +754,27 @@ calc_curve = function(df,
     }
     return(res)
 }
+
+
+#' Helper function used to prepare `adt_rank` elements
+#'
+#' @param df `get_rank_adt()` output.
+#' @param arbitrary_thresh z-score threshold to calculate ROCs
+#'
+#' @return tidy data frame with meta information for each experiment and the
+#'   response and the predictor value which are required for ROC and
+#'   PR curve analysis
+prepare_for_roc = function(df, arbitrary_thresh){
+    df %>%
+        filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
+        dplyr::rename(predictor = value) %>%
+        mutate(predictor = predictor * -1) %>%
+        group_by(method_name) %>%
+        dplyr::mutate(response = case_when(adt_scale > arbitrary_thresh ~ 1,
+                                           adt_scale <= arbitrary_thresh ~ 0)) %>%
+        mutate(response = factor(response, levels = c(1, 0))) %>%
+        dplyr::select(source.target.entity, method_name,
+                      adt_scale, predictor, response)
+}
+
+

@@ -1,6 +1,6 @@
-# LR correlation with ADTs
+# Citeseq-LR Correlations and Specificity ROC
 
-## Analysis
+## Reproduce Analysis Analysis
 ```
 Run citeseq_convert.Rmd
 source("analysis/citeseq/citeseq_analyse.R")
@@ -31,7 +31,7 @@ https://www.10xgenomics.com/resources/datasets/10-k-cells-from-a-malt-tumor-gene
 SeuratData::InstallData("cbmc")
 ```
 
-### Public (murine) data
+### Murine Spleen-Lymph CiteSeq data
 2 datasets: 1 with 111 antibodies and another with 208 ADTs (SLN111 and SLN208)
 Available at:
 https://www.nature.com/articles/s41592-020-01050-x#data-availability

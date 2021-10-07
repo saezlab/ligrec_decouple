@@ -107,13 +107,15 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
     rename(dataset = name)
 saveRDS(pr_roc_tibble, "data/output/citeseq_out/citeseq_aurocs.RDS")
 
+# Plots
 pr_roc_tibble <- readRDS("data/output/citeseq_out/citeseq_aurocs.RDS")
+
+get_auroc_heat(pr_roc_tibble, "roc",
+               heatmap_legend_param = list(title="AUROC"))
 
 get_auroc_heat(pr_roc_tibble, "prc",
                heatmap_legend_param = list(title="PRAUC"))
 
-get_auroc_heat(pr_roc_tibble, "roc",
-               heatmap_legend_param = list(title="AUROC"))
 
 
 
@@ -160,28 +162,6 @@ load_adt_roc <- function(subdir = subdir,
 
 
 
-
-#' Helper function used to prepare `adt_rank` elements
-#'
-#' @param df `get_rank_adt()` output.
-#' @param arbitrary_thresh z-score threshold to calculate ROCs
-#'
-#' @return tidy data frame with meta information for each experiment and the
-#'   response and the predictor value which are required for ROC and
-#'   PR curve analysis
-prepare_for_roc = function(df, arbitrary_thresh){
-    df %>%
-        filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
-        # WE NOW REVERT RANKS -> TO BE CHANGED TO SCORES
-        dplyr::rename(predictor = value) %>%
-        mutate(predictor = predictor * -1) %>%
-        group_by(method_name) %>%
-        dplyr::mutate(response = case_when(adt_scale > arbitrary_thresh ~ 1,
-                                           adt_scale <= arbitrary_thresh ~ 0)) %>%
-        mutate(response = factor(response, levels = c(1, 0))) %>%
-        dplyr::select(source.target.entity, method_name,
-                      adt_scale, predictor, response)
-}
 
 
 
