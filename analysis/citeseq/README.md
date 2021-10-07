@@ -1,6 +1,6 @@
 # Citeseq-LR Correlations and Specificity ROC
 
-## Reproduce Analysis Analysis
+## Reproduce CiteSeq Analysis
 ```
 Run citeseq_convert.Rmd - convert murine_datasets.h5a to seurat objects
 
