@@ -1,3 +1,87 @@
+
+#' ADT-LR correlation pipeline Helper/Loader Function
+#' @param subdir subdirectory in dir
+#' @param dir appropriate formated citeseq directory
+#' @inheritParams wrap_adt_corr
+#'
+#' @returns a list with two elements:
+#' - a tibble with summarized ADT-LR correlations
+#' - a tibble with summarized ADT
+#'
+#' @details Simply loads the needed seurat and liana objects and calls the
+#' `wrap_adt_corr` function/pipeline.
+#' `seurat_object_path` = seurat_object.RDS path
+#' `liana_res_path` = liana_res.RDS path
+run_adt_pipe <- function(subdir = subdir,
+                         dir,
+                         sobj_pattern = "_seurat.RDS",
+                         liana_pattern,
+                         op_resource,
+                         cluster_key,
+                         arbitrary_thresh,
+                         organism = "human",
+                         adt_pipe_type = "correlation"){
+
+    seurat_object_path <- list.subfiles(subdir = subdir,
+                                        dir = citeseq_dir,
+                                        pattern = sobj_pattern)
+
+
+    liana_res_path <- list.subfiles(subdir = subdir,
+                                    dir = citeseq_dir,
+                                    pattern = liana_pattern)
+
+    # Get Symbols of Receptors from OP
+    receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
+
+    # Get ADT Symbols
+    adt_symbols <- rownames(seurat_object@assays$ADT)
+
+    # Obtain adt genesymbols
+    if(organism == "mouse"){
+        # obtain both mouse and human but convert to title
+        adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
+                                       organism = "mouse") %>%
+            bind_rows(get_adt_aliases(adt_symbols = adt_symbols,
+                                      organism = "human")) %>%
+            mutate(across(everything(), str_to_title)) %>%
+            distinct()
+    } else{
+        adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
+                                       organism = organism)
+    }
+
+    if(adt_pipe_type == "correlation"){
+        message(str_glue("Calculating correlations on: {subdir}"))
+        # call function that does the adt-lr correlation
+        adt_lr_corr <- wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
+                                     liana_res = readRDS(liana_res_path),
+                                     op_resource = op_resource,
+                                     cluster_key = cluster_key,
+                                     organism = organism,
+                                     receptor_syms = receptor_syms,
+                                     adt_symbols = adt_symbols,
+                                     adt_aliases = adt_aliases)
+
+    } else if(adt_pipe_type == "specificity"){
+        message(str_glue("Calculating ROC summary for {subdir}"))
+
+        adt_lr_roc <-
+            generate_specificity_roc(
+                seurat_object = readRDS(seurat_object_path),
+                liana_res = readRDS(liana_res_path),
+                op_resource = op_resource,
+                cluster_key = cluster_key,
+                organism=organism,
+                receptor_syms = receptor_syms,
+                adt_symbols = adt_symbols,
+                adt_aliases = adt_aliases,
+                arbitrary_thresh = arbitrary_thresh)
+    }
+}
+
+
+
 #' ADT-LR correlation pipeline wrapper function
 #' @param seurat_object seurat_object with RNA and ADT assays
 #' @param op_resource omnipath-formatted resource
@@ -9,49 +93,25 @@ wrap_adt_corr <- function(seurat_object,
                           liana_res,
                           op_resource,
                           cluster_key,
-                          organism = "human"){
-    # Get Symbols of Receptors from OP
-    receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
+                          organism = "human",
+                          receptor_syms,
+                          adt_symbols,
+                          adt_aliases){
 
-    # convert to singlecell object
-    sce <- SingleCellExperiment::SingleCellExperiment(
-        assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
-                    data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
-        colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
-    )
-    # Symbols from ADT assay
-    adt_symbols <- rownames(sce)
-
-    # Obtain adt genesymbols
-    if(organism == "mouse"){
-        # obtain both mouse and human but convert to title
-        adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
-                                       organism = "mouse") %>%
-            bind_rows(get_adt_aliases(adt_symbols = adt_symbols,
-                                      organism = "human")) %>%
-            mutate(across(everything(), str_to_title)) %>%
-            distinct()
-        } else{
-        adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
-                                       organism = organism)
-    }
-
-    # check if all matched
-    mismatched_adts <- adt_symbols[!(str_to_symbol(adt_symbols, organism) %in%
-                                         str_to_symbol(adt_aliases$adt_symbol, organism))]
-    message("Missing (ideally none): ",
-            glue::glue_collapse(mismatched_adts, sep = ", "))
-
-
-
-    # Get ADT stats and bind to LIANA res
-    message("Calculating ADT Means")
-    adt_means <- get_adt_means(sce = sce,
+    # Get ADT means
+    adt_means <- get_adt_means(seurat_object = seurat_object,
+                               liana_res = liana_res,
+                               op_resource = op_resource,
+                               cluster_key = cluster_key,
+                               organism = organism,
                                receptor_syms = receptor_syms,
-                               adt_aliases = adt_aliases,
-                               organism = organism)
+                               adt_symbols = adt_symbols,
+                               adt_aliases = adt_aliases)
+
+    # Join to LIANA and format
     liana_adt <- liana_format_adt(liana_res = liana_res,
                                   adt_means = adt_means)
+
 
     # Get correlations between RNA-LR scores and ADT means
     message("Calculating ADT-LR Correlations")
@@ -76,41 +136,6 @@ wrap_adt_corr <- function(seurat_object,
 
 
 
-#' ADT-LR correlation pipeline Helper/Loader Function
-#' @param
-#' @inheritParams wrap_adt_corr
-#'
-#' @returns a tibble with summarized ADT-LR correlations
-#'
-#' @details Simply loads the needed seurat and liana objects and calls the
-#' `wrap_adt_corr` function/pipeline.
-#' `seurat_object_path` = seurat_object.RDS path
-#' `liana_res_path` = liana_res.RDS path
-load_adt_lr <- function(subdir = subdir,
-                        dir,
-                        sobj_pattern = "_seurat.RDS",
-                        liana_pattern,
-                        op_resource,
-                        cluster_key,
-                        organism = "human"){
-
-    message(str_glue("Calculating correlations on: {subdir}"))
-
-    seurat_object_path <- list.subfiles(subdir = subdir,
-                                        dir = citeseq_dir,
-                                        pattern = sobj_pattern)
-
-
-    liana_res_path <- list.subfiles(subdir = subdir,
-                                    dir = citeseq_dir,
-                                    pattern = liana_pattern)
-
-    wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
-                  liana_res = readRDS(liana_res_path),
-                  op_resource,
-                  cluster_key,
-                  organism = organism)
-}
 
 
 
@@ -456,21 +481,46 @@ get_adt_aliases <- function(adt_symbols,
 
 
 #' Obtain formatted across cluster means
-#' @param sce SingleCellExperiment object with an active ADT assay
+#' @param seurat_object Seurat object with an active ADT assay
+#' @param liana_res liana results as tibble
+#' @param op_resource tibble with omnipath res
+#' @param cluster_key name of the cluster key
+#' @param organism organism - 'human' or 'mouse'
 #' @param receptor_syms Receptor symbols obtained from OmniPath
-#' @param adt_aliases tibble with ADT names and gene aliases for these proteins
 #'
 #' @returns a tibble with adt_means and adt_scale per cluster
-get_adt_means <- function(sce,
+get_adt_means <- function(seurat_object,
+                          liana_res,
+                          op_resource,
+                          cluster_key,
+                          organism,
                           receptor_syms,
-                          adt_aliases,
-                          organism = "human"){
+                          adt_symbols,
+                          adt_aliases){
+
+    # convert to singlecell object
+    sce <- SingleCellExperiment::SingleCellExperiment(
+        assays=list(counts = GetAssayData(seurat_object, assay = "ADT", slot = "counts"),
+                    data = GetAssayData(seurat_object, assay = "ADT", slot = "data")),
+        colData=DataFrame(label=seurat_object@meta.data[[cluster_key]])
+    )
+
+    # check if all matched
+    mismatched_adts <- adt_symbols[!(str_to_symbol(adt_symbols, organism) %in%
+                                         str_to_symbol(adt_aliases$adt_symbol, organism))]
+    message("Missing (ideally none): ",
+            glue::glue_collapse(mismatched_adts, sep = ", "))
+
+
+
+    # Get ADT stats and bind to LIANA res
+    message("Calculating ADT Means")
     mean_summary <- scuttle::summarizeAssayByGroup(sce,
                                                    ids = colLabels(sce),
                                                    assay.type = "data",
                                                    statistics = c("mean"))
 
-    mean_summary@assays@data$mean %>%
+    adt_means <- mean_summary@assays@data$mean %>%
         # gene mean across cell types
         as_tibble(rownames = "entity_symbol") %>%
         rowwise() %>%
@@ -490,6 +540,9 @@ get_adt_means <- function(sce,
         mutate(adt_scale = scale(adt_mean)) %>%
         unnest(adt_scale) %>%
         ungroup()
+
+    return(adt_means)
+
 }
 
 
@@ -616,24 +669,8 @@ get_auroc_heat <- function(roc_tibble, curve, ...){
         dplyr::select(dataset, method_name, auc) %>%
         distinct() %>%
         mutate(method_name = gsub("\\..*", "", method_name)) %>%
-        mutate(method_name = dplyr::recode(method_name,
-                                           "squidpy" = "CellPhoneDB",
-                                           "natmi" = "NATMI",
-                                           "logfc" = "LogFC Mean",
-                                           "cellchat" = "CellChat",
-                                           "aggregate_rank" = "Aggregated Ranks",
-                                           "connectome" = "Connectome",
-                                           "sca" = "SingleCellSignalR"
-                                           )) %>%
-        mutate(dataset = dplyr::recode(dataset,
-                                       "10k_malt" = "10kMALT",
-                                       "10k_pbmcs" = "10kPBMCs",
-                                       "5k_pbmcs" = "5kPBMCs ",
-                                       "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
-                                       "cmbcs" = "3kCBMCs",
-                                       "spleen_lymph_101" = "SLN111",
-                                       "spleen_lymph_206" = "SLN208"
-        )) %>%
+        mutate(method_name = recode_methods(method_name)) %>%
+        mutate(dataset = recode_datasets(dataset)) %>%
         pivot_wider(names_from = method_name, values_from = auc) %>%
         as.data.frame() %>%
         column_to_rownames("dataset") %>%
@@ -761,9 +798,9 @@ calc_curve = function(df,
 #' @param df `get_rank_adt()` output.
 #' @param arbitrary_thresh z-score threshold to calculate ROCs
 #'
-#' @return tidy data frame with meta information for each experiment and the
-#'   response and the predictor value which are required for ROC and
-#'   PR curve analysis
+#' @return tidy data frame with meta information for each dataset and the
+#'   response (1;0) and the predictor value which are required for ROC and
+#'   curve analysis
 prepare_for_roc = function(df, arbitrary_thresh){
     df %>%
         filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
@@ -777,4 +814,119 @@ prepare_for_roc = function(df, arbitrary_thresh){
                       adt_scale, predictor, response)
 }
 
+
+#' Function to get Ranks for each method and ADT values
+#' to reformat the `wrap_adt_corr` function
+#'
+#' @inheritParams get_adt_means
+get_rank_adt <- function(seurat_object,
+                         liana_res,
+                         op_resource,
+                         cluster_key,
+                         organism,
+                         receptor_syms,
+                         adt_symbols,
+                         adt_aliases){
+
+    # Get ADT means
+    adt_means <- get_adt_means(seurat_object = seurat_object,
+                               liana_res = liana_res,
+                               op_resource = op_resource,
+                               cluster_key = cluster_key,
+                               organism = organism,
+                               receptor_syms = receptor_syms,
+                               adt_symbols = adt_symbols,
+                               adt_aliases = adt_aliases)
+
+    # liana_format_adt
+    liana_adt <- liana_res %>%
+        filter(receptor %in% adt_means$entity_symbol) %>%
+        dplyr::select(source, ligand, target, receptor, ends_with("rank")) %>%
+        pivot_longer(c(ligand,receptor),
+                     names_to = "type",
+                     values_to = "entity_symbol") %>%
+        filter(type == "receptor") %>%
+        distinct() %>%
+        left_join(adt_means, by = c("target", "entity_symbol")) %>%
+        unite(col=source.target.entity, source, target, entity_symbol, sep = ".")  %>%
+        dplyr::select(ends_with("rank"), starts_with("adt"), source.target.entity) %>%
+        pivot_longer(-c(source.target.entity, adt_scale, adt_mean),
+                     names_to = "method_name")
+
+    return(liana_adt)
+}
+
+
+
+
+#' @title Generate AUROCs - required to run `calc_curve` function
+#'
+#' @inheritParams get_rank_adt
+generate_specificity_roc <- function(seurat_object,
+                                     liana_res,
+                                     op_resource,
+                                     cluster_key,
+                                     organism,
+                                     receptor_syms,
+                                     adt_symbols,
+                                     arbitrary_thresh,
+                                     adt_aliases){
+
+    # get Z-scaled ADT abundance and LR ranks DF
+    adt_rank_results <- get_rank_adt(seurat_object = seurat_object,
+                                     liana_res = liana_res,
+                                     op_resource = op_resource,
+                                     cluster_key = cluster_key,
+                                     organism = organism,
+                                     adt_symbols = adt_symbols,
+                                     receptor_syms = receptor_syms,
+                                     adt_aliases = adt_aliases)
+
+    # To appropriate format (prepare_for_roc) and do ROC
+    adt_rank_roc <- adt_rank_results %>%
+        prepare_for_roc(arbitrary_thresh = arbitrary_thresh) %>%
+        group_by(method_name) %>%
+        group_nest(.key = "adt_rank") %>%
+        # Calculate ROC
+        mutate(roc = .data$adt_rank %>%
+                   map(function(df) calc_curve(df))) %>%
+        # Calculate PRROC
+        mutate(prc = .data$adt_rank %>%
+                   map(function(df) calc_curve(df,
+                                               curve = "PR",
+                                               downsampling = TRUE,
+                                               times = 100)))
+    return(adt_rank_roc)
+}
+
+#' @title Recode dataset names
+#' @param dataset - vector /w dataset names
+recode_datasets <- function(datasets){
+    dplyr::recode(datasets,
+                  "10k_malt" = "10kMALT",
+                  "10k_pbmcs" = "10kPBMCs",
+                  "5k_pbmcs" = "5kPBMCs ",
+                  "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
+                  "cmbcs" = "3kCBMCs",
+                  "spleen_lymph_101" = "SLN111",
+                  "spleen_lymph_206" = "SLN208"
+    )
+}
+
+#' @title Recode method names
+#' @param dataset - vector /w method names
+recode_methods <- function(methods){
+    dplyr::recode(methods,
+                  "squidpy" = "CellPhoneDB",
+                  "natmi" = "NATMI",
+                  "logfc" = "LogFC Mean",
+                  "cellchat" = "CellChat",
+                  "aggregate_rank" = "Aggregated Ranks",
+                  "connectome" = "Connectome",
+                  "sca" = "SingleCellSignalR",
+
+                  # RNA-ADT correlation baseline
+                  "RNA-ADT" = "RNA-ADT Baseline"
+    )
+}
 

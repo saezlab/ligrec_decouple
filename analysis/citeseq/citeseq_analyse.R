@@ -13,14 +13,19 @@ require(Seurat)
 require(SeuratDisk)
 require(liana)
 require(tidyverse)
+require(yardstick)
 require(magrittr)
+require(ComplexHeatmap)
 source("analysis/citeseq/citeseq_src.R")
 
 citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- op_resource %>%
     convert_to_murine()
+arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
+
+### I) Generate Generate Seurat Objects and run LIANA ----
 # Iterate over all citeseq directories (i.e. datasets)
 list.files(citeseq_dir) %T>%
     # Load 10x .h5 mat and cluster each, and save the appropriate Seurat object
@@ -67,24 +72,28 @@ list.files(citeseq_dir) %T>%
     unnest(value) %>%
     rename(dataset = name)
 
+
+### II) Correlations
 corr_table <- list.files(citeseq_dir) %>%
     map(function(subdir){
         # If mouse, load convert use murine-specific conversion
         if(stringr::str_detect(subdir, pattern = "spleen")){
-            load_adt_lr(dir = citeseq_dir,
+            run_adt_pipe(dir = citeseq_dir,
                         subdir = subdir,
                         op_resource = murine_resource,
                         cluster_key = "seurat_clusters",
                         liana_pattern = "liana_res-0.1.RDS",
-                        organism = "mouse"
+                        organism = "mouse",
+                        adt_pipe_type = "correlation"
             )
         } else { # human
-            load_adt_lr(dir = citeseq_dir,
+            run_adt_pipe(dir = citeseq_dir,
                         subdir = subdir,
                         op_resource = op_resource,
                         cluster_key = "seurat_clusters",
                         liana_pattern = "liana_res-0.1.RDS",
-                        organism = "human"
+                        organism = "human",
+                        adt_pipe_type = "correlation"
             )
         }
 
@@ -94,24 +103,81 @@ corr_table <- list.files(citeseq_dir) %>%
     rename(dataset = name)
 saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations.RDS")
 
+# Load and plot
 corr_table <- readRDS("data/output/citeseq_out/citeseq_correlations.RDS")
-corr_table %>%
+corr_table %<>%
     # remove Mean/Median ranks
     filter(!(method %in% c("median_rank", "mean_rank"))) %>%
     # rename methods
-    mutate(method = str_to_title(method)) %>%
     mutate(method = gsub("\\..*","", method)) %>%
+    # recode methods
+    mutate(method = recode_methods(method)) %>%
+    # recode datasets
+    mutate(dataset = recode_datasets(dataset)) %>%
     # rename metrics
     filter(metric=="mean") %>%
     # mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
     mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
-    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric)) %>%
+    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric))
+
+# Bar plot
+corr_table %>%
     ggplot(aes(x = factor(method), y = estimate)) +
-    geom_boxplot(aes(fill = method), alpha = 0.15) +
+    geom_boxplot(aes(fill = method), alpha = 0.15, show.legend = FALSE) +
     geom_jitter(aes(color = method, shape = dataset, size = n_genes))  +
     scale_shape_manual(values = rep(4:12, len = 7)) +
     xlab("") +
     ylab("Kendal's tau Coefficient") +
     theme_minimal(base_size = 24) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    facet_wrap(~metric, scales = "free")
+    guides(size=guide_legend(title="Receptor Genes per dataset")) +
+    labs(fill=guide_legend(title="Method"),
+         shape=guide_legend(title="Dataset"))
+
+
+
+### III) Receptor Specificity ROC -----
+pr_roc_tibble <- list.files(citeseq_dir) %>%
+    map(function(subdir){
+        # If mouse, load convert use murine-specific conversion
+        if(stringr::str_detect(subdir, pattern = "spleen")){
+            run_adt_pipe(subdir = subdir,
+                         dir = citeseq_dir,
+                         op_resource = murine_resource,
+                         organism = "mouse",
+                         cluster_key = "seurat_clusters",
+                         sobj_pattern = "_seurat.RDS",
+                         liana_pattern = "liana_res-0.1.RDS",
+                         arbitrary_thresh = arbitrary_thresh,
+                         adt_pipe_type = "specificity"
+            )
+        } else { # human
+            run_adt_pipe(subdir = subdir,
+                         dir = citeseq_dir,
+                         op_resource = op_resource,
+                         organism = "human",
+                         cluster_key = "seurat_clusters",
+                         sobj_pattern = "_seurat.RDS",
+                         liana_pattern = "liana_res-0.1.RDS",
+                         arbitrary_thresh = arbitrary_thresh,
+                         adt_pipe_type = "specificity"
+            )
+        }
+
+    }) %>% setNames(list.files(citeseq_dir)) %>%
+    enframe() %>%
+    unnest(value) %>%
+    rename(dataset = name)
+
+# Save obj
+saveRDS(pr_roc_tibble, "data/output/citeseq_out/citeseq_aurocs.RDS")
+
+
+# Generate Plots
+pr_roc_tibble <- readRDS("data/output/citeseq_out/citeseq_aurocs.RDS")
+
+get_auroc_heat(pr_roc_tibble, "roc",
+               heatmap_legend_param = list(title="AUROC"))
+
+get_auroc_heat(pr_roc_tibble, "prc",
+               heatmap_legend_param = list(title="PRAUC"))
