@@ -35,7 +35,7 @@ returns: an ADT df
 def get_adt_fun(anndata):
     adt_df = pd.DataFrame(anndata.obsm['protein_expression'],
              index = anndata.obs.index,
-             columns=anndata.uns['protein_names'])
+             columns = anndata.uns['protein_names'])
     adt_df = adt_df.T         
     return(adt_df)
 ```

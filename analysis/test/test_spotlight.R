@@ -199,7 +199,8 @@ liana_res <- readRDS("data/spotlight_liana.rds")
 liana_res %<>% liana_aggregate()
 
 
-corr_response <- reshape2::melt(decon_cor) %>%
+corr_response <- decon_cor %>%
+    reshape2::melt() %>%
     as_tibble() %>%
     dplyr::rename(celltype1 = Var1,
                   celltype2 = Var2,
