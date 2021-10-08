@@ -801,14 +801,20 @@ calc_curve = function(df,
 #' @return tidy data frame with meta information for each dataset and the
 #'   response (1;0) and the predictor value which are required for ROC and
 #'   curve analysis
+#'
+#' @details Yardstick ranks thresholds from lowest to highest, i.e. if we use
+#' already ranked data then rank 1 would be the smallest value, rather than the
+#' highest. Thus, we invert by multiplying by -1, and rank becomes the highest value
+#' i.e. -1, while rank 50,000 becomes the lowest value i.e. -50,000
 prepare_for_roc = function(df, arbitrary_thresh){
     df %>%
         filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
         dplyr::rename(predictor = value) %>%
+        # Reverse ranks, so that highest ranked interactions get the highest score - see details
         mutate(predictor = predictor * -1) %>%
         group_by(method_name) %>%
-        dplyr::mutate(response = case_when(adt_scale > arbitrary_thresh ~ 1,
-                                           adt_scale <= arbitrary_thresh ~ 0)) %>%
+        dplyr::mutate(response = case_when(adt_scale => arbitrary_thresh ~ 1,
+                                           adt_scale < arbitrary_thresh ~ 0)) %>%
         mutate(response = factor(response, levels = c(1, 0))) %>%
         dplyr::select(source.target.entity, method_name,
                       adt_scale, predictor, response)
@@ -889,7 +895,9 @@ generate_specificity_roc <- function(seurat_object,
         group_nest(.key = "adt_rank") %>%
         # Calculate ROC
         mutate(roc = .data$adt_rank %>%
-                   map(function(df) calc_curve(df))) %>%
+                   map(function(df) calc_curve(df,
+                                               downsampling = FALSE,
+                                               times = 100))) %>%
         # Calculate PRROC
         mutate(prc = .data$adt_rank %>%
                    map(function(df) calc_curve(df,

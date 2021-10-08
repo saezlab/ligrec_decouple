@@ -57,3 +57,6 @@ res1 <- liana_wrap(seurat_object,
                    resource = c('OmniPath'))
 
 
+SeuratData::InstallData("thp1.eccite")
+
+
