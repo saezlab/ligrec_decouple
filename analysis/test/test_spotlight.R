@@ -219,7 +219,7 @@ liana_response <- liana_res %>%
     dplyr::select(interaction, ends_with("rank"), response) %>%
     pivot_longer(cols = -c(interaction, response),
                  names_to = "method_name",
-                 values_to = "predictor")%>%
+                 values_to = "predictor") %>%
     mutate(response = factor(response, levels = c(1, 0))) %>%
     mutate(predictor = predictor*-1)
 
@@ -300,7 +300,7 @@ liana_corr <- liana_prop %>%
     group_nest() %>%
     mutate(correlation = data %>%
                map(function(d) d %>%
-                       mutate(estimate = replace_na(estimate, 0)) %>%
+                       # mutate(estimate = replace_na(estimate, 0)) %>% - too dangerous, better to be NA and filter
                        summarise(correlation = cor(prop,
                                                    estimate,
                                                    method = "pearson")))) %>%

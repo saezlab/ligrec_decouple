@@ -11,6 +11,7 @@ require(tidyverse)
 require(reticulate)
 require(Seurat)
 require(magrittr)
+require(liana)
 ```
 
 ```{python pysetup}
@@ -46,12 +47,13 @@ seurat_object <- CreateSeuratObject(exprs)
 seurat_object <- SetAssayData(seurat_object, "counts", exprs)
 # Add observation metadata
 seurat_object <- AddMetaData(seurat_object, py$adata$obs)
-Idents(seurat_object) <- seurat_object@meta.data$celltype_mapped_refined
-
 
 # remove low quality cells
-seurat_object@meta.data %<>% filter(celltype_mapped_refined!="Low quality")
+seurat_object@meta.data %<>% filter(celltype_mapped_refined!="Low quality") %>%
+            mutate(seurat_clusters = str_replace(celltype_mapped_refined, "/", " ") %>% as.factor())
 seurat_object <- subset(seurat_object, cells=rownames(seurat_object@meta.data))
+
+Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
 
 # run normalization etc
 seurat_object %<>% Seurat::SCTransform(verbose = FALSE) %>%
@@ -116,8 +118,8 @@ liana_res <- liana_wrap(seurat_object,
                         resource = "custom",
                         external_resource = op_resource,
                         assay="SCT",
-                        squidpy.param = list(cluster_key = "celltype_mapped_refined"),
-                        method = c("cellchat", "call_connectome", "call_italk"))
+                        squidpy.param = list(cluster_key = "seurat_clusters"),
+                        method = c("cellchat", "squidpy", "call_connectome", "call_italk"))
 
 
 # squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
@@ -129,18 +131,12 @@ liana_res %<>% liana_aggregate
 
 ```
 
-```{r}
-input_data <- Seurat::GetAssayData(seurat_object,
-                                   assay = "SCT",
-                                   slot = "data") %>%
-    as.matrix()
-labels <- Seurat::Idents(seurat_object)
-```
+
 
 ## Spatial-LR eval
 ### Corr to NES
 ```{r }
-n_rank = 50
+n_rank = 500
 liana_res_ag <- liana_res %>% liana_aggregate(cap=n_rank)
 # LIANA
 liana_prop <- liana_res_ag %>%
@@ -159,23 +155,26 @@ liana_prop <- liana_res_ag %>%
     dplyr::select(source, target, method_name, prop) %>%
     distinct() %>%
     group_by(method_name) %>%
-    mutate(check_prop = sum(prop))
+    mutate(check_prop = sum(prop)) %>%
+    mutate(across(.cols = c(source, target), ~gsub("\\/", " ", .x)))
 
 net_form <- nes %>% 
     rownames_to_column("celltype1") %>% 
     pivot_longer(-celltype1,
                  names_to = "celltype2",
-                 values_to = "estimate")
+                 values_to = "estimate") %>%
+    mutate(across(.cols = c(celltype1, celltype2), ~gsub("\\/", " ", .x)))
 
 liana_corr <- liana_prop %>%
     left_join(net_form, by = c("source"="celltype1",
                                "target"="celltype2")) %>%
-    filter(source!=target) %>%
+    filter(source!=target)  %>%
+    mutate(across(.cols = c(source, target), ~stringr::str_replace_all(.x, "[/]", " "))) %>%
+    mutate(across(.cols = c(source, target), ~stringr::str_replace_all(.x, "[/]", " "))) %>%
     group_by(method_name) %>%
     group_nest() %>%
     mutate(correlation = data %>%
                map(function(d) d %>%
-                       mutate(estimate = replace_na(estimate, 0)) %>%
                        summarise(correlation = cor(prop,
                                                    estimate,
                                                    method = "pearson")))) %>%
@@ -184,3 +183,53 @@ liana_corr
 ```
 
 ### Roc from NES
+```{r}
+liana_res_ag <- liana_res %>% liana_aggregate()
+
+nes_response <- nes %>% 
+    rownames_to_column("celltype1") %>% 
+    pivot_longer(-celltype1,
+                 names_to = "celltype2",
+                 values_to = "estimate") %>%
+    dplyr::mutate(response = case_when(estimate >= 0 ~ 1,
+                                       estimate < 0 ~ 0)) %>%
+    dplyr::mutate(response = if_else(celltype1==celltype2, 0, response))
+
+hist(nes_response$estimate)
+
+liana_response <- liana_res_ag %>%
+    left_join(nes_response, by = c("source"="celltype1",
+                                    "target"="celltype2")) %>%
+    filter(source!=target) %>% # REMOVE autocrine
+    unite(source, ligand, target, receptor, col = "interaction") %>%
+    dplyr::select(interaction, ends_with("rank"), response) %>%
+    pivot_longer(cols = -c(interaction, response),
+                 names_to = "method_name",
+                 values_to = "predictor") %>%
+    mutate(response = factor(response, levels = c(1, 0))) %>%
+    mutate(predictor = predictor*-1)
+    
+# Roc
+lr_space_res <- liana_response %>%
+    group_by(method_name) %>%
+    filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
+    group_nest(.key = "corr_rank") %>%
+    mutate(roc = map(corr_rank, function(df) calc_curve(df, curve="ROC"))) %>%
+    mutate(prc = map(corr_rank, function(df) calc_curve(df, curve = "PR",
+                                                        downsampling = TRUE,
+                                                        times = 100)))
+# lr_space_auroc <-
+lr_space_res %>%
+    dplyr::select(method_name, roc) %>%
+    unnest(roc) %>%
+    dplyr::select(method_name, auc) %>%
+    distinct()
+
+
+lr_space_res %>%
+    dplyr::select(method_name, prc) %>%
+    unnest(prc) %>%
+    dplyr::select(method_name, auc) %>%
+    distinct()
+
+```
