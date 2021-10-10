@@ -7,25 +7,20 @@ library(gt)
 library(SPOTlight)
 library(igraph)
 library(RColorBrewer)
+library(SPOTlight)
 require(liana)
 require(tidyverse)
 require(magrittr)
+
+
+
+
+
 
 ## 1. Prerequisites
 # load sc
 path_to_data <- system.file(package = "SPOTlight")
 cortex_sc <- readRDS(glue::glue("{path_to_data}/allen_cortex_dwn.rds"))
-
-# load spatial
-if (! "stxBrain" %in% SeuratData::AvailableData()[, "Dataset"]) {
-    # If dataset not downloaded proceed to download it
-    SeuratData::InstallData("stxBrain")
-}
-# 10X Genomics Visium Mouse Brain Dataset
-anterior <- SeuratData::LoadData("stxBrain", type = "anterior1")
-Seurat::SpatialDimPlot(anterior)
-
-
 # prep sc
 set.seed(123)
 cortex_sc <- Seurat::SCTransform(cortex_sc, verbose = FALSE) %>%
@@ -35,6 +30,7 @@ Seurat::DimPlot(cortex_sc,
                 group.by = "subclass",
                 label = TRUE) + Seurat::NoLegend()
 
+
 # Get Markers
 Seurat::Idents(object = cortex_sc) <- cortex_sc@meta.data$subclass
 cluster_markers_all <- Seurat::FindAllMarkers(object = cortex_sc,
@@ -43,12 +39,26 @@ cluster_markers_all <- Seurat::FindAllMarkers(object = cortex_sc,
                                               verbose = TRUE,
                                               only.pos = TRUE)
 saveRDS(object = cluster_markers_all,
-        file = "data/spotligh_test.RDS")
-cluster_markers_all <- readRDS("data/spotligh_test.RDS")
+        file = "data/spotligh_markers.RDS")
+
+
+# load spatial
+if (! "stxBrain" %in% SeuratData::AvailableData()[, "Dataset"]) {
+    # If dataset not downloaded proceed to download it
+    SeuratData::InstallData("stxBrain")
+}
+# 10X Genomics Visium Mouse Brain Dataset
+anterior <- SeuratData::LoadData("stxBrain", type = "anterior1")
+anterior2 <- SeuratData::LoadData("stxBrain", type = "anterior2")
+posterior <- SeuratData::LoadData("stxBrain", type = "posterior1")
+posterior2 <- SeuratData::LoadData("stxBrain", type = "posterior2")
+Seurat::SpatialDimPlot(anterior2)
+
 
 
 # Run Spotlight ----
 set.seed(123)
+cluster_markers_all <- readRDS("data/spotligh_test.RDS")
 spotlight_ls <- spotlight_deconvolution(
     se_sc = cortex_sc,
     counts_spatial = anterior@assays$Spatial@counts,
@@ -318,8 +328,6 @@ liana_corr
 
 
 # Whole vector correlation (not possible)
-
-
 # Fischer's exact test ----
 liana_loc <- liana_format %>%
     left_join(corr_deconv_mat, by = c("source"="celltype1",
