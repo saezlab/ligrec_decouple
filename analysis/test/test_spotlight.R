@@ -320,6 +320,218 @@ liana_corr
 # Whole vector correlation (not possible)
 
 
+# Fischer's exact test ----
+liana_loc <- liana_format %>%
+    left_join(corr_deconv_mat, by = c("source"="celltype1",
+                                      "target"="celltype2"))  %>%
+    # FILTER AUTOCRINE
+    filter(source!=target) %>%
+    dplyr::mutate(localisation = case_when(estimate >= 0.2 ~ "colocalized",
+                                           estimate < 0.2 ~ "not_colocalized"
+                                           )) %>%
+    mutate(top_or_not = case_when(predictor <= 1000 ~ "top",
+                                  predictor > 1000 ~ "not"
+    )) %>% ungroup()
+
+
+
+factor1 <- liana_loc %>%
+    filter(method_name=="natmi.rank") %>%
+    filter(top_or_not == "top") %>% pluck("localisation") %>%
+    as.factor() %>%
+    recode_factor("colocalized" = TRUE, "not_colocalized" = FALSE)
+
+factor2 <- liana_loc %>%
+    filter(method_name=="natmi.rank") %>%
+    pluck("localisation") %>%
+    as.factor() %>%
+    recode_factor("colocalized" = TRUE, "not_colocalized" = FALSE)
+
+
+fisher.test(factor1, factor2)
+
+
+
+xd <- liana_loc %>%
+    # filter(method_name=="natmi.rank") %>%
+    dplyr::select(method_name, localisation, top_or_not)
+
+entity = "interactions"
+resource = "SIGNOR"
+var = pathway
+
+
+ligrec_olap$interactions
+enrich2(ligrec_olap$interactions, var1 = pathway, var2 = resource)
+
+liana_loc_filt <- liana_loc %>% filter(predictor <= n_rank)
+enrich2(liana_loc_filt, method_name, localisation)
+
+
+
+enrich2(xd, "localisation")
+
+
+
+ranks_counted <- liana_loc %>%
+    # count total (Null)
+    group_by(method_name, localisation) %>%
+    mutate(total = n())  %>%
+    # count in x rank (Alt)
+    filter(predictor <= n_rank) %>%
+    group_by(method_name, localisation) %>%
+    mutate(top = n()) %>%
+    dplyr::select(method_name, localisation, total, top) %>%
+    distinct()
+
+fet_results <- ranks_counted %>%
+    group_by(method_name) %>%
+    group_nest(.key = "contigency_tables") %>%
+    mutate(fet_res = contigency_tables %>%
+               map(function(cont_tab) cont_tab %>% enrich3)) %>%
+    unnest(fet_res) %>%
+    mutate(
+        padj = p.adjust(pval, method = "fdr"),
+        enrichment = ifelse(
+            odds_ratio < 1,
+            -1 / odds_ratio,
+            odds_ratio
+        ) %>% unname
+    ) %>%
+    dplyr::select(-contigency_tables)
+fet_results
+
+# ^ need to do it over range of ranks on the same graph would show how squidpy
+# and cellchat don't change as they simply assign too many interactions /w pval = 0,
+# and also could serve as a reference for the other methods
+
+
+
+
+require(tidyverse)
+require(rlang)
+
+
+#' Pairwise enrichment between two factors
+#'
+#' From a data frame with two categorical variables performs Barnard or
+#' Fisher tests between all combinations of the levels of the two variables.
+#' In each test the contingency table looks like: in \code{var1} belongs to
+#' level x or not vs. in \code{var2} belongs to level y or not. By default
+#' Fisher test is used simply because Barnard tests take very very long to
+#' compute.
+#'
+#' @param data A data frame with entities labeled with two categorical
+#'     variables \code{var1} and \code{var2}.
+#' @param var1 Name of the first categorical variable.
+#' @param var2 Name of the second categorical variable. Because in
+#'     ligand-receptor data it's always `resource` the default is `resource`.
+#' @param p_adj_method Adjustment method for multiple testing p-value
+#'     correction (see \code{stats::p.adjust}).
+#' @param test_method Characted: either "barnard", "barnard2" or "fisher".
+#'     "barnard" uses \code{Barnard::barnard.test} while "barnard2" uses
+#'     \code{DescTools::BarnardTest}.
+#' @param ... Passed to the function executing the Barnard test.
+#'
+#' @return A data frame with all possible combinations of the two categorical
+#'     variables, p-values, adjusted p-values and odds ratios.
+#'
+#' @importFrom rlang ensym !! !!! ensym quo_text exec
+#' @importFrom magrittr %>% %<>%
+#' @importFrom dplyr filter group_by group_modify mutate last
+#' @importFrom purrr cross_df map
+#' @importFrom Barnard barnard.test
+#' @importFrom DescTools BarnardTest
+#' @importFrom RCurl merge.list
+enrich2 <- function(
+    data,
+    var1,
+    var2 = resource,
+    p_adj_method = 'fdr',
+    test_method = 'fisher',
+    ...
+){
+
+    var1 <- ensym(var1)
+    var2 <- ensym(var2)
+    var1_str <- quo_text(var1)
+    var2_str <- quo_text(var2)
+
+    t_f <- c('TRUE', 'FALSE')
+
+    data %<>% dplyr::select(!!var1, !!var2)
+
+    data %>%
+        {map(names(.), function(x){unique(.[[x]])})} %>%
+        setNames(names(data)) %>%
+        cross_df() %>%
+        filter(!is.na(!!var1) & !is.na(!!var2)) %>%
+        group_by(!!var1, !!var2) %>%
+        group_modify(
+            function(.x, .y){
+                f1 <- factor(data[[var1_str]] == .y[[var1_str]][1], levels = t_f)
+                f2 <- factor(data[[var2_str]] == .y[[var2_str]][1], levels = t_f)
+                result <- fisher.test(f1, f2)
+                odds_ratio <- result$estimate
+                if(test_method == 'barnard'){
+                    sink('NUL')
+                    result <- exec(barnard.test, !!!table(f1, f2), ...)
+                    sink()
+                }else if(test_method == 'barnard2'){
+                    param <-
+                        list(...) %>%
+                        merge.list(list(fixed = NA, method = 'boschloo'))
+                    result <- exec(BarnardTest, f1, f2, !!!param)
+                }
+                tibble(pval = last(result$p.value), odds_ratio = odds_ratio)
+            }
+        ) %>%
+        ungroup() %>%
+        mutate(
+            padj = p.adjust(pval, method = p_adj_method),
+            enrichment = ifelse(
+                odds_ratio < 1,
+                -1 / odds_ratio,
+                odds_ratio
+            ) %>% unname
+        )
+
+}
+
+
+
+enrich3 <- function(df){
+    cont_table <- df %>%
+        as.data.frame() %>%
+        column_to_rownames("localisation") %>%
+        t()
+
+    result <- fisher.test(cont_table)
+    tibble(pval = last(result$p.value), odds_ratio = result$estimate)
+}
+
+
+
+# %>%
+#     as.data.frame() %>%
+#     column_to_rownames("name")
+
+
+
+fisher.test(f1, f2)
+
+
+dat
+
+dat <- data.frame(
+    "smoke_no" = c(7, 0),
+    "smoke_yes" = c(2, 5),
+    row.names = c("Athlete", "Non-athlete"),
+    stringsAsFactors = FALSE
+)
+colnames(dat) <- c("Non-smoker", "Smoker")
+
+dat
 
 
 #' @title Calculate AUROC and PRROC from rank-adt tibbles- `prepare_for_roc`-formated
