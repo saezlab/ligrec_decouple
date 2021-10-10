@@ -20,8 +20,7 @@ source("analysis/citeseq/citeseq_src.R")
 
 citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
-murine_resource <- op_resource %>%
-    convert_to_murine()
+murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 

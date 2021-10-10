@@ -16,7 +16,6 @@ source("analysis/citeseq/citeseq_analyse.R")
 https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.1.0/5k_pbmc_protein_v3_nextgem
 ##### 5k PBMCs from a Healthy Donor
 https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.1.0/5k_pbmc_protein_v3
-
 *31 surface antibodies each
 
 ### 10k PBMCs and MALT
@@ -24,16 +23,15 @@ https://support.10xgenomics.com/single-cell-gene-expression/datasets/3.1.0/5k_pb
 https://www.10xgenomics.com/resources/datasets/10-k-pbm-cs-from-a-healthy-donor-gene-expression-and-cell-surface-protein-3-standard-3-0-0
 ##### 10k Cells from a MALT Tumor
 https://www.10xgenomics.com/resources/datasets/10-k-cells-from-a-malt-tumor-gene-expression-and-cell-surface-protein-3-standard-3-0-0
+*18 surface antibodies each
 
-*18 antibodies each
 
-
-### scRNAseq and 13-antibody sequencing of CBMCs, acquired via:
+### scRNAseq and 13-antibody sequencing of CBMCs, acquired from [`SeuratData`v0.2.1]:
 ```{r}
 SeuratData::InstallData("cbmc")
 ```
 
 ### Murine Spleen-Lymph CiteSeq data
-2 datasets: 1 with 111 antibodies and another with 208 ADTs (SLN111 and SLN208)
-Available at:
+2 datasets: one with 111 and another with 208 ADTs - `SLN111` and `SLN208`, respectively
+Processed counts were obtained from:
 https://www.nature.com/articles/s41592-020-01050-x#data-availability
