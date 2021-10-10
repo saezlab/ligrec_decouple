@@ -136,7 +136,7 @@ liana_res %<>% liana_aggregate
 ## Spatial-LR eval
 ### Corr to NES
 ```{r }
-n_rank = 500
+n_rank = 5000
 liana_res_ag <- liana_res %>% liana_aggregate(cap=n_rank)
 # LIANA
 liana_prop <- liana_res_ag %>%
@@ -168,7 +168,7 @@ net_form <- nes %>%
 liana_corr <- liana_prop %>%
     left_join(net_form, by = c("source"="celltype1",
                                "target"="celltype2")) %>%
-    filter(source!=target)  %>%
+    filter(source!=target) %>%
     mutate(across(.cols = c(source, target), ~stringr::str_replace_all(.x, "[/]", " "))) %>%
     mutate(across(.cols = c(source, target), ~stringr::str_replace_all(.x, "[/]", " "))) %>%
     group_by(method_name) %>%

@@ -160,6 +160,7 @@ convert_to_murine <- function(op_resource){
 # Format for LIANA
 cortex_sc@meta.data %<>%
     mutate(subclass = str_replace_all(subclass, "[/]", ".")) %>%
+    mutate(subclass = str_replace_all(subclass, " ", ".")) %>%
     mutate(subclass = as.factor(subclass))
 Idents(cortex_sc) <- cortex_sc@meta.data$subclass
 
@@ -240,6 +241,7 @@ lr_space_res %>%
     dplyr::select(method_name, auc) %>%
     distinct()
 
+# plot roc lul
 ggplot(lr_space_res %>%
            dplyr::select(method_name, roc) %>%
            unnest(roc), aes(x = 1-specificity,
@@ -258,32 +260,21 @@ lr_space_res %>%
     distinct()
 
 # Correlation between score ranks and cell-cell proportion correlations -----
-# cell-cell interaction proportions
+# 1) cell-cell interaction proportions - correlate on TOP hit proportions
+
 n_rank <- 500
-liana_res <- readRDS("data/spotlight_liana.rds")
-liana_res %<>% liana_aggregate(cap = n_rank)
+liana_format <- liana_res %>%
+    mutate(across(c(source, target), ~str_replace_all(.x, " ", "."))) %>%
+    dplyr::select(source, target, ends_with("rank"), -c(mean_rank, median_rank)) %>%
+    mutate(aggregate_rank = min_rank(aggregate_rank)) %>%
+    pivot_longer(-c(source,target),
+                 names_to = "method_name",
+                 values_to = "predictor") #rank
 
 # load spotlight deconvolution check
 spotlight_ls <- readRDS("data/spotlight_ls.rds")
 decon_mtrx <- spotlight_ls[[2]]
 
-liana_prop <- liana_res %>%
-    select(source, target, ends_with("rank"), -c(mean_rank, median_rank)) %>%
-    mutate(aggregate_rank = min_rank(aggregate_rank)) %>%
-    pivot_longer(-c(source,target),
-                 names_to = "method_name",
-                 values_to = "rank") %>%
-    filter(rank < n_rank) %>%
-    group_by(method_name) %>%
-    mutate(tot_n = n()) %>%
-    group_by(source, target, method_name) %>%
-    mutate(n = n()) %>%
-    group_by(source, target, method_name) %>%
-    mutate(prop = n/tot_n) %>%
-    select(source, target, method_name, prop) %>%
-    distinct() %>%
-    group_by(method_name) %>%
-    mutate(check_prop = sum(prop))
 
 corr_deconv_mat <- cor(decon_mtrx) %>%
     reshape2::melt() %>%
@@ -292,20 +283,42 @@ corr_deconv_mat <- cor(decon_mtrx) %>%
                   celltype2 = Var2,
                   estimate = value)
 
+
+
+liana_prop <- liana_format %>%
+    filter(predictor < n_rank) %>% # predictor = rank
+    group_by(method_name) %>%
+    mutate(tot_n = n()) %>%
+    group_by(source, target, method_name) %>%
+    mutate(n = n()) %>%
+    group_by(source, target, method_name) %>%
+    mutate(prop = n/tot_n) %>%
+    dplyr::select(source, target, method_name, prop) %>%
+    distinct() %>%
+    group_by(method_name) %>%
+    mutate(check_prop = sum(prop))
+
+
+
+
 liana_corr <- liana_prop %>%
     left_join(corr_deconv_mat, by = c("source"="celltype1",
-                                    "target"="celltype2")) %>%
+                                    "target"="celltype2"))  %>%
+    # FILTER AUTOCRINE
     filter(source!=target) %>%
     group_by(method_name) %>%
     group_nest() %>%
     mutate(correlation = data %>%
                map(function(d) d %>%
-                       # mutate(estimate = replace_na(estimate, 0)) %>% - too dangerous, better to be NA and filter
                        summarise(correlation = cor(prop,
                                                    estimate,
                                                    method = "pearson")))) %>%
     unnest(correlation)
 liana_corr
+
+
+# Whole vector correlation (not possible)
+
 
 
 
