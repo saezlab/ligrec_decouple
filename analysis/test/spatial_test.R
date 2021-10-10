@@ -61,7 +61,6 @@ Seurat::SpatialDimPlot(anterior)
 
 # Run Spotlight ----
 set.seed(123)
-cluster_markers_all <- readRDS("data/spotligh_test.RDS")
 spotlight_ls <- spotlight_deconvolution(
     se_sc = cortex_sc,
     counts_spatial = anterior@assays$Spatial@counts,
