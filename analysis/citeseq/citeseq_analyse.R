@@ -116,6 +116,22 @@ corr_table %<>%
     # this thing has too few proteins and is an outlier
     filter(dataset!="3kCBMCs")
 
+
+library(ggsignif)
+
+pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
+                                        data = corr_table,
+                                        method = "t.test")
+my_comparisons <- pairwise_contrasts %>%
+    filter(p.adj <= 0.05) %>%
+    select(group1, group2) %>%
+    rowwise() %>%
+    mutate(my_comparisons = list(c(group1, group2))) %>%
+    pluck("my_comparisons")
+
+symnum.args <- list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05),
+                    symbols = c("****", "***", "**", "*"))
+
 # Bar plot
 corr_table %>%
     ggplot(aes(x = factor(method), y = estimate)) +
@@ -128,7 +144,9 @@ corr_table %>%
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
     guides(size=guide_legend(title="Receptor genes")) +
     labs(fill=guide_legend(title="Method"),
-         shape=guide_legend(title="Dataset"))
+         shape=guide_legend(title="Dataset")) +
+    geom_signif(comparisons = my_comparisons,
+                map_signif_level=TRUE)
 
 
 
@@ -172,8 +190,27 @@ saveRDS(pr_roc_tibble, "data/output/citeseq_out/citeseq_aurocs.RDS")
 # Generate Plots
 pr_roc_tibble <- readRDS("data/output/citeseq_out/citeseq_aurocs.RDS")
 
-get_auroc_heat(pr_roc_tibble, "roc",
-               heatmap_legend_param = list(title="AUROC"))
+# AUROC
+auroc_tib <- get_auroc_heat(pr_roc_tibble, "roc", mat_only = TRUE)
+pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
+                                            data = auroc_tib,
+                                            method = "t.test") %>%
+    filter(p.adj <=0.05)
+pairwise_contrasts
+pairwise_contrasts %>%
+    select(group1, group2, p, p.adj, p.signif) %>%
+    as.data.frame() %>%
+    write.csv("~/Downloads/auroc_specificity.csv", row.names = FALSE)
+get_auroc_heat(pr_roc_tibble, "roc")
 
-get_auroc_heat(pr_roc_tibble, "prc",
-               heatmap_legend_param = list(title="PRAUC"))
+# AUPRC
+auprc_tib <- get_auroc_heat(pr_roc_tibble, "prc", mat_only = TRUE)
+pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
+                                            data = auprc_tib,
+                                            method = "t.test") %>%
+    filter(p.adj <=0.05)
+pairwise_contrasts %>%
+    select(group1, group2, p, p.adj, p.signif) %>%
+    as.data.frame() %>%
+    write.csv("~/Downloads/auprc_specificity.csv", row.names = FALSE)
+get_auroc_heat(pr_roc_tibble, "prc")

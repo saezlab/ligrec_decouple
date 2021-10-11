@@ -619,11 +619,13 @@ str_to_symbol <- function(string, organism, ...){
 #' Helper function to produce AUROC heatmap
 #' @param roc_tibble Tibble with calculated AUROC/PRROC
 #' @param curve type of curve `roc` or `prc`
+#' @param mat_only whether to return only the auc_mat used to build the heatmap
+#' in long format
 #' @inheritDotParams ComplexHeatmap::Heatmap
 #'
 #' @return returns an AUROC or Precision-Recall AUC heatmap
 #' @import ComplexHeatmap ggplot2 viridis
-get_auroc_heat <- function(roc_tibble, curve, ...){
+get_auroc_heat <- function(roc_tibble, curve, mat_only = FALSE, ...){
 
     auc_df <- roc_tibble %>%
         dplyr::select(dataset, method_name, !!curve) %>%
@@ -643,19 +645,37 @@ get_auroc_heat <- function(roc_tibble, curve, ...){
         column_to_rownames("dataset") %>%
         as.matrix()
 
-    ComplexHeatmap::Heatmap(auc_mat,
-                            col = circlize::colorRamp2(c(auc_min,auc_max),
-                                                       viridis::cividis(2)),
-                            cluster_rows = FALSE,
-                            cluster_columns = FALSE,
-                            cell_fun = function(j, i, x, y, width, height, fill) {
-                                grid::grid.text(sprintf("%.2f", auc_mat[i, j]),
-                                                x, y,
-                                                gp = grid::gpar(fontsize = 12,
-                                                                fontface = "bold",
-                                                                col = "white"))
-                            },
-                            ...)
+    if(mat_only){
+        auc_mat %<>%
+            as.data.frame() %>%
+            pivot_longer(
+                cols = everything(),
+                names_to = "method",
+                values_to = "estimate")
+
+        return(auc_mat)
+    }
+
+    ComplexHeatmap::Heatmap(
+        auc_mat,
+        col = circlize::colorRamp2(c(auc_min,auc_max),
+                                   viridis::cividis(2)),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        heatmap_legend_param =
+            list(title = str_glue("AU{str_to_upper(curve)}",
+                                  fontsize = 18,
+                                  grid_height = unit(20, "mm"),
+                                  grid_width = unit(20, "mm"))),
+        cell_fun = function(j, i, x, y, width, height, fill) {
+            grid::grid.text(sprintf("%.2f", auc_mat[i, j]),
+                            x, y,
+                            gp = grid::gpar(fontsize = 16,
+                                            fontface = "bold",
+                                            col = "white"))
+            },
+        ...
+        )
 }
 
 

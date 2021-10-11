@@ -1,8 +1,8 @@
 require(tidyverse)
 require(magrittr)
+require(Seurat)
 require(liana)
 require(SPOTlight)
-require(Seurat)
 
 # I) Prep Allen Brain Atlas
 cortex_sc <- readRDS("data/input/spatial/brain_cortex/allen_cortex.rds")
@@ -58,7 +58,7 @@ if (! "stxBrain" %in% SeuratData::AvailableData()[, "Dataset"]) {
 }
 
 # Deconvolute slides /w SPOTlight
-c(#"anterior1",
+c("anterior1",
   "anterior2",
   "posterior1",
   "posterior2") %>%
@@ -98,10 +98,15 @@ liana_res <- liana_wrap(cortex_sc,
                         resource = "custom",
                         external_resource = murine_resource,
                         assay = "SCT",
-                        expr_prop=0.1)
+                        expr_prop=0.1,
+                        squidpy.params = list(cluster_key = "subclass"))
+
 
 # squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
 # set all others to title just in case
 liana_res %<>% map(function(res) res %>%
                        mutate_at(.vars = c("ligand", "receptor"), str_to_title))
 saveRDS(liana_res, "data/input/spatial/brain_cortex/brain_liana_results.RDS")
+
+
+
