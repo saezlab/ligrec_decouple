@@ -19,8 +19,7 @@ require(magrittr)
 
 ## 1. Prerequisites
 # load sc
-path_to_data <- system.file(package = "SPOTlight")
-cortex_sc <- readRDS(glue::glue("{path_to_data}/allen_cortex_dwn.rds"))
+cortex_sc <- readRDS(glue::glue("{system.file(package = 'SPOTlight')}/allen_cortex_dwn.rds"))
 
 
 # prep sc
@@ -66,7 +65,7 @@ spotlight_ls <- spotlight_deconvolution(
     counts_spatial = anterior@assays$Spatial@counts,
     clust_vr = "subclass", # Variable in sc_seu containing the cell-type annotation
     cluster_markers = cluster_markers_all, # Dataframe with the marker genes
-    cl_n = 250, # number of cells per cell type to use
+    cl_n = 100, # number of cells per cell type to use
     hvg = 3000, # Number of HVG to use
     ntop = NULL, # How many of the marker genes to use (by default all)
     transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorzation and NLS
@@ -82,16 +81,18 @@ cluster_markers_all <- readRDS("data/spotligh_test.RDS")
 nmf_mod <- spotlight_ls[[1]]
 decon_mtrx <- spotlight_ls[[2]]
 
-# Before even looking at the decomposed spots we can gain insight on how well the model performed by looking at the topic profiles for the cell types.
-# The first thing we can do is look at how specific the topic profiles are for each cell type.
+# Check specificity of topics (cell types)
 h <- NMF::coef(nmf_mod[[1]])
 rownames(h) <- paste("Topic", 1:nrow(h), sep = "_")
 topic_profile_plts <- SPOTlight::dot_plot_profiles_fun(
     h = h,
     train_cell_clust = nmf_mod[[2]])
 
-# Check topics
+
 topic_profile_plts[[2]]
+
+topic_profile_plts[[1]] + theme(axis.text.x = element_text(angle = 90),
+                                axis.text = element_text(size = 12))
 
 
 # Remove cell types not predicted to be on the tissue
@@ -315,7 +316,7 @@ liana_prop <- liana_format %>%
 
 liana_corr <- liana_prop %>%
     left_join(corr_deconv_mat, by = c("source"="celltype1",
-                                    "target"="celltype2"))  %>%
+                                      "target"="celltype2"))  %>%
     # FILTER AUTOCRINE
     filter(source!=target) %>%
     group_by(method_name) %>%
@@ -356,8 +357,6 @@ factor2 <- liana_loc %>%
     pluck("localisation") %>%
     as.factor() %>%
     recode_factor("colocalized" = TRUE, "not_colocalized" = FALSE)
-
-
 fisher.test(factor1, factor2)
 
 

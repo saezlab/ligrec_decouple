@@ -4,8 +4,13 @@ require(Seurat)
 require(liana)
 require(SPOTlight)
 
+# brain analysis directory
+brain_dir <- "data/input/spatial/brain_cortex"
+
 # I) Prep Allen Brain Atlas
-cortex_sc <- readRDS("data/input/spatial/brain_cortex/allen_cortex.rds")
+# cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex.rds")) # whole atlas
+# SPOTlight tutorial
+cortex_sc <- readRDS(glue::glue("{system.file(package = 'SPOTlight')}/allen_cortex_dwn.rds"))
 
 # Downsample (since SPOTlight shows stable performance with 100 cells,
 # we downsample the dataset for computational speed and memory)
@@ -14,7 +19,7 @@ cortex_sc@meta.data %<>%
     mutate(subclass = str_replace_all(subclass, " ", ".")) %>%
     rownames_to_column(var = "barcode") %>%
     group_by(subclass) %>%
-    slice_sample(n=200) %>%
+    slice_sample(n=100) %>%
     ungroup() %>%
     as.data.frame() %>%
     column_to_rownames("barcode")
@@ -33,7 +38,7 @@ Seurat::DimPlot(cortex_sc,
                 label = TRUE) + Seurat::NoLegend()
 
 # save the downsampled and formatted object
-saveRDS(cortex_sc, "data/input/spatial/brain_cortex/allen_cortex_dwn.rds")
+saveRDS(cortex_sc, file.path(brain_dir, "allen_cortex_dwn.rds"))
 
 
 # save markers
@@ -43,13 +48,13 @@ cluster_markers_all <- Seurat::FindAllMarkers(object = cortex_sc,
                                               verbose = TRUE,
                                               only.pos = TRUE)
 saveRDS(object = cluster_markers_all,
-        file = "data/input/spatial/brain_cortex/markers.rds")
+        file = file.path(brain_dir, "markers.rds"))
 
 
 # II) Deconvolute Mouse slides ----
 # Read SC reference and cluster markers
-cortex_sc <- readRDS("data/input/spatial/brain_cortex/allen_cortex_dwn.rds")
-cluster_markers_all <- readRDS("data/input/spatial/brain_cortex/markers.rds")
+cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex_dwn.rds"))
+cluster_markers_all <- readRDS(file.path(brain_dir, "markers.rds"))
 
 
 if (! "stxBrain" %in% SeuratData::AvailableData()[, "Dataset"]) {
@@ -58,24 +63,26 @@ if (! "stxBrain" %in% SeuratData::AvailableData()[, "Dataset"]) {
 }
 
 # Deconvolute slides /w SPOTlight
-c("anterior1",
-  "anterior2",
-  "posterior1",
-  "posterior2") %>%
+slides <- c("anterior1",
+            "anterior2",
+            "posterior1",
+            "posterior2")
+
+slides %>%
     map(function(slide){
         message(slide)
 
         seurat_object <- SeuratData::LoadData("stxBrain", type = slide)
         print(seurat_object)
 
-        set.seed(123)
+        set.seed(1234)
         # Run deconvolution as from tutorial and paper
         spotlight_ls <- spotlight_deconvolution(
             se_sc = cortex_sc,
             counts_spatial = seurat_object@assays$Spatial@counts,
             clust_vr = "subclass", # Variable in sc_seu containing the cell-type annotation
             cluster_markers = cluster_markers_all, # Dataframe with the marker genes
-            cl_n = 200, # number of cells per cell type to use
+            cl_n = 100, # number of cells per cell type to use
             hvg = 3000, # Number of HVG to use
             ntop = NULL, # How many of the marker genes to use (by default all)
             transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorzation and NLS
@@ -83,14 +90,29 @@ c("anterior1",
             min_cont = 0 # Remove those cells contributing to a spot below a certain threshold
         )
         gc()
-
-        saveRDS(spotlight_ls, str_glue("data/input/spatial/brain_cortex/{slide}_doconvolution.RDS"))
+        saveRDS(spotlight_ls, str_glue("{brain_dir}/{slide}_doconvolution2.RDS"))
     })
+
+# check deconv nmf topics/results
+deconv_results <- slides %>%
+  map(function(slide) readRDS(str_glue("{brain_dir}/{slide}_doconvolution.RDS"))) %>%
+  setNames(slides)
+
+nmf_mod <- deconv_results$posterior2[[1]]
+h <- NMF::coef(nmf_mod[[1]])
+rownames(h) <- paste("Topic", 1:nrow(h), sep = "_")
+topic_profile_plts <- SPOTlight::dot_plot_profiles_fun(
+  h = h,
+  train_cell_clust = nmf_mod[[2]])
+
+# Check topics
+topic_profile_plts[[2]]
 
 
 
 # III) Run LIANA ----
-cortex_sc <- readRDS("data/input/spatial/brain_cortex/allen_cortex_dwn.rds")
+gc()
+cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex_dwn.rds"))
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 
 liana_res <- liana_wrap(cortex_sc,
