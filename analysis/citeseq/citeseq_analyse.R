@@ -113,11 +113,8 @@ corr_table %<>%
     mutate(method = recode_methods(method)) %>%
     # recode datasets
     mutate(dataset = recode_datasets(dataset)) %>%
-    # rename metrics
-    filter(metric=="mean") %>%
-    # mutate(metric = if_else(metric=="scale", "Cluster-specific Mean", metric)) %>%
-    mutate(metric = if_else(metric=="mean", "Mean", metric)) %>%
-    mutate(metric = if_else(metric=="prop", "Cell Proportion", metric))
+    # this thing has too few proteins and is an outlier
+    filter(dataset!="3kCBMCs")
 
 # Bar plot
 corr_table %>%
@@ -127,9 +124,9 @@ corr_table %>%
     scale_shape_manual(values = rep(4:12, len = 7)) +
     xlab("") +
     ylab("Kendal's tau Coefficient") +
-    theme_minimal(base_size = 24) +
+    theme_minimal(base_size = 27) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    guides(size=guide_legend(title="Receptor Genes per dataset")) +
+    guides(size=guide_legend(title="Receptor genes")) +
     labs(fill=guide_legend(title="Method"),
          shape=guide_legend(title="Dataset"))
 

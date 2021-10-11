@@ -58,13 +58,17 @@ if (! "stxBrain" %in% SeuratData::AvailableData()[, "Dataset"]) {
 }
 
 # Deconvolute slides /w SPOTlight
-c("anterior1", "anterior2", "posterior1", "posterior2") %>%
+c(#"anterior1",
+  "anterior2",
+  "posterior1",
+  "posterior2") %>%
     map(function(slide){
         message(slide)
 
         seurat_object <- SeuratData::LoadData("stxBrain", type = slide)
         print(seurat_object)
 
+        set.seed(123)
         # Run deconvolution as from tutorial and paper
         spotlight_ls <- spotlight_deconvolution(
             se_sc = cortex_sc,
@@ -78,21 +82,10 @@ c("anterior1", "anterior2", "posterior1", "posterior2") %>%
             method = "nsNMF", # Factorization method
             min_cont = 0 # Remove those cells contributing to a spot below a certain threshold
         )
+        gc()
 
         saveRDS(spotlight_ls, str_glue("data/input/spatial/brain_cortex/{slide}_doconvolution.RDS"))
     })
-
-
-
-saveRDS(object = spotlight_ls, file = here::here("data/spotlight_ls.rds"))
-
-
-
-
-anterior <- SeuratData::LoadData("stxBrain", type = "anterior1")
-anterior2 <- SeuratData::LoadData("stxBrain", type = "anterior2")
-posterior <- SeuratData::LoadData("stxBrain", type = "posterior1")
-posterior2 <- SeuratData::LoadData("stxBrain", type = "posterior2")
 
 
 
@@ -111,4 +104,4 @@ liana_res <- liana_wrap(cortex_sc,
 # set all others to title just in case
 liana_res %<>% map(function(res) res %>%
                        mutate_at(.vars = c("ligand", "receptor"), str_to_title))
-saveRDS(liana_res, "data/spotlight_liana.rds")
+saveRDS(liana_res, "data/input/spatial/brain_cortex/brain_liana_results.RDS")

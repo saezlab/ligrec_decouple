@@ -22,14 +22,18 @@ run_adt_pipe <- function(subdir = subdir,
                          organism = "human",
                          adt_pipe_type = "correlation"){
 
+    # read seurat
     seurat_object_path <- list.subfiles(subdir = subdir,
                                         dir = citeseq_dir,
                                         pattern = sobj_pattern)
+    seurat_object <- readRDS(seurat_object_path)
 
 
+    # read liana res
     liana_res_path <- list.subfiles(subdir = subdir,
                                     dir = citeseq_dir,
                                     pattern = liana_pattern)
+    liana_res <- readRDS(liana_res_path)
 
     # Get Symbols of Receptors from OP
     receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
@@ -54,8 +58,8 @@ run_adt_pipe <- function(subdir = subdir,
     if(adt_pipe_type == "correlation"){
         message(str_glue("Calculating correlations on: {subdir}"))
         # call function that does the adt-lr correlation
-        adt_lr_corr <- wrap_adt_corr(seurat_object = readRDS(seurat_object_path),
-                                     liana_res = readRDS(liana_res_path),
+        adt_lr_corr <- wrap_adt_corr(seurat_object = seurat_object,
+                                     liana_res = liana_res,
                                      op_resource = op_resource,
                                      cluster_key = cluster_key,
                                      organism = organism,
@@ -769,14 +773,14 @@ calc_curve = function(df,
 #' already ranked data then rank 1 would be the smallest value, rather than the
 #' highest. Thus, we invert by multiplying by -1, and rank becomes the highest value
 #' i.e. -1, while rank 50,000 becomes the lowest value i.e. -50,000
-prepare_for_roc = function(df, arbitrary_thresh){
+prepare_for_roc <- function(df, arbitrary_thresh){
     df %>%
         filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
         dplyr::rename(predictor = value) %>%
         # Reverse ranks, so that highest ranked interactions get the highest score - see details
         mutate(predictor = predictor * -1) %>%
         group_by(method_name) %>%
-        dplyr::mutate(response = case_when(adt_scale => arbitrary_thresh ~ 1,
+        dplyr::mutate(response = case_when(adt_scale >= arbitrary_thresh ~ 1,
                                            adt_scale < arbitrary_thresh ~ 0)) %>%
         mutate(response = factor(response, levels = c(1, 0))) %>%
         dplyr::select(source.target.entity, method_name,
