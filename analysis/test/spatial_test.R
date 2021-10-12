@@ -15,6 +15,77 @@ require(magrittr)
 
 
 
+# I) FET TEST
+arb_thresh = 1.645 # one-tailed alpha = 0.05
+
+# I) Enrichment of interactions between co-localized cells ----
+
+# Load Liana
+liana_res <- readRDS("data/spotlight_liana.rds")
+liana_res %<>% liana_aggregate()
+# Format LIANA res to long tibble /w method_name and predictor (ranks)
+liana_format <- liana_res %>%
+    mutate(across(c(source, target), ~str_replace_all(.x, " ", "."))) %>%
+    dplyr::select(source, target, ends_with("rank"), -c(mean_rank, median_rank)) %>%
+    mutate(aggregate_rank = min_rank(aggregate_rank)) %>%
+    pivot_longer(-c(source,target),
+                 names_to = "method_name",
+                 values_to = "predictor") #rank
+
+# load spotlight deconv
+spotlight_ls <- readRDS("data/spotlight_ls.rds")
+
+# Load deconv proportions and estimate correlation
+decon_mtrx <- spotlight_ls[[2]]
+decon_cor <- cor(decon_mtrx)
+
+# format deconv proportions
+decon_corr_long <- decon_cor %>%
+    reshape_coloc_estimate(z_scale = TRUE)
+
+#
+n_ranks = c(100, 500, 1000, 5000, 10000, 50000)
+n_rank = 1000
+
+# decon_corr_long, liana_format, rank
+liana_loc <- liana_format %>%
+    left_join(decon_corr_long, by = c("source"="celltype1",
+                                      "target"="celltype2"))  %>%
+    # FILTER AUTOCRINE
+    filter(source!=target) %>%
+    dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                           estimate < arb_thresh ~ "not_colocalized"
+    )) %>% ungroup()
+
+ranks_counted <- liana_loc %>%
+    # count total (Null)
+    group_by(method_name, localisation) %>%
+    mutate(total = n())  %>%
+    # count in x rank (Alt)
+    filter(predictor <= n_rank) %>%
+    group_by(method_name, localisation) %>%
+    mutate(top = n()) %>%
+    dplyr::select(method_name, localisation, total, top) %>%
+    distinct()
+
+# Fischer's exact test on co-localized in top vs total interactions
+fet_results <- ranks_counted %>%
+    group_by(method_name) %>%
+    group_nest(.key = "contigency_tables") %>%
+    mutate(fet_res = contigency_tables %>%
+               map(function(cont_tab) cont_tab %>% enrich3)) %>%
+    unnest(fet_res) %>%
+    mutate(
+        padj = p.adjust(pval, method = "fdr"),
+        enrichment = ifelse(
+            odds_ratio < 1,
+            -1 / odds_ratio,
+            odds_ratio
+        ) %>% unname
+    ) %>%
+    dplyr::select(-contigency_tables) %>%
+    arrange(desc(enrichment))
+fet_results
 
 
 ## 1. Prerequisites
@@ -238,15 +309,20 @@ liana_response <- liana_res %>%
     mutate(predictor = predictor*-1)
 
 
+
+
 # Roc
 lr_space_res <- liana_response %>%
     group_by(method_name) %>%
     filter(!(method_name %in% c("mean_rank", "median_rank"))) %>%
     group_nest(.key = "corr_rank") %>%
-    mutate(roc = map(corr_rank, function(df) calc_curve(df, curve="ROC"))) %>%
+    mutate(roc = map(corr_rank, function(df) calc_curve(df,
+                                                        curve="ROC",
+                                                        source_name = "interaction"))) %>%
     mutate(prc = map(corr_rank, function(df) calc_curve(df, curve = "PR",
                                                         downsampling = TRUE,
-                                                        times = 100)))
+                                                        times = 100,
+                                                        source_name = "interaction")))
 # lr_space_auroc <-
 lr_space_res %>%
     dplyr::select(method_name, roc) %>%
@@ -486,7 +562,7 @@ enrich2 <- function(
                     sink('NUL')
                     result <- exec(barnard.test, !!!table(f1, f2), ...)
                     sink()
-                }else if(test_method == 'barnard2'){
+                } else if(test_method == 'barnard2'){
                     param <-
                         list(...) %>%
                         merge.list(list(fixed = NA, method = 'boschloo'))
@@ -508,16 +584,6 @@ enrich2 <- function(
 }
 
 
-
-enrich3 <- function(df){
-    cont_table <- df %>%
-        as.data.frame() %>%
-        column_to_rownames("localisation") %>%
-        t()
-
-    result <- fisher.test(cont_table)
-    tibble(pval = last(result$p.value), odds_ratio = result$estimate)
-}
 
 
 

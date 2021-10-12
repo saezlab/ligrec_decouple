@@ -17,6 +17,7 @@ require(yardstick)
 require(magrittr)
 require(ComplexHeatmap)
 source("analysis/citeseq/citeseq_src.R")
+source("src/eval_utils.R")
 
 citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]

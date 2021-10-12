@@ -1,3 +1,4 @@
+# Load libs
 require(tidyverse)
 require(magrittr)
 require(Seurat)
@@ -7,7 +8,10 @@ require(SPOTlight)
 # brain analysis directory
 brain_dir <- "data/input/spatial/brain_cortex"
 
+
+
 # I) Prep Allen Brain Atlas
+# think whether I want to use this, possibly better for LIANA, but for some reason deconv. topics are slightly less specific
 # cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex.rds")) # whole atlas
 # SPOTlight tutorial
 cortex_sc <- readRDS(glue::glue("{system.file(package = 'SPOTlight')}/allen_cortex_dwn.rds"))
@@ -80,12 +84,12 @@ slides %>%
         spotlight_ls <- spotlight_deconvolution(
             se_sc = cortex_sc,
             counts_spatial = seurat_object@assays$Spatial@counts,
-            clust_vr = "subclass", # Variable in sc_seu containing the cell-type annotation
-            cluster_markers = cluster_markers_all, # Dataframe with the marker genes
-            cl_n = 100, # number of cells per cell type to use
-            hvg = 3000, # Number of HVG to use
+            clust_vr = "subclass", # cell-type annotations
+            cluster_markers = cluster_markers_all, # df with marker genes
+            cl_n = 100, # number of cells per cell type
+            hvg = 3000, # Number of HVG
             ntop = NULL, # How many of the marker genes to use (by default all)
-            transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorzation and NLS
+            transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorization and NLS
             method = "nsNMF", # Factorization method
             min_cont = 0 # Remove those cells contributing to a spot below a certain threshold
         )
@@ -95,17 +99,20 @@ slides %>%
 
 # check deconv nmf topics/results
 deconv_results <- slides %>%
-  map(function(slide) readRDS(str_glue("{brain_dir}/{slide}_doconvolution.RDS"))) %>%
+  map(function(slide){
+    deconv_res <- readRDS(str_glue("{brain_dir}/{slide}_doconvolution2.RDS"))
+    return(deconv_res)
+  }) %>%
   setNames(slides)
+nmf_mod <- deconv_results$posterior1[[1]]
 
-nmf_mod <- deconv_results$posterior2[[1]]
 h <- NMF::coef(nmf_mod[[1]])
 rownames(h) <- paste("Topic", 1:nrow(h), sep = "_")
 topic_profile_plts <- SPOTlight::dot_plot_profiles_fun(
   h = h,
   train_cell_clust = nmf_mod[[2]])
 
-# Check topics
+# Check topics/cell type specificity
 topic_profile_plts[[2]]
 
 
