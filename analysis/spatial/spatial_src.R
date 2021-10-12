@@ -22,11 +22,9 @@ reshape_coloc_estimate <- function(estimate_mat, z_scale = FALSE){
 
 #' Function to perform FET on  colocalized vs not_colocalized interactions
 #'
-#' @param coloc_estimate tibble with colocalization metric for each pair of cell types
-#' in long format: cols = c(celltype1, celltype2, estimate)
-#' @param liana_format liana in long format with cols:
-#' source target method_name predictor(rank)
-#' @param n_rank number of ranks to be considered for the top interactions
+#' @param liana_loc liana results formatted with colocalisation in long format
+#' with cols:
+#' source, target, method_name, predictor (rank), localisation (response)
 #' @param arb_thresh a threshold for the co-localization estimate
 #'  (i.e. correlation/z-score above or below X)
 #'
@@ -41,18 +39,7 @@ reshape_coloc_estimate <- function(estimate_mat, z_scale = FALSE){
 #'>       <chr>          <int>    <int>
 #'>  1 not_colocalized   299868    748
 #'>  2 colocalized        20834    159
-run_coloc_fet <- function(coloc_estimate, liana_format, n_rank, arb_thresh){
-
-    # Assign colocalisation to liana results in long according to a threshold
-    liana_loc <- liana_format %>%
-        left_join(coloc_estimate, by = c("source"="celltype1",
-                                          "target"="celltype2"))  %>%
-        # FILTER AUTOCRINE
-        filter(source!=target) %>%
-        dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
-                                               estimate < arb_thresh ~ "not_colocalized"
-        )) %>% ungroup()
-
+run_coloc_fet <- function(liana_loc, n_rank){
     # count total vs top colocalized
     ranks_counted <- liana_loc %>%
         # count total (Null)

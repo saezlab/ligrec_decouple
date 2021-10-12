@@ -13,13 +13,10 @@ require(tidyverse)
 require(magrittr)
 
 
-
-
 # I) FET TEST
 arb_thresh = 1.645 # one-tailed alpha = 0.05
 
 # I) Enrichment of interactions between co-localized cells ----
-
 # Load Liana
 liana_res <- readRDS("data/spotlight_liana.rds")
 liana_res %<>% liana_aggregate()
@@ -45,7 +42,6 @@ decon_corr_long <- decon_cor %>%
 
 #
 n_ranks = c(100, 500, 1000, 5000, 10000, 50000)
-n_rank = 1000
 
 # decon_corr_long, liana_format, rank
 liana_loc <- liana_format %>%
@@ -702,6 +698,7 @@ calc_curve = function(df,
                      coverage = feature_coverage) %>%
             arrange(!!res_col_1, !!res_col_2)
     }
+
     return(res)
 }
 

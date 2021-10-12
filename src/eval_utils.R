@@ -38,20 +38,6 @@ convert_to_murine <- function(op_resource){
 
 
 
-#' @title Recode dataset names
-#' @param dataset - vector /w dataset names
-recode_datasets <- function(datasets){
-    dplyr::recode(datasets,
-                  "10k_malt" = "10kMALT",
-                  "10k_pbmcs" = "10kPBMCs",
-                  "5k_pbmcs" = "5kPBMCs ",
-                  "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
-                  "cmbcs" = "3kCBMCs",
-                  "spleen_lymph_101" = "SLN111",
-                  "spleen_lymph_206" = "SLN208"
-    )
-}
-
 #' @title Recode method names
 #' @param dataset - vector /w method names
 recode_methods <- function(methods){
@@ -180,3 +166,87 @@ enrich3 <- function(cont_tab){
     tibble(pval = last(result$p.value), odds_ratio = result$estimate)
 }
 
+
+
+#' @title Recode dataset names
+#' @param dataset - vector /w dataset names
+recode_datasets <- function(datasets){
+    dplyr::recode(datasets,
+                  # CITE-Seq
+                  "10k_malt" = "10kMALT",
+                  "10k_pbmcs" = "10kPBMCs",
+                  "5k_pbmcs" = "5kPBMCs ",
+                  "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
+                  "cmbcs" = "3kCBMCs",
+                  "spleen_lymph_101" = "SLN111",
+                  "spleen_lymph_206" = "SLN208",
+
+                  # Mouse Brain Cortex visium
+                  "anterior1" = "Cortex Anterior 1",
+                  "anterior2" = "Cortex Anterior 2",
+                  "posterior1" = "Cortex Posterior 1",
+                  "posterior2" = "Cortex Posterior 2")
+}
+
+
+#' Helper function to produce AUROC heatmap
+#' @param roc_tibble Tibble with calculated AUROC/PRROC
+#' @param curve type of curve `roc` or `prc`
+#' @param mat_only whether to return only the auc_mat used to build the heatmap
+#' in long format
+#' @inheritDotParams ComplexHeatmap::Heatmap
+#'
+#' @return returns an AUROC or Precision-Recall AUC heatmap
+#' @import ComplexHeatmap ggplot2 viridis
+get_auroc_heat <- function(roc_tibble, curve, mat_only = FALSE, ...){
+
+    auc_df <- roc_tibble %>%
+        dplyr::select(dataset, method_name, !!curve) %>%
+        unnest(!!curve)
+
+    auc_min <- min(auc_df$auc)
+    auc_max <- max(auc_df$auc)
+
+    auc_mat <- auc_df %>%
+        dplyr::select(dataset, method_name, auc) %>%
+        distinct() %>%
+        mutate(method_name = gsub("\\..*", "", method_name)) %>%
+        mutate(method_name = recode_methods(method_name)) %>%
+        mutate(dataset = recode_datasets(dataset)) %>%
+        pivot_wider(names_from = method_name, values_from = auc) %>%
+        as.data.frame() %>%
+        column_to_rownames("dataset") %>%
+        as.matrix()
+
+    if(mat_only){
+        auc_mat %<>%
+            as.data.frame() %>%
+            pivot_longer(
+                cols = everything(),
+                names_to = "method",
+                values_to = "estimate")
+
+        return(auc_mat)
+    }
+
+    ComplexHeatmap::Heatmap(
+        auc_mat,
+        col = circlize::colorRamp2(c(auc_min,auc_max),
+                                   viridis::cividis(2)),
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        heatmap_legend_param =
+            list(title = str_glue("AU{str_to_upper(curve)}",
+                                  fontsize = 18,
+                                  grid_height = unit(20, "mm"),
+                                  grid_width = unit(20, "mm"))),
+        cell_fun = function(j, i, x, y, width, height, fill) {
+            grid::grid.text(sprintf("%.2f", auc_mat[i, j]),
+                            x, y,
+                            gp = grid::gpar(fontsize = 16,
+                                            fontface = "bold",
+                                            col = "white"))
+        },
+        ...
+    )
+}
