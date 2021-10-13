@@ -1,5 +1,5 @@
 ---
-title: "squdpy_nes"
+title: "squdpy_nes_obtain_data"
 author: "Daniel Dimitrov"
 date: "10/8/2021"
 output: html_document
@@ -21,9 +21,44 @@ import numpy as np
 import squidpy as sq
 import anndata2ri
 ```
-
 ## Obtain data and enrichment
+```{python get_adata_nes}
+"""""
+Title: Function to return the EM and do NES with Squidpy
+
+params:
+    adata - anndata
+    coord_type - type of coordinate system
+    cluster_key - variable where clustering is stored
+    spatial_key - where spatial coordinates are stored - for some reason relevant for neighbourhood analysis
+    kwargs - passed to plot
+    
+    
+returns: list with processed adata and Neighbourhood Enrichment Scores (NES)
+"""""
+def get_adata_nes(adata, cluster_key, spatial_key = "spatial", **kwargs):
+    sq.gr.spatial_neighbors(adata, coord_type="generic", spatial_key=spatial_key)
+    sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
+    sq.pl.nhood_enrichment(adata, cluster_key=cluster_key, **kwargs)
+    
+    # nes
+    cats = adata.obs[cluster_key].cat.categories
+    nes_key = "{}_nhood_enrichment".format(cluster_key)
+    nes = pd.DataFrame(adata.uns[nes_key]['zscore'], index=cats, columns=cats)
+    
+    both = dict(adata = adata, nes = nes)
+    return(both)
+```
+
+
+
 ```{python load_sq_data}
+# https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_merfish.html#sphx-glr-auto-tutorials-tutorial-merfish-py
+adata = sq.datasets.seqfish()
+seq_adata_nes = get_adata_nes(adata, cluster_key="celltype_mapped_refined", method="ward")
+
+
+# https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_seqfish.html#sphx-glr-auto-tutorials-tutorial-seqfish-py
 adata = sq.datasets.seqfish()
 sq.gr.spatial_neighbors(adata, coord_type="generic")
 sq.gr.nhood_enrichment(adata, cluster_key="celltype_mapped_refined")
@@ -37,8 +72,8 @@ nes = pd.DataFrame(adata.uns['celltype_mapped_refined_nhood_enrichment']['zscore
 ```
 
 ## Convert to Seurat
-```{r to_seurat}
-exprs <- t(py$adata$X)
+```{r to_seurat, warning = FALSE}
+exprs <- t(as.matrix(py$adata$X))
 colnames(exprs) <- py$adata$obs_names$to_list()
 rownames(exprs) <- py$adata$var_names$to_list()
 # Create the Seurat object
@@ -56,77 +91,38 @@ seurat_object <- subset(seurat_object, cells=rownames(seurat_object@meta.data))
 Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
 
 # run normalization etc
-seurat_object %<>% Seurat::SCTransform(verbose = FALSE) %>%
+seurat_object %<>% 
+    Seurat::SCTransform(verbose = FALSE) %>%
     Seurat::FindVariableFeatures() %>%
     Seurat::RunPCA(., verbose = FALSE) %>%
     Seurat::RunUMAP(., dims = 1:30, verbose = FALSE) 
 
+saveRDS(seurat_object, "data/input/spatial/fishes/seqFISH_seurat.RDS")
 
 # get NES
 nes <- py$nes
+saveRDS(nes, "data/input/spatial/fishes/seqFISH_nes.RDS")
 ```
 
 
-## Run LIANA
-```{r run_lian}
+## Run LIANA (to be moved outside of rmd due to issue with python versions)
+```{r run_liana}
 require(liana)
 require(tidyverse)
 require(magrittr)
-require("biomaRt")
 
-#' Basic function to convert human to mouse genesymbols (temporary solution)
-#' @param op_resource omnipath_resource as obtained via `liana::select_resource`
-#'
-#' @details adapted from https://www.r-bloggers.com/2016/10/converting-mouse-to-human-gene-names-with-biomart-package/
-convert_to_murine <- function(op_resource){
-
-    # query biomaRt databases
-    human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-    mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
-
-    # obtain tibble with human and murine genesymbol
-    symbols_tibble <- getLDS(attributes = c("hgnc_symbol"),
-                             filters = "hgnc_symbol",
-                             values = union(op_resource$source_genesymbol,
-                                            op_resource$target_genesymbol),
-                             mart = human,
-                             martL = mouse,
-                             attributesL = c("mgi_symbol")) %>%
-        dplyr::rename(human_symbol = HGNC.symbol,
-                      murine_symbol = MGI.symbol) %>%
-        as_tibble()
-
-    # intentionally we introduce duplicates, if needed
-    # these should be resolved when LIANA is called
-    # as inappropriately matched genes will not be assigned any values
-    op_resource %>%
-        left_join(symbols_tibble, by=c("target_genesymbol"="human_symbol")) %>%
-        mutate(target_genesymbol = murine_symbol, .keep = "unused") %>%
-        left_join(symbols_tibble, by=c("source_genesymbol"="human_symbol")) %>%
-        mutate(source_genesymbol = murine_symbol, .keep = "unused") %>%
-        filter(!is.na(target_genesymbol) | !is.na(source_genesymbol)) %>%
-        filter(!is.na(target_genesymbol)) %>%
-        filter(!is.na(source_genesymbol))
-}
-
-
-op_resource <- select_resource("OmniPath")[[1]] %>%
-    convert_to_murine()
-
+op_resource <- readRDS("data/input/murine_omnipath.RDS")
 liana_res <- liana_wrap(seurat_object,
                         cellchat.params=list(organism="mouse"),
                         resource = "custom",
                         external_resource = op_resource,
                         assay="SCT",
-                        squidpy.param = list(cluster_key = "seurat_clusters"),
-                        method = c("cellchat", "squidpy", "call_connectome", "call_italk"))
+                        squidpy.param = list(cluster_key = "seurat_clusters"))
 
 
 # squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
 liana_res$squidpy %<>%
     mutate_at(.vars = c("ligand", "receptor"), str_to_title)
-
-
 liana_res %<>% liana_aggregate
 
 ```
