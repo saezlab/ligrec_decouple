@@ -9,6 +9,14 @@ source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
 arb_thresh = 1.645 # one-tailed alpha = 0.05
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+n_ranks = c(
+    50, 100,
+    250, 500,
+    1000, 5000,
+    10000, 50000)
+
+# merFISH genes
+seqfish_obj <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
 
 # MOUSE BRAIN ATLAS ----
 brain_dir <- "data/input/spatial/brain_cortex/"
@@ -18,6 +26,8 @@ liana_res <- readRDS(str_glue("{brain_dir}/brain_liana_results.RDS"))
 # Format LIANA res to long tibble /w method_name and predictor (ranks)
 liana_format <- liana_res %>%
     liana_aggregate() %>%
+    filter(ligand %in% rownames(seqfish_obj)) %>%
+    filter(receptor %in% rownames(seqfish_obj)) %>%
     liana_agg_to_long()
 
 
@@ -46,8 +56,6 @@ deconv_results <- slides %>%
 
 
 # I) Enrichment of interactions between co-localized cells ----
-n_ranks = c(100, 250, 500, 1000, 5000, 10000, 50000)
-
 # map over deconvolution correlations for each slide
 fets <- deconv_results %>%
     map2(names(.), function(deconv_cor_formatted, slide_name){
@@ -247,7 +255,7 @@ paths_tibble <- tibble(sobj = sobj_paths, nes = nes_paths) %>%
     mutate(liana = str_glue("{fish_dir}/{dataset}_liana_res.RDS"))
 paths_tibble
 
-# RUN LIANA and save output
+# II) RUN LIANA and save output ----
 pmap(list(paths_tibble$sobj, paths_tibble$liana), function(sobj, liana){
     message(str_glue("Loading {sobj}"))
     seurat_object <- readRDS(sobj)
@@ -270,47 +278,7 @@ pmap(list(paths_tibble$sobj, paths_tibble$liana), function(sobj, liana){
     })
 
 
-## FET
-nes <- readRDS(paths_tibble$nes[[2]]) %>%
-    as.matrix() %>%
-    reshape_coloc_estimate() %>%
-    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
-    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
-
-# LIANA res
-liana_res <- readRDS(paths_tibble$liana[[2]])
-
-liana_format <- liana_res %>%
-    map(function(res) res %>%
-            mutate(across(c(ligand, receptor), str_to_title))) %>%
-    liana_aggregate() %>%
-    liana_agg_to_long()
-
-liana_loc <- liana_format %>%
-    left_join(nes, by = c("source"="celltype1",
-                          "target"="celltype2"))  %>%
-    # FILTER AUTOCRINE
-    filter(source!=target) %>%
-    dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
-                                           estimate < arb_thresh ~ "not_colocalized"
-    )) %>%
-    ungroup()
-
-# FET
-n_ranks = c(50 ,100, 250, 500, 1000, 5000, 10000, 50000)
-
-paths_tibble
-
-
-fets <- n_ranks %>%
-    map(function(n_rank){
-        run_coloc_fet(liana_loc = liana_loc,
-                      n_rank = n_rank) %>%
-            mutate(n_rank = n_rank)
-    }) %>%
-    bind_rows()
-fets %>% arrange(desc(enrichment))
-
+# III) Fischer's Exact Test on Colocalized
 fets <- pmap(.l=(list(paths_tibble$liana,
                      paths_tibble$nes,
                      paths_tibble$dataset)),
@@ -351,22 +319,7 @@ fets <- pmap(.l=(list(paths_tibble$liana,
              }) %>% bind_rows()
 
 # PLOT
-# Squidpy and CellChat return always the same number of interactions
-# assign rank to those and only show once
-cellchat_squidpy_mins <-  liana_format %>%
-    filter(predictor <= min(n_ranks)) %>%
-    filter(method_name %in% c("squidpy.rank", "cellchat.rank")) %>%
-    group_by(method_name) %>%
-    summarise(min_rank = n())
-
 boxplot_data <- fets %>%
-    # replace squidpy_cellchat ranks
-    left_join(cellchat_squidpy_mins) %>%
-    mutate(n_rank = ifelse(is.na(min_rank),
-                           n_rank,
-                           min_rank
-    )) %>%
-    select(-min_rank) %>%
     mutate(n_rank = as.factor(n_rank)) %>%
     distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
                 .keep_all = TRUE) %>%
@@ -397,3 +350,45 @@ ggplot(boxplot_data,
     labs(shape=guide_legend(title="Dataset")) +
     ylab("Enrichment") +
     xlab("Number of Ranks Considered")
+
+
+
+
+## FET TEST ----
+nes <- readRDS(paths_tibble$nes[[2]]) %>%
+    as.matrix() %>%
+    reshape_coloc_estimate() %>%
+    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
+    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
+
+# LIANA res
+liana_res <- readRDS(paths_tibble$liana[[2]])
+liana_format <- liana_res %>%
+    map(function(res) res %>%
+            mutate(across(c(ligand, receptor), str_to_title))) %>%
+    liana_aggregate() %>%
+    liana_agg_to_long()
+
+liana_loc <- liana_format %>%
+    left_join(nes, by = c("source"="celltype1",
+                          "target"="celltype2"))  %>%
+    # FILTER AUTOCRINE
+    filter(source!=target) %>%
+    dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                           estimate < arb_thresh ~ "not_colocalized"
+    )) %>%
+    ungroup()
+
+# FET
+fets <- n_ranks %>%
+    map(function(n_rank){
+        run_coloc_fet(liana_loc = liana_loc,
+                      n_rank = n_rank) %>%
+            mutate(n_rank = n_rank)
+    }) %>%
+    bind_rows() %>% arrange(desc(enrichment))
+
+paths_tibble
+
+# feature space matters!!!
+# SlideSeq -> show how using lower feature space destroys the results
