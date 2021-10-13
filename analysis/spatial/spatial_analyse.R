@@ -7,21 +7,18 @@ require(yardstick)
 
 source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
-brain_dir <- "data/input/spatial/brain_cortex/"
 arb_thresh = 1.645 # one-tailed alpha = 0.05
+murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+
+# MOUSE BRAIN ATLAS ----
+brain_dir <- "data/input/spatial/brain_cortex/"
 
 # Load Liana
 liana_res <- readRDS(str_glue("{brain_dir}/brain_liana_results.RDS"))
-liana_res %<>% liana_aggregate()
-
 # Format LIANA res to long tibble /w method_name and predictor (ranks)
 liana_format <- liana_res %>%
-    mutate(across(c(source, target), ~str_replace_all(.x, " ", "."))) %>%
-    dplyr::select(source, target, ends_with("rank"), -c(mean_rank, median_rank)) %>%
-    mutate(aggregate_rank = min_rank(aggregate_rank)) %>%
-    pivot_longer(-c(source,target),
-                 names_to = "method_name",
-                 values_to = "predictor") #rank
+    liana_aggregate() %>%
+    liana_agg_to_long()
 
 
 # load deconvolution results and do correlation
@@ -50,8 +47,6 @@ deconv_results <- slides %>%
 
 # I) Enrichment of interactions between co-localized cells ----
 n_ranks = c(100, 250, 500, 1000, 5000, 10000, 50000)
-
-
 
 # map over deconvolution correlations for each slide
 fets <- deconv_results %>%
@@ -106,8 +101,8 @@ boxplot_data <- fets %>%
 
 # plot Enrichment of colocalized in top vs total
 ggplot(boxplot_data,
-            aes(x = n_rank, y = enrichment,
-                color = method_name)) +
+       aes(x = n_rank, y = enrichment,
+           color = method_name)) +
     geom_boxplot(alpha = 0.15,
                  outlier.size = 1.5,
                  width = 0.2,
@@ -115,11 +110,13 @@ ggplot(boxplot_data,
     geom_jitter(aes(shape = dataset), width = 0) +
     facet_grid(~method_name, scales='free_x', space='free', switch="x") +
     theme_bw(base_size = 20) +
-    geom_hline(yintercept = 0, colour = "red",
+    geom_hline(yintercept = 1, colour = "lightblue",
+               linetype = 2, size = 0.9) +
+    geom_hline(yintercept = -1, colour = "pink",
                linetype = 2, size = 0.9) +
     theme(strip.text.x = element_text(angle = 90),
           axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
-          ) +
+    ) +
     labs(shape=guide_legend(title="Dataset")) +
     ylab("Enrichment") +
     xlab("Number of Ranks Considered")
@@ -225,3 +222,178 @@ neg_roc
 # PRC
 neg_prc <- get_auroc_heat(rocs_negative, "prc")
 neg_prc
+
+
+
+
+########################### SeqFISH, merFISH ###################################
+fish_dir <- "data/input/spatial/fishes"
+
+# Seurat Object paths
+sobj_paths <- list.files(fish_dir, pattern = "_seurat") %>%
+    map_chr(function(seurat_path){
+        file.path(fish_dir, seurat_path)
+        })
+
+# NES paths
+nes_paths <- list.files(fish_dir, pattern = "_nes") %>%
+    map_chr(function(nes_path){
+        file.path(fish_dir, nes_path)
+    })
+
+paths_tibble <- tibble(sobj = sobj_paths, nes = nes_paths) %>%
+    mutate(dataset = c("merFISH", "seqFISH")) %>%
+    select(dataset, everything()) %>%
+    mutate(liana = str_glue("{fish_dir}/{dataset}_liana_res.RDS"))
+paths_tibble
+
+# RUN LIANA and save output
+pmap(list(paths_tibble$sobj, paths_tibble$liana), function(sobj, liana){
+    message(str_glue("Loading {sobj}"))
+    seurat_object <- readRDS(sobj)
+    message(levels(Idents(seurat_object)))
+
+    message("Running LIANA /w murine symbols")
+    liana_res <- liana_wrap(seurat_object,
+                            cellchat.params=list(organism="mouse"),
+                            resource = "custom",
+                            external_resource = murine_resource,
+                            assay="SCT",
+                            squidpy.param = list(cluster_key = "seurat_clusters"),
+                            expr_prop = 0.1)
+    message(levels(Idents(seurat_object)))
+
+    message(str_glue("Saving {liana}"))
+    saveRDS(liana_res, liana)
+
+    return()
+    })
+
+
+## FET
+nes <- readRDS(paths_tibble$nes[[2]]) %>%
+    as.matrix() %>%
+    reshape_coloc_estimate() %>%
+    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
+    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
+
+# LIANA res
+liana_res <- readRDS(paths_tibble$liana[[2]])
+
+liana_format <- liana_res %>%
+    map(function(res) res %>%
+            mutate(across(c(ligand, receptor), str_to_title))) %>%
+    liana_aggregate() %>%
+    liana_agg_to_long()
+
+liana_loc <- liana_format %>%
+    left_join(nes, by = c("source"="celltype1",
+                          "target"="celltype2"))  %>%
+    # FILTER AUTOCRINE
+    filter(source!=target) %>%
+    dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                           estimate < arb_thresh ~ "not_colocalized"
+    )) %>%
+    ungroup()
+
+# FET
+n_ranks = c(50 ,100, 250, 500, 1000, 5000, 10000, 50000)
+
+paths_tibble
+
+
+fets <- n_ranks %>%
+    map(function(n_rank){
+        run_coloc_fet(liana_loc = liana_loc,
+                      n_rank = n_rank) %>%
+            mutate(n_rank = n_rank)
+    }) %>%
+    bind_rows()
+fets %>% arrange(desc(enrichment))
+
+fets <- pmap(.l=(list(paths_tibble$liana,
+                     paths_tibble$nes,
+                     paths_tibble$dataset)),
+             .f=function(liana_path, nes_path, dataset_name){
+                 # NES
+                 nes <- readRDS(nes_path) %>%
+                     as.matrix() %>%
+                     reshape_coloc_estimate() %>%
+                     mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
+                     mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
+
+                 # Load and Format LIANA res
+                 liana_res <- readRDS(liana_path)
+                 liana_format <- liana_res %>%
+                     map(function(res) res %>%
+                             mutate(across(c(ligand, receptor), str_to_title))) %>%
+                     liana_aggregate() %>%
+                     liana_agg_to_long()
+
+                 liana_loc <- liana_format %>%
+                     left_join(nes, by = c("source"="celltype1",
+                                           "target"="celltype2"))  %>%
+                     # FILTER AUTOCRINE
+                     filter(source!=target) %>%
+                     dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                                            estimate < arb_thresh ~ "not_colocalized"
+                     )) %>%
+                     ungroup()
+
+                 fets <- n_ranks %>%
+                     map(function(n_rank){
+                         run_coloc_fet(liana_loc = liana_loc,
+                                       n_rank = n_rank) %>%
+                             mutate(n_rank = n_rank)
+                     }) %>%
+                     bind_rows() %>%
+                     mutate(dataset = dataset_name)
+             }) %>% bind_rows()
+
+# PLOT
+# Squidpy and CellChat return always the same number of interactions
+# assign rank to those and only show once
+cellchat_squidpy_mins <-  liana_format %>%
+    filter(predictor <= min(n_ranks)) %>%
+    filter(method_name %in% c("squidpy.rank", "cellchat.rank")) %>%
+    group_by(method_name) %>%
+    summarise(min_rank = n())
+
+boxplot_data <- fets %>%
+    # replace squidpy_cellchat ranks
+    left_join(cellchat_squidpy_mins) %>%
+    mutate(n_rank = ifelse(is.na(min_rank),
+                           n_rank,
+                           min_rank
+    )) %>%
+    select(-min_rank) %>%
+    mutate(n_rank = as.factor(n_rank)) %>%
+    distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
+                .keep_all = TRUE) %>%
+    # recode methods
+    mutate(method_name = gsub("\\..*","", method_name)) %>%
+    mutate(method_name = recode_methods(method_name)) %>%
+    # recode datasets
+    mutate(dataset = recode_datasets(dataset))
+
+# plot Enrichment of colocalized in top vs total
+ggplot(boxplot_data,
+       aes(x = n_rank, y = enrichment,
+           color = method_name)) +
+    geom_boxplot(alpha = 0.15,
+                 outlier.size = 1.5,
+                 width = 0.2,
+                 show.legend = FALSE)  +
+    geom_jitter(aes(shape = dataset), width = 0) +
+    facet_grid(~method_name, scales='free_x', space='free', switch="x") +
+    theme_bw(base_size = 20) +
+    geom_hline(yintercept = 1, colour = "lightblue",
+               linetype = 2, size = 0.9) +
+    geom_hline(yintercept = -1, colour = "pink",
+               linetype = 2, size = 0.9) +
+    theme(strip.text.x = element_text(angle = 90),
+          axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
+    ) +
+    labs(shape=guide_legend(title="Dataset")) +
+    ylab("Enrichment") +
+    xlab("Number of Ranks Considered")

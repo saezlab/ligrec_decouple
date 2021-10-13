@@ -102,13 +102,14 @@ seq_seurat %<>%
     Seurat::SCTransform(verbose = FALSE) %>%
     Seurat::FindVariableFeatures() %>%
     Seurat::RunPCA(., verbose = FALSE) %>%
-    Seurat::RunUMAP(., dims = 1:30, verbose = FALSE) 
+    Seurat::RunUMAP(., dims = 1:30, verbose = FALSE)
 
 seq_seurat
 saveRDS(seq_seurat, "data/input/spatial/fishes/seqFISH_seurat.RDS")
 
 # get and save UNFORMATTED NES results (clusters to be rename and filtered)
-nes <- py$seq_adata_nes$nes
+nes <- py$seq_adata_nes$nes %>%
+        py_to_r()
 saveRDS(nes, "data/input/spatial/fishes/seqFISH_nes.RDS")
 ```
 
@@ -147,8 +148,9 @@ mer_seurat
 saveRDS(mer_seurat, "data/input/spatial/fishes/merFISH_seurat.RDS")
 
 # get and save UNFORMATTED NES results (clusters to be rename and filtered)
-nes <- py$mer_adata_nes$nes
-nes
+nes <- py$mer_adata_nes$nes %>%
+        py_to_r() 
+
 saveRDS(nes, "data/input/spatial/fishes/merFISH_nes.RDS")
 ```
 
