@@ -5,6 +5,11 @@ date: "10/8/2021"
 output: html_document
 ---
 
+This .Rmd is used to convert the processed anndata object from Squidpy to
+appropriately formatted and normalized Seurat objects.
+Further, I run the neighbourhood enrichment analysis from Squidpy, which seeks
+to identify co-localizing cells using a graph structure.
+
 ## Load Required Libs
 ```{r setup, include=FALSE}
 require(tidyverse)
