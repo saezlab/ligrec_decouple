@@ -98,3 +98,48 @@ liana_agg_to_long <- function(liana_agg){
                      names_to = "method_name",
                      values_to = "predictor")
 }
+
+
+
+#' Load10x_Spatial function made to work with matrix rather than h5,
+#' adapted from `Seurat::Load10x_Spatial`
+#' @param data.dir directory of the data - need to set the wdir to this..
+#' @param filedir directory of the matrix files
+#' @param project_dir directory of project (used to re-set it...)
+#' @inheritParams Seurat::Load10x_Spatial
+Load10X_Spatial_enh <- function(data.dir,
+                                filedir = "filtered_count_matrix",
+                                assay = 'Spatial',
+                                slice = 'slice1',
+                                filter.matrix = TRUE,
+                                to.upper = FALSE,
+                                image = NULL,
+                                project_dir){
+    if (length(x = data.dir) > 1) {
+        warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+        data.dir <- data.dir[1]
+        }
+    setwd(file.path(data.dir, filedir)) # SEURAT IS bad dude, doesn't work with the paths...
+    data <-  Seurat::ReadMtx(mtx = "matrix.mtx.gz",
+                             cells = "barcodes.tsv.gz",
+                             features = "features.tsv.gz",
+                             feature.column = 1)
+    object <- CreateSeuratObject(counts = data, assay = assay)
+
+        if (is.null(x = image)) {
+            image <- Read10X_Image(
+                image.dir = file.path(data.dir, 'spatial'),
+                filter.matrix = filter.matrix
+            )
+        } else {
+            if (!inherits(x = image, what = "VisiumV1"))
+                stop("Image must be an object of class 'VisiumV1'.")
+        }
+        image <- image[Cells(x = object)]
+        DefaultAssay(object = image) <- assay
+        object[[slice]] <- image
+
+        setwd(project_dir)
+
+        return(object)
+    }

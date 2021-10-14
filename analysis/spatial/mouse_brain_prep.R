@@ -23,7 +23,7 @@ cortex_sc@meta.data %<>%
     mutate(subclass = str_replace_all(subclass, " ", ".")) %>%
     rownames_to_column(var = "barcode") %>%
     group_by(subclass) %>%
-    slice_sample(n=100) %>%
+    slice_sample(n=200) %>%
     ungroup() %>%
     as.data.frame() %>%
     column_to_rownames("barcode")
@@ -86,7 +86,7 @@ slides %>%
             counts_spatial = seurat_object@assays$Spatial@counts,
             clust_vr = "subclass", # cell-type annotations
             cluster_markers = cluster_markers_all, # df with marker genes
-            cl_n = 100, # number of cells per cell type
+            cl_n = 200, # number of cells per cell type
             hvg = 3000, # Number of HVG
             ntop = NULL, # How many of the marker genes to use (by default all)
             transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorization and NLS

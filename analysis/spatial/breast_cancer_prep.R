@@ -10,9 +10,12 @@ require(magrittr)
 require(Seurat)
 require(liana)
 require(SPOTlight)
+source("analysis/spatial/spatial_src.R")
+
 
 # Breast Cancer analysis directory
 brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
+project_dir <- getwd()
 
 
 ### I) Preprocess scAtlas data to Seurat Object(s) ----
@@ -50,6 +53,8 @@ seurat_object@meta.data %>% as_tibble()
 # split by subtype
 subtypes <- seurat_object@meta.data$subtype %>% levels()
 map(subtypes, function(subtype){
+    message(str_glue("Subsampling atlas to {subtype} subtype"))
+
     # metadata filtered by clinical subtype
     submeta <- seurat_object@meta.data %>%
         filter(subtype %in% !!subtype)
@@ -68,3 +73,61 @@ map(subtypes, function(subtype){
 
     return(submeta %>% as_tibble())
 })
+
+### II) Prep single-cell atlases -------------
+# Run function to subsample atlases accordingly
+map(c("ER", "TNBC"),
+    function(slide_sybtype,
+             cluster_key = "celltype_major",
+             n_cells = 500){ # 500 for major, 200 for minor
+
+
+        # Define deconvolution results and input dir
+         deconv_directory <- file.path(project_dir, brca_dir,
+                                       "deconv", str_glue("{slide_sybtype}_{cluster_key}"))
+         dir.create(deconv_directory, showWarnings = FALSE)
+         message(str_glue("Created: {deconv_directory}"))
+
+         # Load BRCA Subtype Atlas
+         atlas_object <- readRDS(file.path(project_dir,
+                                           brca_dir,
+                                           str_glue("brca_{slide_sybtype}_seurat.RDS")))
+
+         # subsample
+         message("Subsampling")
+         set.seed(1234)
+         submeta <- atlas_object@meta.data %>%
+             rownames_to_column("barcode") %>%
+             group_by(!!sym(cluster_key)) %>%
+             mutate(ncels_by_group = n()) %>%
+             filter(ncels_by_group >= 25) %>% # as in Wu et al., 2021
+             slice_sample(n=n_cells) %>% # downsample, SPOTlight stable with 100 cells
+             ungroup() %>%
+             as.data.frame() %>%
+             column_to_rownames("barcode")
+         atlas_object <- subset(atlas_object, cells = rownames(submeta))
+         Idents(atlas_object) <- atlas_object@meta.data[[cluster_key]]
+
+         # Normalize object
+         atlas_object %<>%
+             Seurat::SCTransform(verbose = FALSE) %>%
+             Seurat::RunPCA(verbose = FALSE) %>%
+             Seurat::RunUMAP(dims = 1:30, verbose = FALSE)
+         saveRDS(atlas_object, file.path(deconv_directory,
+                                         str_glue("{slide_sybtype}_{cluster_key}_sub_seurat.RDS")))
+
+         # Find Markers
+         cluster_markers_all <-
+             Seurat::FindAllMarkers(object = atlas_object,
+                                    assay = "SCT",
+                                    slot = "data",
+                                    verbose = TRUE,
+                                    only.pos = TRUE)
+         saveRDS(cluster_markers_all,
+                 file.path(deconv_directory,
+                           str_glue("{slide_sybtype}_{cluster_key}_markers.RDS")))
+         return()
+})
+
+
+### RUN LIANA on ER and TNBC subtype atlases ----

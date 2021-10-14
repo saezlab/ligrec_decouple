@@ -9,11 +9,11 @@ source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
 arb_thresh = 1.645 # one-tailed alpha = 0.05
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
-n_ranks = c(
-    50, 100,
-    250, 500,
-    1000, 5000,
-    10000, 50000)
+n_ranks = c(50, 100,
+            250, 500,
+            1000, 5000,
+            10000, 50000
+            )
 
 # merFISH genes
 seqfish_obj <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
