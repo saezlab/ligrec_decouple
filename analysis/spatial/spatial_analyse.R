@@ -12,11 +12,11 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 n_ranks = c(50, 100,
             250, 500,
             1000, 5000,
-            10000, 50000
-            )
+            10000, 50000)
+
 
 # merFISH genes
-seqfish_obj <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
+# seqfish_obj <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
 
 # MOUSE BRAIN ATLAS ----
 brain_dir <- "data/input/spatial/brain_cortex/"
@@ -26,8 +26,8 @@ liana_res <- readRDS(str_glue("{brain_dir}/brain_liana_results.RDS"))
 # Format LIANA res to long tibble /w method_name and predictor (ranks)
 liana_format <- liana_res %>%
     liana_aggregate() %>%
-    filter(ligand %in% rownames(seqfish_obj)) %>%
-    filter(receptor %in% rownames(seqfish_obj)) %>%
+    # filter(ligand %in% rownames(seqfish_obj)) %>%
+    # filter(receptor %in% rownames(seqfish_obj)) %>%
     liana_agg_to_long()
 
 
@@ -392,3 +392,152 @@ paths_tibble
 
 # feature space matters!!!
 # SlideSeq -> show how using lower feature space destroys the results
+
+
+############################# Breast Cancer ####################################
+arb_thresh <- 1.645
+brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
+visium_dict <- list("1142243F" = "TNBC",
+                    "1160920F" = "TNBC",
+                    "CID4290" = "ER",
+                    "CID4465" = "TNBC",
+                    "CID4535" = "ER",
+                    "CID44971" = "TNBC")
+
+# tibble over which we pmap
+tibble_dict <- tibble(slide_name = names(visium_dict),
+                      slide_subtype = visium_dict) %>%
+    unnest(slide_subtype) %>%
+    mutate(cluster_key = "celltype_major")
+tibble_dict %<>% bind_rows(tibble_dict %>% mutate(cluster_key = "celltype_minor"))
+tibble_dict
+
+# Get Deconvolution results
+deconv_results <- tibble_dict %>%
+    mutate(deconv_results = pmap(tibble_dict, function(slide_name, slide_subtype, cluster_key){
+        # deconvolution subdirectory
+        deconv_directory <- file.path(brca_dir,
+                                      "deconv", str_glue("{slide_subtype}_{cluster_key}"))
+
+        # load deconv results
+        deconv_res <- readRDS(file.path(deconv_directory,
+                                        str_glue("{slide_name}_{slide_subtype}_{cluster_key}_deconv.RDS")))
+        decon_mtrx <- deconv_res[[2]]
+
+        # correlations of proportions
+        decon_cor <- cor(decon_mtrx)
+
+
+        # format and z-transform deconv proportion correlations
+        deconv_corr_long <- decon_cor %>%
+            reshape_coloc_estimate(z_scale = TRUE) %>%
+            mutate(estimate = replace_na(estimate, 0))
+
+        return(deconv_corr_long)
+    }))
+
+
+
+# load LIANA results and get coloc
+fet_tibble <- deconv_results %>%
+    mutate(liana_loc =
+               pmap(list(fet_tibble$slide_name,
+                         fet_tibble$slide_subtype,
+                         fet_tibble$cluster_key,
+                         fet_tibble$deconv_results # deconvolution results
+                             ),
+                    function(slide_name, slide_subtype,
+                             cluster_key, deconv_results){
+                        # deconvolution subdirectory
+                        deconv_directory <- file.path(brca_dir,
+                                                      "deconv", str_glue("{slide_subtype}_{cluster_key}"))
+
+                        liana_res <-
+                            readRDS(file.path(deconv_directory,
+                                              str_glue("{slide_subtype}_{cluster_key}_liana_res.RDS")))
+                        # Format LIANA
+                        liana_format <- liana_res %>%
+                            liana_aggregate() %>%
+                            liana_agg_to_long()
+
+                        liana_loc <- liana_format %>%
+                            left_join(deconv_results, by = c("source"="celltype1",
+                                                             "target"="celltype2"))  %>%
+                            # FILTER AUTOCRINE
+                            filter(source!=target) %>%
+                            dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                                                   estimate < arb_thresh ~ "not_colocalized"
+                            )) %>% ungroup()
+
+                        return(liana_loc)
+                    }))
+saveRDS(fet_tibble, "data/input/spatial/Wu_etal_2021_BRCA/fet_tibble.RDS")
+
+
+
+
+# Define ranks and run FET
+n_ranks = c(#50, 100,
+           # 250,
+           500,
+            1000,
+            5000,
+            10000#, 50000
+            )
+
+##
+fet_tibble <- readRDS("data/input/spatial/Wu_etal_2021_BRCA/fet_tibble.RDS")
+fet_tibble %<>%
+    filter(cluster_key == "celltype_minor")
+
+
+fet_tibble <- fet_tibble %>%
+    mutate(fet_res = liana_loc %>%
+               map(function(loc){
+                   n_ranks %>%
+                       map(function(n_rank){
+                           run_coloc_fet(liana_loc = loc,
+                                         n_rank = n_rank) %>%
+                               mutate(n_rank = n_rank)
+                       })
+               }))
+
+fet_tibble <- fet_tibble %>%
+    select(-c(deconv_results,liana_loc)) %>%
+    unnest(fet_res) %>%
+    unnest(fet_res) %>%
+    unite(slide_subtype, slide_name, col="dataset")
+
+boxplot_data <- fet_tibble %>%
+    mutate(n_rank = as.factor(n_rank)) %>%
+    distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
+                .keep_all = TRUE) %>%
+    # recode methods
+    mutate(method_name = gsub("\\..*","", method_name)) %>%
+    mutate(method_name = recode_methods(method_name)) %>%
+    # recode datasets
+    mutate(dataset = recode_datasets(dataset))
+
+# plot Enrichment of colocalized in top vs total
+ggplot(boxplot_data,
+       aes(x = n_rank, y = enrichment,
+           color = method_name)) +
+    geom_boxplot(alpha = 0.15,
+                 outlier.size = 1.5,
+                 width = 0.2,
+                 show.legend = FALSE)  +
+    geom_jitter(aes(shape = dataset), width = 0) +
+    facet_grid(~method_name, scales='free_x', space='free', switch="x") +
+    theme_bw(base_size = 20) +
+    geom_hline(yintercept = 1, colour = "lightblue",
+               linetype = 2, size = 0.9) +
+    geom_hline(yintercept = -1, colour = "pink",
+               linetype = 2, size = 0.9) +
+    theme(strip.text.x = element_text(angle = 90),
+          axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
+    ) +
+    labs(shape=guide_legend(title="Dataset")) +
+    ylab("Enrichment") +
+    xlab("Number of Ranks Considered")
+
+
