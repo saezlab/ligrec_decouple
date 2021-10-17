@@ -410,7 +410,7 @@ tibble_dict <- tibble(slide_name = names(visium_dict),
     unnest(slide_subtype) %>%
     mutate(cluster_key = "celltype_major")
 tibble_dict %<>% bind_rows(tibble_dict %>% mutate(cluster_key = "celltype_minor"))
-tibble_dict
+
 
 # Get Deconvolution results
 deconv_results <- tibble_dict %>%
@@ -437,58 +437,60 @@ deconv_results <- tibble_dict %>%
     }))
 
 
-
 # load LIANA results and get coloc
+coloc = pmap(.l = list(deconv_results$slide_name,
+                     deconv_results$slide_subtype,
+                     deconv_results$cluster_key,
+                     deconv_results$deconv_results # deconvolution results
+                     ),
+           .f = function(slide_name,
+                         slide_subtype,
+                         cluster_key,
+                         deconv){
+               # deconvolution subdirectory
+               deconv_directory <-
+                   file.path(brca_dir,
+                             "deconv",
+                             str_glue("{slide_subtype}_{cluster_key}"))
+
+               # load liana
+               liana_res <-
+                   readRDS(file.path(deconv_directory,
+                                     str_glue("{slide_subtype}_{cluster_key}_liana_res.RDS")))
+
+               # Format LIANA
+               liana_format <- liana_res %>%
+                   liana_aggregate() %>%
+                   liana_agg_to_long()
+
+               liana_loc <- liana_format %>%
+                   left_join(deconv, by = c("source"="celltype1",
+                                            "target"="celltype2")) %>%
+                   # FILTER AUTOCRINE
+                   filter(source!=target) %>%
+                   dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                                          estimate < arb_thresh ~ "not_colocalized"
+                                                          )) %>% ungroup()
+           })
+
 fet_tibble <- deconv_results %>%
-    mutate(liana_loc =
-               pmap(list(fet_tibble$slide_name,
-                         fet_tibble$slide_subtype,
-                         fet_tibble$cluster_key,
-                         fet_tibble$deconv_results # deconvolution results
-                             ),
-                    function(slide_name, slide_subtype,
-                             cluster_key, deconv_results){
-                        # deconvolution subdirectory
-                        deconv_directory <- file.path(brca_dir,
-                                                      "deconv", str_glue("{slide_subtype}_{cluster_key}"))
-
-                        liana_res <-
-                            readRDS(file.path(deconv_directory,
-                                              str_glue("{slide_subtype}_{cluster_key}_liana_res.RDS")))
-                        # Format LIANA
-                        liana_format <- liana_res %>%
-                            liana_aggregate() %>%
-                            liana_agg_to_long()
-
-                        liana_loc <- liana_format %>%
-                            left_join(deconv_results, by = c("source"="celltype1",
-                                                             "target"="celltype2"))  %>%
-                            # FILTER AUTOCRINE
-                            filter(source!=target) %>%
-                            dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
-                                                                   estimate < arb_thresh ~ "not_colocalized"
-                            )) %>% ungroup()
-
-                        return(liana_loc)
-                    }))
+    mutate(liana_loc = coloc)
 saveRDS(fet_tibble, "data/input/spatial/Wu_etal_2021_BRCA/fet_tibble.RDS")
 
-
-
-
-# Define ranks and run FET
-n_ranks = c(#50, 100,
-           # 250,
-           500,
-            1000,
-            5000,
-            10000#, 50000
-            )
-
-##
+## Fishers Exact Test
 fet_tibble <- readRDS("data/input/spatial/Wu_etal_2021_BRCA/fet_tibble.RDS")
+
+# Define ranks and celltype for FET
+cluster_key = "celltype_major"
+n_ranks =
+    c(#50, 100,
+        # 250,
+        500,
+        1000, 5000,
+        10000, 50000
+    )
 fet_tibble %<>%
-    filter(cluster_key == "celltype_minor")
+    filter(cluster_key == !!cluster_key)
 
 
 fet_tibble <- fet_tibble %>%
@@ -501,14 +503,18 @@ fet_tibble <- fet_tibble %>%
                                mutate(n_rank = n_rank)
                        })
                }))
-
-fet_tibble <- fet_tibble %>%
-    select(-c(deconv_results,liana_loc)) %>%
-    unnest(fet_res) %>%
-    unnest(fet_res) %>%
-    unite(slide_subtype, slide_name, col="dataset")
+#
+# fet_tibble <- fet_tibble %>%
+#     select(-c(deconv_results,liana_loc)) %>%
+#     unnest(fet_res) %>%
+#     unnest(fet_res) %>%
+#     unite(slide_subtype, slide_name, col="dataset")
 
 boxplot_data <- fet_tibble %>%
+    select(-c(deconv_results, liana_loc)) %>%
+    unnest(fet_res) %>%
+    unnest(fet_res) %>%
+    unite(slide_subtype, slide_name, col="dataset") %>%
     mutate(n_rank = as.factor(n_rank)) %>%
     distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
                 .keep_all = TRUE) %>%

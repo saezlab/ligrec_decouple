@@ -123,15 +123,15 @@ map(c("ER", "TNBC"),
                                          str_glue("{slide_subtype}_{cluster_key}_sub_seurat.RDS")))
 
          # Find Markers
-         # cluster_markers_all <-
-         #     Seurat::FindAllMarkers(object = atlas_object,
-         #                            assay = "SCT",
-         #                            slot = "data",
-         #                            verbose = TRUE,
-         #                            only.pos = TRUE)
-         # saveRDS(cluster_markers_all,
-         #         file.path(deconv_directory,
-         #                   str_glue("{slide_subtype}_{cluster_key}_markers.RDS")))
+         cluster_markers_all <-
+             Seurat::FindAllMarkers(object = atlas_object,
+                                    assay = "SCT",
+                                    slot = "data",
+                                    verbose = TRUE,
+                                    only.pos = TRUE)
+         saveRDS(cluster_markers_all,
+                 file.path(deconv_directory,
+                           str_glue("{slide_subtype}_{cluster_key}_markers.RDS")))
          return()
 })
 

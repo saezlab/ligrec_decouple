@@ -702,3 +702,142 @@ calc_curve = function(df,
     return(res)
 }
 
+
+############################# Breast Cancer with Surface only ####################################
+arb_thresh <- 1.645
+brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
+visium_dict <- list("1142243F" = "TNBC",
+                    "1160920F" = "TNBC",
+                    "CID4290" = "ER",
+                    "CID4465" = "TNBC",
+                    "CID4535" = "ER",
+                    "CID44971" = "TNBC")
+cluster_key = "celltype_minor"
+
+# Define ranks and run FET
+n_ranks =
+    c(#50, 100,
+        250,
+        500,
+        1000, 5000,
+        10000#, 50000
+    )
+
+
+# tibble over which we pmap
+tibble_dict <- tibble(slide_name = names(visium_dict),
+                      slide_subtype = visium_dict) %>%
+    unnest(slide_subtype) %>%
+    mutate(cluster_key = "celltype_major")
+tibble_dict %<>% bind_rows(tibble_dict %>% mutate(cluster_key = "celltype_minor"))
+
+
+# Get Deconvolution results
+deconv_results <- tibble_dict %>%
+    mutate(deconv_results = pmap(tibble_dict, function(slide_name, slide_subtype, cluster_key){
+        # deconvolution subdirectory
+        deconv_directory <- file.path(brca_dir,
+                                      "deconv", str_glue("{slide_subtype}_{cluster_key}"))
+
+        # load deconv results
+        deconv_res <- readRDS(file.path(deconv_directory,
+                                        str_glue("{slide_name}_{slide_subtype}_{cluster_key}_deconv.RDS")))
+        decon_mtrx <- deconv_res[[2]]
+
+        # correlations of proportions
+        decon_cor <- cor(decon_mtrx)
+
+
+        # format and z-transform deconv proportion correlations
+        deconv_corr_long <- decon_cor %>%
+            reshape_coloc_estimate(z_scale = TRUE) %>%
+            mutate(estimate = replace_na(estimate, 0))
+
+        return(deconv_corr_long)
+    }))
+
+## try with liana only surface/membrane-bound
+pm_omni <-
+    generate_omni(loc_consensus_percentile = 51, # increase localisation consensus threshold
+                  consensus_percentile = NULL,
+                  # include only PM-bound proteins
+                  transmitter_topology = c('plasma_membrane_transmembrane',
+                                           'plasma_membrane_peripheral'),
+                  receiver_topology = c('plasma_membrane_transmembrane',
+                                        'plasma_membrane_peripheral'),
+                  min_curation_effort = 1,
+                  ligrecextra = FALSE,
+                  remove_complexes = FALSE, # keep complexes
+                  simplify = TRUE # do simplify
+    )
+
+
+# check categories of ligands (category_intercell_source)
+pm_omni$category_intercell_source %>% unique()
+
+# remove these categories
+pm_omni %<>% filter(!(category_intercell_source %in% c("activating_cofactor",
+                                                       "ligand_regulator",
+                                                       "inhibitory_cofactor")))
+
+seurat_object <- readRDS("data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_sub_seurat.RDS")
+
+liana_format <- liana_wrap(seurat_object = seurat_object,
+                           resource='custom',
+                           external_resource = pm_omni,
+                           assay = "SCT",
+                           squidpy.params=list(cluster_key = "celltype_minor")) %>%
+    liana_aggregate() %>%
+    liana_agg_to_long()
+
+# Filter key
+deconv_results %<>%
+    filter(cluster_key==!!cluster_key) %>%
+    filter(slide_subtype=="TNBC")
+fet_res <- deconv_results$deconv_results %>%
+    map(function(deconv){
+        liana_format %>%
+            left_join(deconv, by = c("source"="celltype1",
+                                     "target"="celltype2"))  %>%
+            # FILTER AUTOCRINE
+            filter(source!=target) %>%
+            dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+                                                   estimate < arb_thresh ~ "not_colocalized"
+            )) %>% ungroup()
+
+    }) %>%
+    map(function(loc){
+        n_ranks %>%
+            map(function(n_rank){
+                run_coloc_fet(liana_loc = loc,
+                              n_rank = n_rank) %>%
+                    mutate(n_rank = n_rank)
+            })
+    })
+
+
+#
+fet_res %>%
+    bind_rows() %>%
+    mutate(n_rank = as.factor(n_rank)) %>%
+    ggplot(.,
+           aes(x = n_rank, y = enrichment,
+               color = method_name)) +
+    geom_boxplot(alpha = 0.15,
+                 outlier.size = 1.5,
+                 width = 0.2,
+                 show.legend = FALSE)  +
+    facet_grid(~method_name, scales='free_x', space='free', switch="x") +
+    theme_bw(base_size = 20) +
+    geom_hline(yintercept = 1, colour = "lightblue",
+               linetype = 2, size = 0.9) +
+    geom_hline(yintercept = -1, colour = "pink",
+               linetype = 2, size = 0.9) +
+    theme(strip.text.x = element_text(angle = 90),
+          axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
+    ) +
+    labs(shape=guide_legend(title="Dataset")) +
+    ylab("Enrichment") +
+    xlab("Number of Ranks Considered")
+
+
