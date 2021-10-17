@@ -45,6 +45,8 @@ seurat_object@meta.data <- seurat_object@meta.data %>%
 # Save whole Seurat object
 saveRDS(seurat_object, file.path(brca_dir, "brca_atlas_seurat.RDS"))
 
+
+
 ## Split atlas by BRCA clinical subtype for deconvolution and LIANA =====
 seurat_object <- readRDS(file.path(brca_dir, "brca_atlas_seurat.RDS"))
 # check if ok
@@ -74,66 +76,18 @@ map(subtypes, function(subtype){
     return(submeta %>% as_tibble())
 })
 
+
 ### II) Prep single-cell atlases -------------
-# Run function to subsample atlases accordingly
-map(c("ER", "TNBC"),
-    function(slide_subtype,
-             cluster_key = "celltype_minor",
-             n_cells = 100){ # 500 for major, 200 for minor
+# Run function to format, preprocess, and run markers for atlases accordingly
 
+# Run for Major celltype
+map(c("ER", "TNBC"), ~prep_brca_atlases(slide_subtype = .x,
+                                        cluster_key = "celltype_major"))
 
-        # Define deconvolution results and input dir
-         deconv_directory <- file.path(project_dir, brca_dir,
-                                       "deconv", str_glue("{slide_subtype}_{cluster_key}"))
-         dir.create(deconv_directory, showWarnings = FALSE)
-         message(str_glue("Created: {deconv_directory}"))
+# Run for Minor celltypes
+map(c("ER", "TNBC"), ~prep_brca_atlases(slide_subtype = .x,
+                                        cluster_key = "celltype_minor"))
 
-         # Load BRCA Subtype Atlas
-         atlas_object <- readRDS(file.path(project_dir,
-                                           brca_dir,
-                                           str_glue("brca_{slide_subtype}_seurat.RDS")))
-
-         # subsample
-         message("Subsampling")
-         set.seed(1234)
-         submeta <- atlas_object@meta.data %>%
-             rownames_to_column("barcode") %>%
-             group_by(!!sym(cluster_key)) %>%
-             mutate(ncels_by_group = n()) %>%
-             filter(ncels_by_group >= 25) %>% # as in Wu et al., 2021
-             slice_sample(n=n_cells) %>% # downsample, SPOTlight stable with 100 cells
-             #mutate(!!cluster_key = as.factor(as.character(cluster_key)))
-             ungroup() %>%
-             mutate({{ cluster_key }} := as.factor(as.character(.data[[cluster_key]]))) %>%
-             as.data.frame() %>%
-             column_to_rownames("barcode")
-         # reassign meta/clusters
-         atlas_object@meta.data <- submeta
-         Idents(atlas_object) <- submeta[[cluster_key]]
-         seurat_object[[cluster_key]] <- Idents(seurat_object)
-         # subset to meta
-         atlas_object <- subset(atlas_object, cells = rownames(submeta))
-
-         # Normalize object
-         atlas_object %<>%
-             Seurat::SCTransform(verbose = FALSE) %>%
-             Seurat::RunPCA(verbose = FALSE) %>%
-             Seurat::RunUMAP(dims = 1:30, verbose = FALSE)
-         saveRDS(atlas_object, file.path(deconv_directory,
-                                         str_glue("{slide_subtype}_{cluster_key}_sub_seurat.RDS")))
-
-         # Find Markers
-         cluster_markers_all <-
-             Seurat::FindAllMarkers(object = atlas_object,
-                                    assay = "SCT",
-                                    slot = "data",
-                                    verbose = TRUE,
-                                    only.pos = TRUE)
-         saveRDS(cluster_markers_all,
-                 file.path(deconv_directory,
-                           str_glue("{slide_subtype}_{cluster_key}_markers.RDS")))
-         return()
-})
 
 #### Run Deconvolution ----
 source("analysis/spatial/breast_cancer_deconv.R") # Run deconvolutions
@@ -179,7 +133,7 @@ pmap(all_combs, function(slide_subtype, cluster_key){
     message(deconv_directory)
 
     seurat_object <- readRDS(file.path(deconv_directory,
-                                       str_glue("{slide_subtype}_{cluster_key}_sub_seurat.RDS")))
+                                       str_glue("{slide_subtype}_{cluster_key}_seurat.RDS")))
 
     # RUN LIANA
     liana_res <- liana_wrap(seurat_object,

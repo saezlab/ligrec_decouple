@@ -475,10 +475,10 @@ coloc = pmap(.l = list(deconv_results$slide_name,
 
 fet_tibble <- deconv_results %>%
     mutate(liana_loc = coloc)
-saveRDS(fet_tibble, "data/input/spatial/Wu_etal_2021_BRCA/fet_tibble.RDS")
+saveRDS(fet_tibble, "data/output/spatial_out/Wu_etal_2021_BRCA/fet_tibble.RDS")
 
 ## Fishers Exact Test
-fet_tibble <- readRDS("data/input/spatial/Wu_etal_2021_BRCA/fet_tibble.RDS")
+fet_tibble <- readRDS("data/output/spatial_out/Wu_etal_2021_BRCA/fet_tibble.RDS")
 
 # Define ranks and celltype for FET
 cluster_key = "celltype_major"

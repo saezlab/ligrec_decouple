@@ -142,4 +142,136 @@ Load10X_Spatial_enh <- function(data.dir,
         setwd(project_dir)
 
         return(object)
-    }
+}
+
+
+#' Prepare brca atlases and markers
+#' @param slide_subtype ER or TNBC
+#' @param cluster_key cluster key..
+#'
+#' @details format, preprocess, and get markers for BRCA type atlases
+prep_brca_atlases <- function(slide_subtype, cluster_key = "celltype_major"){
+
+    # Define deconvolution results and input dir
+    deconv_directory <- file.path(project_dir, brca_dir,
+                                  "deconv", str_glue("{slide_subtype}_{cluster_key}"))
+    dir.create(deconv_directory, showWarnings = FALSE)
+    message(str_glue("Created: {deconv_directory}"))
+
+    message(file.path(project_dir, brca_dir,
+                      str_glue("brca_{slide_subtype}_seurat.RDS")))
+
+    # Load BRCA Subtype Atlas
+    atlas_object <- readRDS(file.path(project_dir, brca_dir,
+                                      str_glue("brca_{slide_subtype}_seurat.RDS")))
+
+    # subsample
+    message("Formatting metadata")
+    submeta <- atlas_object@meta.data %>%
+        rownames_to_column("barcode") %>%
+        group_by(!!sym(cluster_key)) %>%
+        mutate(ncels_by_group = n()) %>%
+        filter(ncels_by_group >= 25) %>% # as in Wu et al., 2021
+        as.data.frame() %>%
+        mutate({{ cluster_key }} := as.factor(as.character(.data[[cluster_key]]))) %>%
+        as.data.frame() %>%
+        column_to_rownames("barcode") %>%
+        ungroup()
+
+    # reassign meta/clusters
+    atlas_object@meta.data <- submeta
+    Idents(atlas_object) <- submeta[[cluster_key]]
+    atlas_object[[cluster_key]] <- Idents(atlas_object)
+    # subset to meta
+    atlas_object <- subset(atlas_object, cells = rownames(submeta))
+
+    # Normalize object
+    set.seed(1234)
+    message("Normalizing")
+    atlas_object %<>%
+        Seurat::SCTransform(verbose = FALSE,
+                            conserve.memory = TRUE) %>%
+        Seurat::RunPCA(verbose = FALSE) %>%
+        Seurat::RunUMAP(dims = 1:30, verbose = FALSE)
+
+    # save the object
+    seurat_path <- file.path(deconv_directory,
+                             str_glue("{slide_subtype}_{cluster_key}_seurat.RDS"))
+    saveRDS(atlas_object, seurat_path)
+
+    # Find Markers
+    message("Running find markers")
+    cluster_markers_all <-
+        Seurat::FindAllMarkers(object = atlas_object,
+                               assay = "SCT",
+                               slot = "data",
+                               verbose = TRUE,
+                               only.pos = TRUE)
+    # save markers
+    markers_path <- file.path(deconv_directory,
+                              str_glue("{slide_subtype}_{cluster_key}_markers.RDS"))
+    saveRDS(cluster_markers_all, markers_path)
+
+    return()
+}
+
+
+
+
+
+#' Function to loop over slide_name and slide_subtype
+#' @param slide_name name of the visium slide
+#' @param slide_subtype cancer subtype of the visium slide
+#' @param cluster_key name of the cluster to be used for deconvoluton
+#' @param n_cells number of cells to be used
+#' @param subsampled whether to run with subsampled single-cell atlas
+deconv_brca_slides <- function(slide_name,
+                               slide_subtype,
+                               cluster_key = "celltype_minor",
+                               n_cells = 100,
+                               subsampled = TRUE){
+
+    # deconvolution subdirectory
+    deconv_directory <- file.path(project_dir, brca_dir,
+                                  "deconv", str_glue("{slide_subtype}_{cluster_key}"))
+    message(str_glue("Now running {slide_name}({slide_subtype}) using {cluster_key} with {n_cells} cells"))
+    message(str_glue("To be Saved/Loaded in: {deconv_directory}"))
+
+    # Load Subsampled atlas and corresponding markers
+    atlas_object <-
+        readRDS(file.path(deconv_directory,
+                          str_glue("{slide_subtype}_{cluster_key}_seurat.RDS")))
+    cluster_markers_all <-
+        readRDS(file.path(deconv_directory,
+                          str_glue("{slide_subtype}_{cluster_key}_markers.RDS")))
+    deconv_res_path <-
+        file.path(deconv_directory,
+                  str_glue("{slide_name}_{slide_subtype}_{cluster_key}_deconv.RDS"))
+
+    # load visium object
+    vis_obj <- Load10X_Spatial_enh(file.path(project_dir,
+                                             brca_dir,
+                                             "/visium_rearranged",
+                                             slide_name),
+                                   project_dir = project_dir)
+
+    # Run deconvolution as from tutorial and paper
+    set.seed(1234)
+    spotlight_ls <- spotlight_deconvolution(
+        se_sc = atlas_object,
+        counts_spatial = vis_obj@assays$Spatial@counts,
+        clust_vr = cluster_key, # cell-type annotations
+        cluster_markers = cluster_markers_all, # df with marker genes
+        cl_n = n_cells, # number of cells per cell type
+        hvg = 3000, # Number of HVG
+        ntop = NULL, # How many of the marker genes to use (by default all)
+        transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorization and NLS
+        method = "nsNMF",
+        assay = "SCT"
+    )
+
+    saveRDS(spotlight_ls,
+            deconv_res_path)
+
+    return()
+}
