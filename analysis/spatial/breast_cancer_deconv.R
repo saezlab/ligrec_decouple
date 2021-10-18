@@ -24,7 +24,7 @@ map2(names(visium_dict),
      ~deconv_brca_slides(slide_name = .x,
                          slide_subtype =.y,
                          cluster_key = "celltype_major",
-                         n_cells = 200))
+                         n_cells = 100))
 
 # Run with minor cell types
 map2(names(visium_dict),
@@ -32,4 +32,4 @@ map2(names(visium_dict),
      ~deconv_brca_slides(slide_name=.x,
                          slide_subtype =.y,
                          cluster_key = "celltype_minor",
-                         n_cells = 200))
+                         n_cells = 100))

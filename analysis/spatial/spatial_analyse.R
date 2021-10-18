@@ -437,6 +437,8 @@ deconv_results <- tibble_dict %>%
     }))
 
 
+
+
 # load LIANA results and get coloc
 coloc = pmap(.l = list(deconv_results$slide_name,
                      deconv_results$slide_subtype,
@@ -481,12 +483,13 @@ saveRDS(fet_tibble, "data/output/spatial_out/Wu_etal_2021_BRCA/fet_tibble.RDS")
 fet_tibble <- readRDS("data/output/spatial_out/Wu_etal_2021_BRCA/fet_tibble.RDS")
 
 # Define ranks and celltype for FET
-cluster_key = "celltype_major"
+cluster_key = "celltype_minor"
 n_ranks =
     c(#50, 100,
         # 250,
         500,
-        1000, 5000,
+        1000,
+        5000,
         10000, 50000
     )
 fet_tibble %<>%

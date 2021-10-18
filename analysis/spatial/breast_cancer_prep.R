@@ -115,16 +115,21 @@ deconv_spec_plots <- deconv_dirs %>%
     setNames(deconv_dirs)
 
 # Check specificity
+deconv_spec_plots$`TNBC_celltype_minor/1160920F_TNBC_celltype_minor_deconv.RDS`[[2]]
 deconv_spec_plots$`ER_celltype_minor/CID4290_ER_celltype_minor_deconv.RDS`[[2]]
-deconv_spec_plots$`ER_celltype_major/CID4290_ER_celltype_major_deconv.RDS`[[2]]
 
 
 
 ### RUN LIANA on ER and TNBC subtype atlases ----
 # Tibble with all subtype - celltype combinations
-all_combs <- tibble(slide_subtype = c("TNBC", "ER", "TNBC", "ER"),
-                    cluster_key = c("celltype_major", "celltype_minor",
-                                    "celltype_minor", "celltype_major"))
+all_combs <- tibble(slide_subtype = c("TNBC",
+                                      "ER",
+                                      "TNBC",
+                                      "ER"),
+                    cluster_key = c("celltype_major",
+                                    "celltype_minor",
+                                    "celltype_minor",
+                                    "celltype_major"))
 
 pmap(all_combs, function(slide_subtype, cluster_key){
     deconv_directory <- file.path(brca_dir,
@@ -134,13 +139,18 @@ pmap(all_combs, function(slide_subtype, cluster_key){
 
     seurat_object <- readRDS(file.path(deconv_directory,
                                        str_glue("{slide_subtype}_{cluster_key}_seurat.RDS")))
+    gc()
 
     # RUN LIANA
     liana_res <- liana_wrap(seurat_object,
                             assay = "SCT",
-                            expr_prop=0.1,
+                            expr_prop = 0.1,
                             squidpy.params = list(cluster_key = cluster_key))
     saveRDS(liana_res,
             file.path(deconv_directory,
                       str_glue("{slide_subtype}_{cluster_key}_liana_res.RDS")))
+
+    gc()
+
+    return()
 })
