@@ -366,19 +366,19 @@ all_lr_coloc %>%
 # 3) AUROC/AUPRC Curves on ALL -----
 # A) Positive Correlation AUC ----
 all_lr_coloc <- readRDS("data/output/spatial_out/all_lrcoloc.RDS")
-all_lr_coloc #%<>%
-    # group_by(method_name, dataset) %>%
-    # slice_min(prop = 0.1, order_by = predictor) %>%
-    # ungroup()
-     # filter to proportion (e.g. top 10% of ranks)
+all_lr_coloc %<>%
+    group_by(method_name, dataset) %>%
+    slice_min(prop = 0.05, order_by = predictor) %>%
+    ungroup() # only look at the peak of the iceberg - too many interactions to be able to build a ROC curve
+     # filter to proportion (e.g. top 5% of ranks)
 
-all_lr_coloc <- all_lr_coloc %>%
+all_lr_coloc %<>%
     mutate(response = if_else(localisation=="colocalized",
                               1,
                               0) %>% as.factor()) %>%
     select(-c(subtype, loc_consensus))
 
-
+# Get AUCs
 all_lr_auc <- all_lr_coloc %>%
     group_by(method_name, dataset) %>%
     group_nest(.key = "method_dataset")  %>%
@@ -404,7 +404,7 @@ all_lr_auc
 
 # Load results
 # ROC
-all_lr_auc <- readRDS("data/output/spatial_out/brain_cortex/rocs_positive.RDS")
+all_lr_auc <- readRDS("data/output/spatial_out/auc_positive.RDS")
 pos_roc <- get_auroc_heat(all_lr_auc, "roc") # all random
 pos_roc
 
