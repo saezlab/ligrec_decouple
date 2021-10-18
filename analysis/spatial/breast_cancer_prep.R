@@ -114,6 +114,7 @@ deconv_spec_plots <- deconv_dirs %>%
     }) %>%
     setNames(deconv_dirs)
 
+
 # Check specificity
 deconv_spec_plots$`TNBC_celltype_minor/1160920F_TNBC_celltype_minor_deconv.RDS`[[2]]
 deconv_spec_plots$`ER_celltype_minor/CID4290_ER_celltype_minor_deconv.RDS`[[2]]

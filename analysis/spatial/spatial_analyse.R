@@ -7,19 +7,13 @@ require(yardstick)
 
 source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
-arb_thresh = 1.645 # one-tailed alpha = 0.05
-murine_resource <- readRDS("data/input/murine_omnipath.RDS")
-n_ranks = c(50, 100,
-            250, 500,
-            1000, 5000,
-            10000, 50000)
-
 
 # merFISH genes
 # seqfish_obj <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
 
 # MOUSE BRAIN ATLAS ----
 brain_dir <- "data/input/spatial/brain_cortex/"
+murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 
 # Load Liana
 liana_res <- readRDS(str_glue("{brain_dir}/brain_liana_results.RDS"))
@@ -46,192 +40,27 @@ deconv_results <- slides %>%
 
         # format and z-transform deconv proportion correlations
         deconv_corr_long <- decon_cor %>%
-            reshape_coloc_estimate(z_scale = TRUE)
+            reshape_coloc_estimate(z_scale = FALSE)
 
         return(deconv_corr_long)
     }) %>%
     setNames(slides)
 
-
-
-
-# I) Enrichment of interactions between co-localized cells ----
-# map over deconvolution correlations for each slide
-fets <- deconv_results %>%
+# Bind lr and coloc
+lr_coloc <- deconv_results %>%
     map2(names(.), function(deconv_cor_formatted, slide_name){
         # Assign colocalisation to liana results in long according to a threshold
         liana_loc <- liana_format %>%
             left_join(deconv_cor_formatted, by = c("source"="celltype1",
-                                                   "target"="celltype2"))  %>%
+                                                   "target"="celltype2")) %>%
             # FILTER AUTOCRINE
             filter(source!=target) %>%
-            dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
-                                                   estimate < arb_thresh ~ "not_colocalized"
-            )) %>% ungroup()
-
-        fets <- n_ranks %>%
-            map(function(n_rank){
-                run_coloc_fet(liana_loc = liana_loc,
-                              n_rank = n_rank) %>%
-                    mutate(n_rank = n_rank)
-            }) %>%
-            bind_rows() %>%
+            ungroup() %>%
             mutate(dataset = slide_name)
     }) %>%
     bind_rows()
-
-
-# PLOT
-# Squidpy and CellChat return always the same number of interactions
-# assign rank to those and only show once
-cellchat_squidpy_mins <-  liana_format %>%
-    filter(predictor <= min(n_ranks)) %>%
-    filter(method_name %in% c("squidpy.rank", "cellchat.rank")) %>%
-    group_by(method_name) %>%
-    summarise(min_rank = n())
-
-boxplot_data <- fets %>%
-    # replace squidpy_cellchat ranks
-    left_join(cellchat_squidpy_mins) %>%
-    mutate(n_rank = ifelse(is.na(min_rank),
-                           n_rank,
-                           min_rank
-                           )) %>%
-    select(-min_rank) %>%
-    mutate(n_rank = as.factor(n_rank)) %>%
-    distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
-                .keep_all = TRUE) %>%
-    # recode methods
-    mutate(method_name = gsub("\\..*","", method_name)) %>%
-    mutate(method_name = recode_methods(method_name)) %>%
-    # recode datasets
-    mutate(dataset = recode_datasets(dataset))
-
-# plot Enrichment of colocalized in top vs total
-ggplot(boxplot_data,
-       aes(x = n_rank, y = enrichment,
-           color = method_name)) +
-    geom_boxplot(alpha = 0.15,
-                 outlier.size = 1.5,
-                 width = 0.2,
-                 show.legend = FALSE)  +
-    geom_jitter(aes(shape = dataset), width = 0) +
-    facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-    theme_bw(base_size = 20) +
-    geom_hline(yintercept = 1, colour = "lightblue",
-               linetype = 2, size = 0.9) +
-    geom_hline(yintercept = -1, colour = "pink",
-               linetype = 2, size = 0.9) +
-    theme(strip.text.x = element_text(angle = 90),
-          axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
-    ) +
-    labs(shape=guide_legend(title="Dataset")) +
-    ylab("Enrichment") +
-    xlab("Number of Ranks Considered")
-
-
-# II) AUROC/AUPRC Curves -----
-# Positive Correlation AUC ----
-rocs_positive <- deconv_results %>%
-    map2(names(.), function(deconv_cor_formatted, slide_name){
-        # Assign colocalisation to liana results in long according to a threshold
-        liana_loc <- liana_format %>%
-            left_join(deconv_cor_formatted, by = c("source"="celltype1",
-                                                   "target"="celltype2"))  %>%
-            # FILTER AUTOCRINE
-            filter(source!=target) %>%
-            # Assign Positive and Negative Classes according to a threshold
-            dplyr::mutate(response = case_when(estimate >= arb_thresh ~ 1,
-                                               estimate < arb_thresh ~ 0)) %>%
-            unite(source, target, col = "celltype_pair") %>%
-            mutate(response = as.factor(response)) %>%
-            mutate(predictor = predictor * -1)
-
-        auc_df <- liana_loc %>%
-            group_by(method_name) %>%
-            group_nest(.key = "method_res") %>%
-            mutate(prc = map(method_res,
-                             function(df)
-                                 calc_curve(df,
-                                            curve = "PR",
-                                            downsampling = TRUE,
-                                            times = 100,
-                                            source_name = "interaction"))) %>%
-            mutate(roc = map(method_res,
-                             function(df) calc_curve(df,
-                                                     curve="ROC",
-                                                     source_name = "interaction"))) %>%
-            mutate(dataset = slide_name)
-
-        # prevent RAM from exploding...
-        gc()
-
-        return(auc_df)
-        }) %>%
-    bind_rows()
-saveRDS(rocs_positive, "data/output/spatial_out/brain_cortex/rocs_positive.RDS")
-
-# Load results
-# ROC
-rocs_positive <- readRDS("data/output/spatial_out/brain_cortex/rocs_positive.RDS")
-pos_roc <- get_auroc_heat(rocs_positive, "roc") # all random
-
-# PRC
-pos_prc <- get_auroc_heat(rocs_positive, "prc")
-gc()
-
-
-# Negative Correlation AUC ----
-# Assign Positive and Negative Classes according to a threshold
-rocs_negative <- deconv_results %>%
-    map2(names(.), function(deconv_cor_formatted, slide_name){
-        # Assign colocalisation to liana results in long according to a threshold
-        liana_loc <- liana_format %>%
-            left_join(deconv_cor_formatted, by = c("source"="celltype1",
-                                                   "target"="celltype2"))  %>%
-            # FILTER AUTOCRINE
-            filter(source!=target) %>%
-            # Assign Positive and Negative Classes according to a threshold
-            dplyr::mutate(response = case_when(estimate <= -arb_thresh ~ 1,
-                                               estimate > arb_thresh ~ 0)) %>%
-            unite(source, target, col = "celltype_pair") %>%
-            mutate(response = as.factor(response)) %>%
-            mutate(predictor = predictor)
-
-        auc_df <- liana_loc %>%
-            group_by(method_name) %>%
-            group_nest(.key = "method_res") %>%
-            mutate(prc = map(method_res,
-                             function(df)
-                                 calc_curve(df,
-                                            curve = "PR",
-                                            downsampling = TRUE,
-                                            times = 100,
-                                            source_name = "interaction"))) %>%
-            mutate(roc = map(method_res,
-                             function(df) calc_curve(df,
-                                                     curve="ROC",
-                                                     source_name = "interaction"))) %>%
-            mutate(dataset = slide_name)
-
-        # prevent RAM from exploding...
-        gc()
-
-        return(auc_df)
-    }) %>%
-    bind_rows()
-saveRDS(rocs_negative, "data/output/spatial_out/brain_cortex/rocs_negative.RDS")
-
-# ROC
-rocs_negative <- readRDS("data/output/spatial_out/brain_cortex/rocs_negative.RDS")
-neg_roc <- get_auroc_heat(rocs_negative, "roc") # all random
-neg_roc
-
-# PRC
-neg_prc <- get_auroc_heat(rocs_negative, "prc")
-neg_prc
-
-
+# save liana LR score-colocalizations
+saveRDS(lr_coloc, "data/output/spatial_out/brain_lrcoloc.RDS")
 
 
 ########################### SeqFISH, merFISH ###################################
@@ -278,15 +107,16 @@ pmap(list(paths_tibble$sobj, paths_tibble$liana), function(sobj, liana){
     })
 
 
-# III) Fischer's Exact Test on Colocalized
-fets <- pmap(.l=(list(paths_tibble$liana,
-                     paths_tibble$nes,
-                     paths_tibble$dataset)),
+# III) Get LR LIANA-Colocalized
+lr_coloc <- pmap(.l=(list(paths_tibble$liana,
+                      paths_tibble$nes,
+                      paths_tibble$dataset)
+                 ),
              .f=function(liana_path, nes_path, dataset_name){
                  # NES
                  nes <- readRDS(nes_path) %>%
                      as.matrix() %>%
-                     reshape_coloc_estimate() %>%
+                     reshape_coloc_estimate() %>% # already z-scaled
                      mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
                      mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
 
@@ -303,99 +133,17 @@ fets <- pmap(.l=(list(paths_tibble$liana,
                                            "target"="celltype2"))  %>%
                      # FILTER AUTOCRINE
                      filter(source!=target) %>%
-                     dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
-                                                            estimate < arb_thresh ~ "not_colocalized"
-                     )) %>%
-                     ungroup()
-
-                 fets <- n_ranks %>%
-                     map(function(n_rank){
-                         run_coloc_fet(liana_loc = liana_loc,
-                                       n_rank = n_rank) %>%
-                             mutate(n_rank = n_rank)
-                     }) %>%
-                     bind_rows() %>%
+                     ungroup() %>%
                      mutate(dataset = dataset_name)
-             }) %>% bind_rows()
-
-# PLOT
-boxplot_data <- fets %>%
-    mutate(n_rank = as.factor(n_rank)) %>%
-    distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
-                .keep_all = TRUE) %>%
-    # recode methods
-    mutate(method_name = gsub("\\..*","", method_name)) %>%
-    mutate(method_name = recode_methods(method_name)) %>%
-    # recode datasets
-    mutate(dataset = recode_datasets(dataset))
-
-# plot Enrichment of colocalized in top vs total
-ggplot(boxplot_data,
-       aes(x = n_rank, y = enrichment,
-           color = method_name)) +
-    geom_boxplot(alpha = 0.15,
-                 outlier.size = 1.5,
-                 width = 0.2,
-                 show.legend = FALSE)  +
-    geom_jitter(aes(shape = dataset), width = 0) +
-    facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-    theme_bw(base_size = 20) +
-    geom_hline(yintercept = 1, colour = "lightblue",
-               linetype = 2, size = 0.9) +
-    geom_hline(yintercept = -1, colour = "pink",
-               linetype = 2, size = 0.9) +
-    theme(strip.text.x = element_text(angle = 90),
-          axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
-    ) +
-    labs(shape=guide_legend(title="Dataset")) +
-    ylab("Enrichment") +
-    xlab("Number of Ranks Considered")
+             }) %>%
+    bind_rows()
+# save liana LR score-colocalizations
+saveRDS(lr_coloc, "data/output/spatial_out/seqfish_lrcoloc.RDS")
 
 
-
-
-## FET TEST ----
-nes <- readRDS(paths_tibble$nes[[2]]) %>%
-    as.matrix() %>%
-    reshape_coloc_estimate() %>%
-    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
-    mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
-
-# LIANA res
-liana_res <- readRDS(paths_tibble$liana[[2]])
-liana_format <- liana_res %>%
-    map(function(res) res %>%
-            mutate(across(c(ligand, receptor), str_to_title))) %>%
-    liana_aggregate() %>%
-    liana_agg_to_long()
-
-liana_loc <- liana_format %>%
-    left_join(nes, by = c("source"="celltype1",
-                          "target"="celltype2"))  %>%
-    # FILTER AUTOCRINE
-    filter(source!=target) %>%
-    dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
-                                           estimate < arb_thresh ~ "not_colocalized"
-    )) %>%
-    ungroup()
-
-# FET
-fets <- n_ranks %>%
-    map(function(n_rank){
-        run_coloc_fet(liana_loc = liana_loc,
-                      n_rank = n_rank) %>%
-            mutate(n_rank = n_rank)
-    }) %>%
-    bind_rows() %>% arrange(desc(enrichment))
-
-paths_tibble
-
-# feature space matters!!!
-# SlideSeq -> show how using lower feature space destroys the results
 
 
 ############################# Breast Cancer ####################################
-arb_thresh <- 1.645
 brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
 visium_dict <- list("1142243F" = "TNBC",
                     "1160920F" = "TNBC",
@@ -412,6 +160,9 @@ tibble_dict <- tibble(slide_name = names(visium_dict),
 tibble_dict %<>% bind_rows(tibble_dict %>% mutate(cluster_key = "celltype_minor"))
 
 
+# NOTE WE KEEP ONLY celltype minor (major are also random) :D
+tibble_dict %<>% filter(cluster_key == "celltype_minor")
+
 # Get Deconvolution results
 deconv_results <- tibble_dict %>%
     mutate(deconv_results = pmap(tibble_dict, function(slide_name, slide_subtype, cluster_key){
@@ -427,23 +178,20 @@ deconv_results <- tibble_dict %>%
         # correlations of proportions
         decon_cor <- cor(decon_mtrx)
 
-
         # format and z-transform deconv proportion correlations
         deconv_corr_long <- decon_cor %>%
-            reshape_coloc_estimate(z_scale = TRUE) %>%
+            reshape_coloc_estimate(z_scale = FALSE) %>%
             mutate(estimate = replace_na(estimate, 0))
 
         return(deconv_corr_long)
     }))
 
 
-
-
 # load LIANA results and get coloc
-coloc = pmap(.l = list(deconv_results$slide_name,
-                     deconv_results$slide_subtype,
-                     deconv_results$cluster_key,
-                     deconv_results$deconv_results # deconvolution results
+lr_coloc <- pmap(.l = list(deconv_results$slide_name,
+                           deconv_results$slide_subtype,
+                           deconv_results$cluster_key,
+                           deconv_results$deconv_results # deconvolution results
                      ),
            .f = function(slide_name,
                          slide_subtype,
@@ -472,81 +220,197 @@ coloc = pmap(.l = list(deconv_results$slide_name,
                    filter(source!=target) %>%
                    dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
                                                           estimate < arb_thresh ~ "not_colocalized"
-                                                          )) %>% ungroup()
-           })
-
-fet_tibble <- deconv_results %>%
-    mutate(liana_loc = coloc)
-saveRDS(fet_tibble, "data/output/spatial_out/Wu_etal_2021_BRCA/fet_tibble.RDS")
-
-## Fishers Exact Test
-fet_tibble <- readRDS("data/output/spatial_out/Wu_etal_2021_BRCA/fet_tibble.RDS")
-
-# Define ranks and celltype for FET
-cluster_key = "celltype_minor"
-n_ranks =
-    c(#50, 100,
-        # 250,
-        500,
-        1000,
-        5000,
-        10000, 50000
-    )
-fet_tibble %<>%
-    filter(cluster_key == !!cluster_key)
+                                                          )) %>%
+                   ungroup() %>%
+                   mutate(dataset = slide_name) %>%
+                   mutate(subtype = slide_subtype)
+           }) %>%
+    bind_rows()
+saveRDS(lr_coloc, "data/output/spatial_out/brca_lrcoloc.RDS")
 
 
-fet_tibble <- fet_tibble %>%
-    mutate(fet_res = liana_loc %>%
-               map(function(loc){
-                   n_ranks %>%
-                       map(function(n_rank){
-                           run_coloc_fet(liana_loc = loc,
-                                         n_rank = n_rank) %>%
-                               mutate(n_rank = n_rank)
-                       })
-               }))
-#
-# fet_tibble <- fet_tibble %>%
-#     select(-c(deconv_results,liana_loc)) %>%
-#     unnest(fet_res) %>%
-#     unnest(fet_res) %>%
-#     unite(slide_subtype, slide_name, col="dataset")
+############################## PLOT ############################################
+require(magrittr)
+require(tidyverse)
+require(liana)
+require(Seurat)
+require(yardstick)
 
-boxplot_data <- fet_tibble %>%
-    select(-c(deconv_results, liana_loc)) %>%
-    unnest(fet_res) %>%
-    unnest(fet_res) %>%
-    unite(slide_subtype, slide_name, col="dataset") %>%
-    mutate(n_rank = as.factor(n_rank)) %>%
-    distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
-                .keep_all = TRUE) %>%
-    # recode methods
-    mutate(method_name = gsub("\\..*","", method_name)) %>%
-    mutate(method_name = recode_methods(method_name)) %>%
-    # recode datasets
-    mutate(dataset = recode_datasets(dataset))
+source("analysis/spatial/spatial_src.R")
+source("src/eval_utils.R")
 
-# plot Enrichment of colocalized in top vs total
-ggplot(boxplot_data,
-       aes(x = n_rank, y = enrichment,
-           color = method_name)) +
-    geom_boxplot(alpha = 0.15,
-                 outlier.size = 1.5,
-                 width = 0.2,
-                 show.legend = FALSE)  +
-    geom_jitter(aes(shape = dataset), width = 0) +
-    facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-    theme_bw(base_size = 20) +
-    geom_hline(yintercept = 1, colour = "lightblue",
-               linetype = 2, size = 0.9) +
-    geom_hline(yintercept = -1, colour = "pink",
-               linetype = 2, size = 0.9) +
-    theme(strip.text.x = element_text(angle = 90),
-          axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=1)
-    ) +
-    labs(shape=guide_legend(title="Dataset")) +
-    ylab("Enrichment") +
-    xlab("Number of Ranks Considered")
+z_thresh <- 1.645 # alpha = 0.05 # 0.842 # alpha = 0.2
+corr_thresh <- 0.25
+n_ranks = c(50, 100,
+            500, 1000,
+            2500, 5000,
+            10000)
 
 
+### I) Mouse BRAIN visium ----
+# 1) Initiall Check
+brain_lr_coloc <- readRDS("data/output/spatial_out/brain_lrcoloc.RDS")
+
+# assign coloc threshold
+brain_lr_coloc %<>%
+    dplyr::mutate(localisation = case_when(estimate >= corr_thresh ~ "colocalized",
+                                           estimate < corr_thresh ~ "not_colocalized"))
+
+hist(brain_lr_coloc$estimate)
+# Check
+brain_lr_coloc %>%
+    check_coloc()
+
+# 2) FET boxplot
+brain_lr_coloc %>%
+    get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+    get_spatial_boxplot()
+
+
+
+### II) Mouse BRAIN Seq/MerFish -----------------------------------------------
+### Seq/MerFISH
+seqfish_lr_coloc <- readRDS("data/output/spatial_out/seqfish_lrcoloc.RDS") %>%
+    dplyr::mutate(localisation = case_when(estimate >= z_thresh ~ "colocalized",
+                                           estimate < z_thresh ~ "not_colocalized"))
+
+
+# 1) Initial Check
+hist(seqfish_lr_coloc$estimate)
+seqfish_lr_coloc %>%
+    check_coloc()
+
+# 2) FET boxplot
+seqfish_lr_coloc %>%
+    get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+    get_spatial_boxplot()
+
+
+### III) BRCA ------
+brca_lr_coloc <- readRDS("data/output/spatial_out/brca_lrcoloc.RDS")
+
+# A) Coloc by individual slides
+# establish colocalisation truth
+brca_lr_coloc %<>%
+    dplyr::mutate(localisation = case_when(estimate >= corr_thresh ~ "colocalized",
+                                           estimate < corr_thresh ~ "not_colocalized"))
+
+
+# 1a) Initial check
+brca_lr_coloc %>%
+    check_coloc()
+hist(brca_lr_coloc$estimate)
+
+# 2a) FET boxplot ON CONSENSUS
+brca_lr_coloc %>%
+    get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+    get_spatial_boxplot()
+
+
+# B) Consensus by Cancer Subtype
+coloc <- brca_lr_coloc %>%
+    select(source, target, dataset, subtype, localisation) %>%
+    distinct()  %>%
+    mutate(loc_consensus = if_else(localisation=="colocalized",
+                                   1,
+                                   0)) %>%
+    group_by(source, target, subtype)  %>%
+    mutate(loc_consensus = sum(loc_consensus)) %>%
+    distinct() %>%
+    arrange(desc(loc_consensus)) %>%
+    mutate(localisation = if_else(subtype == "TNBC" & loc_consensus>=3,
+                                  "colocalized",
+                                  "not_colocalized")) %>%
+    mutate(localisation = if_else(subtype == "ER" & loc_consensus==2,
+                                  "colocalized",
+                                  localisation
+                                  ))
+brca_lr_coloc <- brca_lr_coloc %>%
+    select(-localisation) %>%
+    left_join(coloc)
+
+
+# 1b) Initial check
+brca_lr_coloc %>%
+    check_coloc()
+hist(brca_lr_coloc$estimate)
+
+# 2b) FET boxplot ON CONSENSUS
+brca_lr_coloc %>%
+    get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+    get_spatial_boxplot()
+
+
+# IV) Bind ALL ----
+all_lr_coloc <- bind_rows(brain_lr_coloc,
+                          seqfish_lr_coloc,
+                          brca_lr_coloc)
+saveRDS(all_lr_coloc, "data/output/spatial_out/all_lrcoloc.RDS")
+
+# 1) Initial Check All
+all_lr_coloc %>%
+    check_coloc()
+summary(as.factor(all_lr_coloc$localisation))
+
+# 2) FET boxplot All
+all_lr_coloc %>%
+    get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+    get_spatial_boxplot()
+
+# all_lr_coloc %<>%
+#     dplyr::mutate(localisation = case_when(estimate >= arb_thresh ~ "colocalized",
+#                                            estimate < arb_thresh ~ "not_colocalized"
+#     ))
+
+
+# 3) AUROC/AUPRC Curves on ALL -----
+# A) Positive Correlation AUC ----
+all_lr_coloc <- readRDS("data/output/spatial_out/all_lrcoloc.RDS")
+all_lr_coloc #%<>%
+    # group_by(method_name, dataset) %>%
+    # slice_min(prop = 0.1, order_by = predictor) %>%
+    # ungroup()
+     # filter to proportion (e.g. top 10% of ranks)
+
+all_lr_coloc <- all_lr_coloc %>%
+    mutate(response = if_else(localisation=="colocalized",
+                              1,
+                              0) %>% as.factor()) %>%
+    select(-c(subtype, loc_consensus))
+
+
+all_lr_auc <- all_lr_coloc %>%
+    group_by(method_name, dataset) %>%
+    group_nest(.key = "method_dataset")  %>%
+    mutate(prc = map(method_dataset,
+                     function(df)
+                         calc_curve(df,
+                                    curve = "PR",
+                                    downsampling = TRUE,
+                                    source_name = "interaction",
+                                    auc_only = TRUE))) %>%
+    mutate(roc = map(method_dataset,
+                     function(df) calc_curve(df,
+                                             curve="ROC",
+                                             downsampling = FALSE,
+                                             times = 100,
+                                             source_name = "interaction",
+                                             auc_only = TRUE))) %>%
+    select(-method_dataset)
+saveRDS(all_lr_auc, "data/output/spatial_out/auc_positive.RDS")
+all_lr_auc
+
+
+
+# Load results
+# ROC
+all_lr_auc <- readRDS("data/output/spatial_out/brain_cortex/rocs_positive.RDS")
+pos_roc <- get_auroc_heat(all_lr_auc, "roc") # all random
+pos_roc
+
+# PRC
+pos_prc <- get_auroc_heat(all_lr_auc, "prc")
+pos_prc
+gc()
+
+### NEGATIVE AUROC - maybe works better for BRCA?

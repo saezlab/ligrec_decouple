@@ -56,13 +56,23 @@ run_coloc_fet <- function(liana_loc, n_rank){
     cont_tabs <- ranks_counted %>%
         group_by(method_name) %>%
         group_nest(.key = "contigency_tables")
-    cont_tabs$contigency_tables[[1]]
 
     # Fischer's exact test on co-localized in top vs total interactions
     fet_results <- cont_tabs %>%
         # FET
         mutate(fet_res = contigency_tables %>%
-                   map(function(cont_tab) cont_tab %>% enrich3)) %>%
+                   map(function(cont_tab){
+                       # handle case where no colocolalized are in top X ranks
+                       if(nrow(cont_tab) == 1){
+                           if(cont_tab %>% pluck("localisation")=="not_colocalized"){
+                               message("Only NOT colocalized are present")
+                               tibble(pval=1,
+                                      odds_ratio=-9999)
+                           }
+                       } else{ # run enrichment
+                           cont_tab %>% enrich3
+                       }
+                   })) %>%
         # unnest fet results
         dplyr::select(-contigency_tables) %>%
         unnest(fet_res) %>%
@@ -99,6 +109,110 @@ liana_agg_to_long <- function(liana_agg){
                      values_to = "predictor")
 }
 
+
+#' Helper function to check localisation by dataset
+#' @param lr_coloc prepped tibble as from analyse_spatial section
+check_coloc <- function(lr_coloc){
+    lr_coloc %>%
+        group_by(dataset, localisation) %>%
+        summarise(count_loc = n()) %>%
+        pivot_wider(names_from = localisation,
+                    values_from = count_loc) %>%
+        mutate(proportion = colocalized/not_colocalized)
+}
+
+
+#' Helper Function to run FET and fortmat to boxplot data
+#' @param lr_coloc ligand-receptor colocalized data
+#' @param n_ranks vector with ranks c(50,100,250,etc)
+#' @returns tibble used for get_boxplot
+get_fet_boxplot_data <- function(lr_coloc, n_ranks){
+
+    # RUN FET and format
+    fet_res <- lr_coloc %>%
+        group_by(dataset) %>%
+        group_nest(.key="lr_coloc") %>%
+        mutate(fet = lr_coloc %>%
+                   map(function(liana_loc){
+                       fets <- n_ranks %>%
+                           map(function(n_rank){
+                               run_coloc_fet(liana_loc = liana_loc,
+                                             n_rank = n_rank) %>%
+                                   mutate(n_rank = n_rank)
+                           }) %>%
+                           bind_rows()
+                   })) %>%
+        select(-lr_coloc) %>%
+        unnest(fet)
+
+    # Address ties issue
+    ties_issue <- lr_coloc %>%
+        group_by(method_name, dataset) %>%
+        filter(predictor < max(n_ranks)) %>%
+        summarise(count_ranks = n()) %>%
+        filter(count_ranks > max(n_ranks))
+
+    # Fix issue with single-class cases
+    n_issues <- fet_res %>%
+        filter(odds_ratio==-9999)
+
+    message(str_glue("{nrow(n_issues)} of 1s appended due to single-class cases"))
+    fets <- fet_res %>%
+        mutate(odds_ratio = if_else(odds_ratio==-9999,
+                                    1,
+                                    odds_ratio))
+
+    # Format for boxplot
+    boxplot_data <- fets %>%
+        # replace squidpy_cellchat ranks
+        left_join(ties_issue) %>%
+        mutate(n_rank = ifelse(is.na(count_ranks),
+                               n_rank,
+                               count_ranks
+        )) %>%
+        select(-count_ranks) %>%
+        mutate(n_rank = as.factor(n_rank)) %>%
+        distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
+                    .keep_all = TRUE) %>%
+        # recode methods
+        mutate(method_name = gsub("\\..*","", method_name)) %>%
+        mutate(method_name = recode_methods(method_name)) %>%
+        # recode datasets
+        mutate(dataset = recode_datasets(dataset))
+
+    return(boxplot_data)
+}
+
+
+#' Function to get boxplot for FET odds ratios
+#' @param boxplot_data tibble in the following format:
+#' > method_name            pval odds_ratio padj  enrichment n_rank    dataset
+#' >     <chr>             <dbl>   <dbl>    <dbl>   <dbl>     <fct>     <chr>
+#' > Aggregated Ranks    2.17e- 9  9.21  5.07e- 9   9.21       50  Cortex Anterior 1
+#' @returns a ggplot odds-ratio boxplot across methods and datasets
+get_spatial_boxplot <- function(boxplot_data){
+    # plot Enrichment of colocalized in top vs total
+    boxplot <- ggplot(boxplot_data,
+                      aes(x = n_rank, y = odds_ratio,
+                          color = method_name)) +
+        geom_boxplot(alpha = 0.15,
+                     outlier.size = 1.5,
+                     width = 0.2,
+                     show.legend = FALSE)  +
+        geom_jitter(aes(shape = dataset), width = 0) +
+        facet_grid(~method_name, scales='free_x', space='free', switch="x") +
+        theme_bw(base_size = 24) +
+        geom_hline(yintercept = 1, colour = "pink",
+                   linetype = 2, size = 1.5) +
+        theme(strip.text.x = element_text(angle = 90),
+              axis.text.x = element_text(angle = 45, hjust=1)
+        ) +
+        labs(shape=guide_legend(title="Dataset")) +
+        ylab("Odds Ratio") +
+        xlab("#Ranks Considered")
+
+    return(boxplot)
+}
 
 
 #' Load10x_Spatial function made to work with matrix rather than h5,

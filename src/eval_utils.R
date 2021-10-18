@@ -68,6 +68,7 @@ recode_methods <- function(methods){
 #' @param seed An integer to set the RNG state for random number generation. Use
 #'    NULL for random number generation.
 #' @param source_name feature name (e.g. interaction, TF, etc)
+#' @param auc_only whether to return auc only (excl th for sub_res/subsampling results)
 #'
 #' @return tidy data frame with precision, recall, auc, n, cp, cn and coverage
 #'    in the case of PR curve; or sensitivity and specificity, auc, n, cp, cn
@@ -80,7 +81,8 @@ calc_curve = function(df,
                       times = 1000,
                       curve = "ROC",
                       seed = 1234,
-                      source_name){
+                      source_name,
+                      auc_only = FALSE){
     set.seed(seed)
 
     if(curve=="PR"){
@@ -126,7 +128,6 @@ calc_curve = function(df,
                              cn = nrow(cn),
                              coverage = feature_coverage) %>%
                 mutate("run" = i)
-
         })
         # Get Average AUC
         res <- res %>% dplyr::rename("raw_auc" = auc)
@@ -150,6 +151,13 @@ calc_curve = function(df,
                      coverage = feature_coverage) %>%
             arrange(!!res_col_1, !!res_col_2)
     }
+
+    if(auc_only){
+        res %<>%
+            select(-c(th, !!res_col_1, !!res_col_2)) %>%
+            distinct()
+    }
+
     return(res)
 }
 
@@ -185,7 +193,15 @@ recode_datasets <- function(datasets){
                   "anterior1" = "Cortex Anterior 1",
                   "anterior2" = "Cortex Anterior 2",
                   "posterior1" = "Cortex Posterior 1",
-                  "posterior2" = "Cortex Posterior 2")
+                  "posterior2" = "Cortex Posterior 2",
+
+                  "1142243F" = "TNBC1 (1142243F)",
+                  "1160920F" = "TNBC2 (1160920F)",
+                  "CID4290" = "ER1 (CID4290)",
+                  "CID4465" = "TNBC3 (CID4465)",
+                  "CID4535" = "ER2 (CID4535)",
+                  "CID44971" = "TNBC4 (CID44971)"
+                  )
 }
 
 
