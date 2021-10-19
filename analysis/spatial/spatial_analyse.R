@@ -405,7 +405,8 @@ all_lr_auc
 # Load results
 # ROC
 all_lr_auc <- readRDS("data/output/spatial_out/auc_positive.RDS")
-pos_roc <- get_auroc_heat(all_lr_auc, "roc") # all random
+pos_roc <- get_auroc_heat(all_lr_auc, "roc",
+                          auc_min = 0.3, auc_max = 0.7) # all random
 pos_roc
 
 # PRC

@@ -214,14 +214,19 @@ recode_datasets <- function(datasets){
 #'
 #' @return returns an AUROC or Precision-Recall AUC heatmap
 #' @import ComplexHeatmap ggplot2 viridis
-get_auroc_heat <- function(roc_tibble, curve, mat_only = FALSE, ...){
+get_auroc_heat <- function(roc_tibble,
+                           curve,
+                           mat_only = FALSE,
+                           auc_min = NULL,
+                           auc_max = NULL,
+                           ...){
 
     auc_df <- roc_tibble %>%
         dplyr::select(dataset, method_name, !!curve) %>%
         unnest(!!curve)
 
-    auc_min <- min(auc_df$auc)
-    auc_max <- max(auc_df$auc)
+    auc_min %<>% `%||%` (min(auc_df$auc))
+    auc_max %<>% `%||%` (max(auc_df$auc))
 
     auc_mat <- auc_df %>%
         dplyr::select(dataset, method_name, auc) %>%
