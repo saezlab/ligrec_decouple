@@ -8,14 +8,15 @@
 
 # Run mouse_citeseq_convert.Rmd to generate seurat objects from the h5anndata
 # and format them appropriately for the LIANA analysis
-require(SingleCellExperiment)
-require(Seurat)
-require(SeuratDisk)
 require(liana)
 require(tidyverse)
 require(yardstick)
 require(magrittr)
 require(ComplexHeatmap)
+require(SingleCellExperiment)
+require(Seurat)
+require(SeuratDisk)
+library(ggsignif)
 source("analysis/citeseq/citeseq_src.R")
 source("src/eval_utils.R")
 
@@ -118,8 +119,6 @@ corr_table %<>%
     filter(dataset!="3kCBMCs")
 
 
-library(ggsignif)
-
 pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
                                         data = corr_table,
                                         method = "t.test")
@@ -141,9 +140,11 @@ corr_table %>%
     scale_shape_manual(values = rep(4:12, len = 7)) +
     xlab("") +
     ylab("Kendal's tau Coefficient") +
-    theme_minimal(base_size = 27) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-    guides(size=guide_legend(title="Receptor genes")) +
+    theme_minimal(base_size = 26) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 28)) +
+    guides(size=guide_legend(title="Receptor genes"),
+           fill= "none",
+           color = "none") +
     labs(fill=guide_legend(title="Method"),
          shape=guide_legend(title="Dataset")) +
     geom_signif(comparisons = my_comparisons,
@@ -215,6 +216,5 @@ pairwise_contrasts %>%
     as.data.frame() %>%
     write.csv("~/Downloads/auprc_specificity.csv", row.names = FALSE)
 get_auroc_heat(pr_roc_tibble, "prc")
-
 
 #

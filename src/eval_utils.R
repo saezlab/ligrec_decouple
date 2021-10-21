@@ -258,13 +258,13 @@ get_auroc_heat <- function(roc_tibble,
         cluster_columns = FALSE,
         heatmap_legend_param =
             list(title = str_glue("AU{str_to_upper(curve)}",
-                                  fontsize = 18,
-                                  grid_height = unit(20, "mm"),
-                                  grid_width = unit(20, "mm"))),
+                                  fontsize = 20,
+                                  grid_height = unit(21, "mm"),
+                                  grid_width = unit(21, "mm"))),
         cell_fun = function(j, i, x, y, width, height, fill) {
             grid::grid.text(sprintf("%.2f", auc_mat[i, j]),
                             x, y,
-                            gp = grid::gpar(fontsize = 16,
+                            gp = grid::gpar(fontsize = 18,
                                             fontface = "bold",
                                             col = "white"))
         },
