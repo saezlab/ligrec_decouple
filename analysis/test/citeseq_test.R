@@ -6,8 +6,6 @@ require(magrittr)
 source("analysis/test/citeseq_src.R")
 
 
-
-
 # make this thing into a function
 # filter out any interactions that don't include the ADT-RNA intersect to save time. - tried gives different results :D
 # perform it with 3 datasets + 3 intervals (0, 0.05, 0.1, 0.2)

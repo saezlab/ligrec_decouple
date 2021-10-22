@@ -2,7 +2,7 @@
 #'
 #' @param seurat_object Seurat object with celltypes
 #' @param liana_res liana results (not aggregated)
-#' @param cytosig_net cytosig network formatted obyained from `run_cytosig_eval`
+#' @param cytosig_net cytosig network formatted obyained from `load_cytosig`
 #' @param z_scale z-transform NES scores from decoupleR
 #' @param expr_prop minimum proportion of gene expression per cell type
 #' @param assay Assay to consider
@@ -127,9 +127,9 @@ run_cytosig_eval <- function(seurat_object,
                          function(df) calc_curve(df,
                                                  curve="PR",
                                                  downsampling = TRUE,
-                                                 times = 1000,
+                                                 times = 100,
                                                  source_name = "cytokine_in_target",
-                                                 auc_only = FALSE))) %>%
+                                                 auc_only = TRUE))) %>%
         mutate(corr = cyto_liana %>%
                    map(function(df){
                        cor.test(df[["NES"]],
@@ -150,7 +150,7 @@ run_cytosig_eval <- function(seurat_object,
 #'  @param sum_count_thresh minimum (summed) counts per gene
 #'
 #'  @return returns a tibble with nested counts and logcounts per celltype
-get_pseudobulk <- function(seurat_obect,
+get_pseudobulk <- function(seurat_object,
                            assay,
                            expr_prop,
                            sum_count_thresh){
@@ -237,4 +237,15 @@ load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_ce
         ungroup()
 
     return(cytosig_net)
+}
+
+
+#' Helper function to scale-transform NES across clusters
+#' @param df long format tibble with cytokine, celltype, and NES
+z_transform_nes <- function(df){
+    df %>%
+        group_by(cytokine) %>%
+        mutate(NES = scale(NES)) %>%
+        unnest(NES) %>%
+        ungroup()
 }
