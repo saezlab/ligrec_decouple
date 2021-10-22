@@ -38,6 +38,24 @@ convert_to_murine <- function(op_resource){
 
 
 
+#' Function to Tranform LIANA aggregated results
+#' @param liana_agg a long tibble with liana_aggregate results
+#'
+#' @details converts `liana_aggregate` output to long with rank as predictor:
+#'    source              target                   method_name     predictor
+#     <chr>                <chr>                     <chr>            <dbl>
+# Presomitic.mesoderm Anterior.somitic.tissues aggregate_rank          1
+liana_agg_to_long <- function(liana_agg){
+    liana_agg %>%
+        mutate(across(c(source, target), ~str_replace_all(.x, " ", "."))) %>%
+        dplyr::select(source, target, ends_with("rank"), -c(mean_rank, median_rank)) %>%
+        mutate(aggregate_rank = min_rank(aggregate_rank)) %>% # convert to an integer rank
+        pivot_longer(-c(source,target),
+                     names_to = "method_name",
+                     values_to = "predictor")
+}
+
+
 #' @title Recode method names
 #' @param dataset - vector /w method names
 recode_methods <- function(methods){
@@ -82,7 +100,8 @@ calc_curve = function(df,
                       curve = "ROC",
                       seed = 1234,
                       source_name,
-                      auc_only = FALSE){
+                      auc_only = FALSE,
+                      ...){
     set.seed(seed)
 
     if(curve=="PR"){
@@ -113,7 +132,7 @@ calc_curve = function(df,
                 bind_rows(cp)
 
             r_sub = df_sub %>%
-                curve_fun(.data$response, .data$predictor)
+                curve_fun(.data$response, .data$predictor, ...)
 
             auc = df_sub %>%
                 auc_fun(.data$response, .data$predictor) %>%
@@ -137,7 +156,7 @@ calc_curve = function(df,
 
     } else {
         r = df %>%
-            curve_fun(.data$response, .data$predictor)
+            curve_fun(.data$response, .data$predictor, ...)
         auc = df %>%
             auc_fun(.data$response, .data$predictor)
 

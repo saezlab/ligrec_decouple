@@ -638,7 +638,7 @@ prepare_for_roc <- function(df, arbitrary_thresh){
         group_by(method_name) %>%
         dplyr::mutate(response = case_when(adt_scale >= arbitrary_thresh ~ 1,
                                            adt_scale < arbitrary_thresh ~ 0)) %>%
-        mutate(response = factor(response, levels = c(1, 0))) %>%
+        mutate(response = factor(response, levels = c(1, 0))) %>% # 1 is truth
         dplyr::select(source.target.entity, method_name,
                       adt_scale, predictor, response)
 }

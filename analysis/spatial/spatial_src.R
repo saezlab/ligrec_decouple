@@ -92,24 +92,6 @@ run_coloc_fet <- function(liana_loc, n_rank){
 
 
 
-#' Function to Tranform LIANA aggregated results
-#' @param liana_agg a long tibble with liana_aggregate results
-#'
-#' @details converts `liana_aggregate` output to long with rank as predictor:
-#'    source              target                   method_name     predictor
-#     <chr>                <chr>                     <chr>            <dbl>
-# Presomitic.mesoderm Anterior.somitic.tissues aggregate_rank          1
-liana_agg_to_long <- function(liana_agg){
-    liana_agg %>%
-        mutate(across(c(source, target), ~str_replace_all(.x, " ", "."))) %>%
-        dplyr::select(source, target, ends_with("rank"), -c(mean_rank, median_rank)) %>%
-        mutate(aggregate_rank = min_rank(aggregate_rank)) %>%
-        pivot_longer(-c(source,target),
-                     names_to = "method_name",
-                     values_to = "predictor")
-}
-
-
 #' Helper function to check localisation by dataset
 #' @param lr_coloc prepped tibble as from analyse_spatial section
 check_coloc <- function(lr_coloc){

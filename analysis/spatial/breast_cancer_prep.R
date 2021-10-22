@@ -84,8 +84,8 @@ map(subtypes, function(subtype){
 map(c("ER", "TNBC"), ~prep_brca_atlases(slide_subtype = .x,
                                         cluster_key = "celltype_major"))
 
-# Run for Minor celltypes
-map(c("ER", "TNBC"), ~prep_brca_atlases(slide_subtype = .x,
+# Run for Minor celltypes (+HER2 for Cytosig)
+map(c("ER", "TNBC", "HER2"), ~prep_brca_atlases(slide_subtype = .x,
                                         cluster_key = "celltype_minor"))
 
 
@@ -93,8 +93,7 @@ map(c("ER", "TNBC"), ~prep_brca_atlases(slide_subtype = .x,
 source("analysis/spatial/breast_cancer_deconv.R") # Run deconvolutions
 
 # Check deconv
-deconv_dirs <- list.files(path =
-                              file.path(brca_dir, "deconv"),
+deconv_dirs <- list.files(path = file.path(brca_dir, "deconv"),
                           recursive = TRUE,
                           pattern = "deconv.RDS")
 deconv_dirs
@@ -121,16 +120,20 @@ deconv_spec_plots$`ER_celltype_minor/CID4290_ER_celltype_minor_deconv.RDS`[[2]]
 
 
 
-### RUN LIANA on ER and TNBC subtype atlases ----
+### RUN LIANA on BRCA subtype atlases ----
+## ! ER and TNBC for spatial and cytosig, HER2 only for cytosig
 # Tibble with all subtype - celltype combinations
-all_combs <- tibble(slide_subtype = c("TNBC",
-                                      "ER",
-                                      "TNBC",
-                                      "ER"),
-                    cluster_key = c("celltype_major",
-                                    "celltype_minor",
-                                    "celltype_minor",
-                                    "celltype_major"))
+all_combs <- tibble(slide_subtype = c(#"TNBC",
+                                      # "ER",
+                                      # "TNBC",
+                                      # "ER",
+                                      "HER2"
+                                      ),
+                    cluster_key = c(#"celltype_major",
+                                    # "celltype_minor",
+                                    # "celltype_minor",
+                                    # "celltype_major",
+                                    "celltype_minor"))
 
 pmap(all_combs, function(slide_subtype, cluster_key){
     deconv_directory <- file.path(brca_dir,
