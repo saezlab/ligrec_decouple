@@ -9,9 +9,12 @@ Scripts to preproduce the analysis can be found in /analysis/spatial/*
 ```
 
 ### Preprocess
-1.1) Mouse Cortex visium slides were pre-processed using the [`mouse_brain_prep.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/mouse_brain_prep.R) script.
-1.2) BRCA 10x Visium slides werwere pre-processed and deconvoluted using using the [`breast_cancer_prep.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/mouse_brain_prep.R) and [`breast_cancer_prep.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/mouse_brain_deconv.R) scripts, respectively.
-1.3) Run [`squidpy_FISH_prep.Rmd`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/squidpy_FISH_prep.Rmd) to preprocess seq- and merFISH datasets. 
+1.1) Mouse Cortex visium slides were pre-processed using the [`mouse_brain_prep.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/mouse_brain_prep.R) script.   
+
+1.2) BRCA 10x Visium slides werwere pre-processed and deconvoluted using using the [`breast_cancer_prep.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/mouse_brain_prep.R) and [`breast_cancer_prep.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/mouse_brain_deconv.R) scripts, respectively.    
+
+1.3) Run [`squidpy_FISH_prep.Rmd`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/squidpy_FISH_prep.Rmd) to preprocess seq- and merFISH datasets.   
+
 
 ### Analysis
 Run the [`spatial_analyse.R`](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial/spatial_analyse.R) script.

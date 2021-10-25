@@ -129,7 +129,7 @@ run_cytosig_eval <- function(seurat_object,
                                                  downsampling = TRUE,
                                                  times = 100,
                                                  source_name = "cytokine_in_target",
-                                                 auc_only = TRUE))) %>%
+                                                 auc_only = FALSE))) %>%
         mutate(corr = cyto_liana %>%
                    map(function(df){
                        cor.test(df[["NES"]],
