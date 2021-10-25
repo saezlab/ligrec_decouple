@@ -290,3 +290,44 @@ get_auroc_heat <- function(roc_tibble,
         ...
     )
 }
+
+
+
+#' Helper function to extend liana aggragate to e.g. filters of certain methods
+#' @param liana_res in list form (not aggragated)
+#' @param filt_de_pvals whether to filter differential expression p-values (e.g. Connectome)
+#' @param de_thresh differential gene expression threshold
+#' @param filt_outs whether to filter end output (CellChat, CellPhoneDB, SCA)
+#' @param pval_thresh permutation methods output p-value threshold
+#' @param sca_thresh SingleCellSignalR threshold
+#' @inheritDotParams liana_aggregate
+liana_aggregate_enh <- function(liana_res,
+                                filt_de_pvals = TRUE,
+                                de_thresh = 0.05,
+                                filt_outs = FALSE,
+                                pval_tresh = 0.05,
+                                sca_thresh = 0.5,
+                                ...){
+    if(filt_de_pvals){
+        # Filter Connectome genes below 0.05
+        liana_res$call_connectome %<>%
+            filter(p_val_adj.lig <= de_thresh) %>%
+            filter(p_val_adj.rec <= de_thresh)
+
+    }
+
+    # Filter according to end threshold
+    if(filt_outs){
+        ## CellChat
+        liana_res$cellchat %<>% filter(pval <= pval_tresh)
+        ## CellPhoneDB/Squidpy
+        liana_res$squidpy %<>% filter(pvalue <= pval_tresh)
+        ## sca
+        liana_res$call_sca %<>% filter(LRscore >= sca_thresh)
+    }
+
+    # aggregate liana results
+    liana_res %<>% liana_aggregate(...)
+
+    return(liana_res)
+}
