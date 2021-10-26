@@ -1,6 +1,46 @@
 # Systematic Comparison of Cell-Cell Communication Tools and Resources
-  
-![landingpage](ligrec_pipe.png)
+
+## LIANA Analysis Content
+
+### I) Descriptive Resource Analysis
+The code to reproduce the descriptive analysis of resources can be found at:
+[analysis/resource_analysis](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/comparison)
+
+### II) Comparison of Methods and Resources
+The code to reproduce the comparison between method-resource combinations can be found at:
+[analysis/comparison](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/comparison)
+
+### III) Spatial Co-localization
+The code to reproduce the co-localization analysis can be found at:
+[analysis/spatial](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial)
+
+### IV) Cytokine Signalling Agreement
+The code to reproduce the cytokine activity (/w [CytoSig]()) agreement analysis can be found at:
+[analysis/cytosig](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/cytosig)
+
+### V) CITE-Seq Correlation/Specificity
+The code to reproduce the Correlation/Specificity analysis of methods with CITE-Seq can be found at:
+[analysis/citeseq](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/CITE-Seq)
+
+### VI) Robustness
+The code to reproduce the robustness analyses can be found at:
+[analysis/robustness](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/robustness)
+
+
+## Environment set-up
+# Clone repo
+```{bash}
+git clone https://github.com/saezlab/ligrec_decouple
+```
+
+```{r}
+# install all required packages using *renv*
+renv::restore()
+```
+Finally, make sure that [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) is set up appropriately.
+
+
+
 
 ## Abstract
   
@@ -22,17 +62,19 @@ inference.
   
 To this end we built [LIANA](https://github.com/saezlab/liana), a framework to decouple the tools from their corresponding resources.
   
+![landingpage](ligrec_pipe.png)
+  
   
 ### Tools
 
-The tools included in this comparison are:
+The Scoring Functions included in this comparison are:
 
 - CellPhoneDB algorithm (via [Squidpy](https://squidpy.readthedocs.io/en/latest/))
 - CellChat
 - NATMI
 - Connectome
 - SingleCellSignalR (SCA)
-- iTALK
+- LogFC Mean (inspired by iTALK)
   
   
 ### Resources
@@ -56,51 +98,23 @@ The following CCC resources are accessible via this pipeline:
 - OmniPath
   
   
-#### OmniPath
+### OmniPath
   
-All the resources above are retrieved from OmniPath (https://omnipathdb.org/).
-OmniPath itself is also a composite resource combining all the ones listed
-above. However the cell-cell interactions in OmniPath are more than simply
-the union of the ligand-receptor resources. OmniPath uses several further
-databases to collect information about the roles of proteins in intercellular
-communication and again other databases to find connections between them. At
-the same time, OmniPath blacklists certain wrong annotations, removing some
-of the contents of the original resources. However the data of individual
-resources retrieved from the OmniPath web service is not affected by this,
-each resource supposed to be identical to its original form, apart from minor
-processing imperfections.
+All the resources above are retrieved from [OmniPath](https://omnipathdb.org/),
+and more specifically [OmnipathR](https://github.com/saezlab/OmnipathR).
+However, individual resources retrieved from the OmniPath web service are not to be
+affected by this, as each resource expected to be identical to its original form, apart from minor processing imperfections.
   
-  
-#### Reshuffled and Default Resources
-  
-Moreover, a Reshuffled resource can be generated via reshuffling any of the
-abovementioned using the `BiRewire` package, and each tool can be run with
-its 'Default' resource, the dataset used in its original publication.
+`OmniPath` itself serves as a composite CCC resource combining all the ones listed
+above + [more](https://doi.org/10.15252/msb.20209923). `OmniPath` also collects
+further information about the roles and localisation of proteins in intercellular communication.
+We made use of this information regarding the and by default the `OmniPath`CCC
+resource in LIANA is filtered according to the consensus localisation and curation of
+ligand-receptor interactions. To obtain more information how we filtered the default CCC `OmniPath`,
+as well as to explore custom filter options see [customizing OmniPath resources](https://saezlab.github.io/liana/articles/liana_custom_op.html). 
   
   
-### Content, Anylsis, and Data availability
 
-
-### Environment set-up
-# Clone repo
-```{bash}
-git clone https://github.com/saezlab/ligrec_decouple
-```
-
-```{r}
-# install all required packages using *renv*
-renv::restore()
-```
-Also, make sure that [LIANA](https://github.com/saezlab/liana) is set up appropriately.
-
-
-#### Analysis Scripts
-Add info how to reproduce the analysis here:
-  
-#### Data availability 
-Add links to public data, processed data, etc
-
-  
 ## References
 Baccin, C., Al-Sabah, J., Velten, L., Helbling, P.M., Grünschläger, F., Hernández-Malmierca, P., Nombela-Arrieta, C., Steinmetz, L.M., Trumpp, A., and Haas, S. (2020). Combined single-cell and spatial transcriptomics reveal the molecular, cellular and spatial bone marrow niche organization. Nat. Cell Biol. 22, 38–48.
 
