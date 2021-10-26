@@ -20,7 +20,7 @@ The code to reproduce the cytokine activity (/w [CytoSig](https://sciwheel.com/w
 
 ### V) CITE-Seq Correlation/Specificity
 The code to reproduce the Correlation/Specificity analysis of methods with CITE-Seq can be found at:
-[analysis/citeseq](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/CITE-Seq)
+[analysis/citeseq](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/citeseq)
 
 ### VI) Robustness
 The code to reproduce the robustness analyses can be found at:
@@ -43,7 +43,6 @@ Finally, make sure that [LIANA++](https://saezlab.github.io/liana/articles/liana
 ## [LIANA](https://github.com/saezlab/liana) framework
   
 ![landingpage](ligrec_pipe.png)
-  
   
 ### Tools
 

@@ -12,7 +12,6 @@ source("src/eval_utils.R")
 
 
 ### Read Input ------
-
 ## read CytoSig
 # models/signatures were obtained from https://github.com/data2intelligence/CytoSig/tree/master/CytoSig
 cyto_signatures <- read.table("data/input/cytosig_signature_centroid.csv",
