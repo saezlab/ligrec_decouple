@@ -5,7 +5,7 @@ Refer to [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) fo
 
 ### I) Descriptive Resource Analysis
 The code to reproduce the descriptive analysis of resources can be found at:
-[analysis/resource_analysis](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/comparison)
+[analysis/resource_analysis](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/resource_analysis)
 
 ### II) Comparison of Methods and Resources
 The code to reproduce the comparison between method-resource combinations can be found at:
@@ -21,7 +21,7 @@ The code to reproduce the cytokine activity (/w [CytoSig]()) agreement analysis 
 
 ### V) CITE-Seq Correlation/Specificity
 The code to reproduce the Correlation/Specificity analysis of methods with CITE-Seq can be found at:
-[analysis/citeseq](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/CITE-Seq)
+[analysis/citeseq](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/citeseq)
 
 ### VI) Robustness
 The code to reproduce the robustness analyses can be found at:

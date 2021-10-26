@@ -1,10 +1,13 @@
 # Systematic Comparison of Cell-Cell Communication Tools and Resources
 
+Repository used to reproduce the results from [Comparison of Resources and Methods to infer Cell-Cell Communication from Single-cell RNA Data](https://www.biorxiv.org/content/10.1101/2021.05.21.445160v1)
+
+
 ## LIANA Analysis Content
 
 ### I) Descriptive Resource Analysis
 The code to reproduce the descriptive analysis of resources can be found at:
-[analysis/resource_analysis](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/comparison)
+[analysis/resource_analysis](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/resource_analysis)
 
 ### II) Comparison of Methods and Resources
 The code to reproduce the comparison between method-resource combinations can be found at:
@@ -15,7 +18,7 @@ The code to reproduce the co-localization analysis can be found at:
 [analysis/spatial](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial)
 
 ### IV) Cytokine Signalling Agreement
-The code to reproduce the cytokine activity (/w [CytoSig](https://sciwheel.com/work/#/items/11775454?collection=414754)) agreement analysis can be found at:
+The code to reproduce the cytokine activity (/w [CytoSig]()) agreement analysis can be found at:
 [analysis/cytosig](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/cytosig)
 
 ### V) CITE-Seq Correlation/Specificity
