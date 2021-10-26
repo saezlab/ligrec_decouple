@@ -1,5 +1,8 @@
 ## LIANA Analysis Content
 
+Use `initiate_environment.R` to restore the R environment used to produce the results in the publication.
+Refer to [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) for instructions how to set-up the LIANA environment used to call the different external tools.
+
 ### I) Descriptive Resource Analysis
 The code to reproduce the descriptive analysis of resources can be found at:
 [analysis/resource_analysis](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/comparison)

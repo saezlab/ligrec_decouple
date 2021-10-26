@@ -1,8 +1,8 @@
+# Install renv
+install.packages("renv")
+
 # Use renv to restore environment
 renv::restore()
-
-# Run this file to set up the project
-source("src/eval_utils.R")
 
 # Obtain OmniPath /w mouse symbols and save
 murine_resource <- liana::select_resource("OmniPath")[[1]] %>%
