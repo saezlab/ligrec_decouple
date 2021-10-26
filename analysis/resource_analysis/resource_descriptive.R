@@ -1857,5 +1857,5 @@ overheat_save <- function(df, plotname, guide_title){
 #'
 #' @seealso \code{\link{compile_ligrec}}
 compile_ligrec_descr <- function(){
-    compile_ligrec(lr_pipeline = FALSE)
+    liana:::compile_ligrec(lr_pipeline = FALSE)
 }

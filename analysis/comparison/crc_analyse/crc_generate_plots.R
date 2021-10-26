@@ -5,9 +5,13 @@
 # Specifically, we focused on the interactions between tumour cells subclassified
 # by their resemblance of CRC consensus molecular subtypes (CMS) and immune cells from tumour samples.
 
-require(intercell)
+require(liana)
 require(tidyverse)
 require(magrittr)
+require(RColorBrewer)
+require(pheatmap)
+
+source("src/comparison_utils.R")
 
 #### Load Results from different Method-Resource Combinations
 ##### Note that the objects loaded here were already generated via
@@ -18,45 +22,46 @@ require(magrittr)
 spec_list <- list("CellChat" =
                       methods::new("MethodSpecifics",
                                    method_name="CellChat",
-                                   method_results = readRDS("output/crc_res/cellchat_results.rds"),
+                                   method_results = readRDS("data/output/crc_res/cellchat_results.rds"),
                                    method_scores=list(
                                        "prob"=TRUE
                                    )),
                   "Connectome" =
                       methods::new("MethodSpecifics",
                                    method_name="Connectome",
-                                   method_results = readRDS("output/crc_res/conn_results.rds"),
+                                   method_results = readRDS("data/output/crc_res/conn_results.rds"),
                                    method_scores=list(
                                        "weight_sc"=TRUE
                                    )),
                   "iTALK" =
                       methods::new("MethodSpecifics",
                                    method_name="iTALK",
-                                   method_results = readRDS("output/crc_res/italk_results.rds"),
+                                   method_results = readRDS("data/output/crc_res/italk_results.rds"),
                                    method_scores=list(
                                        "weight_comb"=TRUE
                                    )),
                   "NATMI" =
                       methods::new("MethodSpecifics",
                                    method_name="NATMI",
-                                   method_results = readRDS("output/crc_res/natmi_results.rds"),
+                                   method_results = readRDS("data/output/crc_res/natmi_results.rds"),
                                    method_scores=list(
                                        "edge_specificity"=TRUE
                                    )),
                   "SCA" = methods::new("MethodSpecifics",
                                        method_name="SCA",
-                                       method_results = readRDS("output/crc_res/sca_results.rds"),
+                                       method_results = readRDS("data/output/crc_res/sca_results.rds"),
                                        method_scores=list(
                                            "LRscore"=TRUE
                                        )),
                   "Squidpy" =
                       methods::new("MethodSpecifics",
                                    method_name="Squidpy",
-                                   method_results = readRDS("output/crc_res/squidpy_results.rds"),
+                                   method_results = readRDS("data/output/crc_res/squidpy_results.rds"),
                                    method_scores=list(
                                        "pvalue"=FALSE
-                                   ))
-)
+                                   )))
+
+
 # Define the numbers of highest interactions that we wish to explore
 # and get a list with each threshold as its element
 top_lists <- get_top_hits(spec_list,
@@ -87,6 +92,7 @@ png(filename = figure_path_mr('crc_activityheat_top500.png'),
 p <- get_activecell(top_lists$top_500, cap_value = 0.2)
 grid::grid.draw(p$gtable)
 invisible(dev.off())
+
 
 #### Jaccard Index exploration
 # Similarity Heatmap (according to Jaccard index)
@@ -183,8 +189,7 @@ names(top_lists$top_500) %>%
         top_lists$top_500[[m_name]] %>%
             prepForUpset() %>%
             plotSaveUset(figure_path_mr(as.character(str_glue("crc_{m_name}_top500_upset_method.png"))),
-                         m_name)
-    }
+                         m_name)}
     )
 
 ####  Upset Plots by Resource for highest ranked 500 interactions (CRC)

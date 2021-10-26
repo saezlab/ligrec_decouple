@@ -217,14 +217,6 @@ get_cellnum <- function(seurat_path){
 }
 
 
-#' Helper Function to get Similarties and Distances from binary dfs
-#' @importFrom proxy dist simil
-#' @return a similarity/dissimilarity matrix
-#' @export
-get_simil_dist <- function(sim_dist = "simil", ...){
-    do.call(sim_dist,
-            list(...))
-}
 
 
 #' Helper Function to get a binary top hits DF (for all method-resource combos)

@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 require(intercell)
 require(tidyverse)
 require(magrittr)
+
+source("src/comparison_utils.R")
 ```
 
 #### Background

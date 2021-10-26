@@ -9,6 +9,8 @@ output: md_document
 knitr::opts_chunk$set(echo = TRUE)
 require(intercell)
 require(tidyverse)
+
+source("src/comparison_utils.R")
 ```
 
 ##### !use this .Rmd to recreate plot files
@@ -28,8 +30,7 @@ spec_list <- list("CellChat" =
                                    method_name="CellChat",
                                    method_results = readRDS("output/cbmc_res/cellchat_results.rds"),
                                    method_scores=list(
-                                       "prob"=TRUE
-                                       )),
+                                       "prob"=TRUE)),
                   "Connectome" =
                       methods::new("MethodSpecifics",
                                    method_name="Connectome",
