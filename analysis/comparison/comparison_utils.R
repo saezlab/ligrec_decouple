@@ -1,4 +1,53 @@
-#' Get top hits
+#' Function to generate a list in `MethodSpecifics` object forlumation for each
+#' method, using the score_specs from liana:::.score_* and a custom score order
+#' to deal with permutation method ties
+#'
+#' @param liana_all_path path to the object generated for a given dataset
+#' as obtained via `liana_wrap`
+#' @param .score_spec the score specs to be used
+#'
+#' @returns a list for each method as a MethodSpecifics object
+#'
+#' @details options for .score_spec are: `liana:::.score_specs`,
+#'  `liana:::.score_housekeep`, `.score_comp`
+get_spec_list <- function(liana_all_path,
+                          .score_spec){
+
+    readRDS(liana_all_path) %>%
+        map2(names(.), function(liana_meth, method_name){
+            message(str_glue("Now reading {method_name}"))
+
+            methods::new("MethodSpecifics",
+                         method_name=method_name,
+                         method_results = liana_meth,
+                         method_scores=list(
+                             .score_spec()[[method_name]]@descending_order
+                         ) %>% setNames(.score_spec()[[method_name]]@method_score))
+        })
+}
+
+#' Helper function to obtain scores used in the comparison
+#'
+#' @details same as liana:::.score_specs(), but returns uses the alternative
+#' metrics to cellchat and squidpy due to ties
+.score_comp <- function(){
+    sp <- liana:::.score_specs()
+    hs <- liana:::.score_housekeep()
+
+    # Squidpy
+    sp$squidpy@method_score <- hs$squidpy@method_score
+    sp$squidpy@descending_order <- hs$squidpy@descending_order
+
+    # CellChat
+    sp$cellchat@method_score <- hs$cellchat@method_score
+    sp$cellchat@descending_order <- hs$cellchat@descending_order
+
+    return(sp)
+}
+
+
+#' Get top hits list
+#'
 #' @param spec_list list of spec objects with ligrec results
 #' @return A list of top hits per tool/tool_parameter
 #' @export
@@ -37,6 +86,21 @@ get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000)){
 }
 
 
+#' S4 Class used to format benchmark output.
+#' @name MethodSpecifics-class
+#'
+#' @field method_name name of the method (e.g. CellChat)
+#' @field method_results Named list of method-resource results
+#' @field method_scores Named list of the measures provided by the method
+#'  and whether they should be interpreted in descending order as the value
+#'
+#' @exportClass MethodSpecifics
+setClass("MethodSpecifics",
+         slots=list(method_name="character",
+                    method_results = "list",
+                    method_scores="list"))
+
+
 #' Helper Function to handle specific cases for the different Methods
 #'
 #' @inheritDotParams dplyr::top_n
@@ -45,23 +109,24 @@ get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000)){
 #' @importFrom tibble tibble
 #'
 #' @return Ordered tibble/df as from top_n
-top_enh <- function(...){
+top_enh <- function(...,
+                    pval_thresh = 0.05){
 
     elipses <- list(...)
     elipses$wt <- sym(elipses$wt)
 
     # Filter according to:
     if(elipses$wt == "prob"){ # CellChat Probabilities
-        elipses[[1]] %<>% filter(pval <= 0.05)
+        elipses[[1]] %<>% filter(pval <= pval_thresh)
     } else if(elipses$wt == "pval"){ # CellChat pval
-        elipses[[1]] %<>% filter(pval <= 0.05)
+        elipses[[1]] %<>% filter(pval <= pval_thresh)
     } else if(elipses$wt == "pvalue"){ # Squidpy pvalue
-        elipses[[1]] %<>% filter(pvalue <= 0.05)
+        elipses[[1]] %<>% filter(pvalue <= pval_thresh)
     } else if (elipses$wt == "LRscore"){ # SCA LRscore
-        elipses[[1]] %<>% filter(LRscore >= 0.5)
+        elipses[[1]] %<>% filter(LRscore >= pval_thresh)
     } else if (elipses$wt == "weight_sc"){ # Connectome DE ligrecs
-        elipses[[1]] %<>% filter(p_val_adj.rec <= 0.05) %>%
-            filter(p_val_adj.lig <= 0.05)
+        elipses[[1]] %<>% filter(p_val_adj.rec <= pval_thresh) %>%
+            filter(p_val_adj.lig <= pval_thresh)
     }
     return(do.call(top_n, elipses))
 }
@@ -70,6 +135,7 @@ top_enh <- function(...){
 
 
 #' Get binary activity frequencies per cell-cell pair
+#'
 #' @param sig_list List of significant hits per Method-resource combination.
 #'  Named list of methods with each element being a named list of resources.
 #' @return A tibble of cell pair frequencies, based on binarized activity
@@ -99,6 +165,7 @@ get_binary_frequencies <- function(sig_list){
 
 #' Convert list with MethodSpecifics objects to a dataframe with ranked
 #' cell_pair frequencies.
+#'
 #' @param spec_list list with appropriately populated MethodSpecifics objects
 #' @return a tibble with cell_pair frequencies represented by the ranked
 #' normalized scores for each method by cell_pair
@@ -180,41 +247,6 @@ reform_rank_frequencies <- function(frequencies_list){
 }
 
 
-
-#' S4 Class used to format benchmark output.
-#' @name MethodSpecifics-class
-#'
-#' @field method_name name of the method (e.g. CellChat)
-#' @field method_results Named list of method-resource results
-#' @field method_scores Named list of the measures provided by the method
-#'  and whether they should be interpreted in descending order as the value
-#'
-#' @exportClass MethodSpecifics
-setClass("MethodSpecifics",
-         slots=list(method_name="character",
-                    method_results = "list",
-                    method_scores="list"))
-
-
-
-#' Helper function to get cell number per cell type
-#'
-#' @param seurat_path Path to Seurat object of interest
-#'
-#' @return A tibble with Cell_subtype and Cell Number columns
-#' @import Seurat dplyr tibble
-#' @export
-get_cellnum <- function(seurat_path){
-    crc_form <- readRDS(seurat_path)
-    crc_meta <- crc_form@meta.data
-
-    # Cell Numbers
-    crc_meta %>%
-        select(Cell_clusters, Cell_subtype) %>%
-        group_by(Cell_subtype) %>%
-        summarise(cell_occur = n()) %>%
-        arrange(Cell_subtype)
-}
 
 
 
@@ -358,7 +390,7 @@ figure_path_mr <- function(fname,
 
 
 
-#' Get Jaccard indeces between specific combination of resources or methods
+#' Get Jaccard indexes between specific combination of resources or methods
 #' @param sig_list List of significant hits per Method-resource combination.
 #'  Named list of methods with each element being a named list of resources.
 #' @param methods character vector of method names
@@ -376,6 +408,10 @@ get_jacc <- function(sig_list, methods, resources){
         get_simil_dist(sim_dist = "simil", "Jaccard")
 }
 
+
+
+
+# Seurat Formatting helpers ----
 
 
 #' Helper function to convert CRC data to sparse Seurat
@@ -399,5 +435,26 @@ sparsify_to_seurat <- function(counts_loc, meta_loc, save_loc){
         Seurat::NormalizeData() %>%
         Seurat::FindVariableFeatures() %>%
         saveRDS(., save_loc)
+}
+
+
+
+#' Helper function to get cell number per cell type
+#'
+#' @param seurat_path Path to Seurat object of interest
+#'
+#' @return A tibble with Cell_subtype and Cell Number columns
+#' @import Seurat dplyr tibble
+#' @export
+get_cellnum <- function(seurat_path){
+    crc_form <- readRDS(seurat_path)
+    crc_meta <- crc_form@meta.data
+
+    # Cell Numbers
+    crc_meta %>%
+        select(Cell_clusters, Cell_subtype) %>%
+        group_by(Cell_subtype) %>%
+        summarise(cell_occur = n()) %>%
+        arrange(Cell_subtype)
 }
 

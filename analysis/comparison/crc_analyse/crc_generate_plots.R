@@ -11,7 +11,7 @@ require(magrittr)
 require(RColorBrewer)
 require(pheatmap)
 
-source("src/comparison_utils.R")
+source("analysis/comparison/comparison_utils.R")
 
 #### Load Results from different Method-Resource Combinations
 ##### Note that the objects loaded here were already generated via

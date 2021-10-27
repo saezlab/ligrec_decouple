@@ -23,7 +23,6 @@ liana_house <- liana_res %>% liana_aggregate_enh(.score_mode=liana:::.score_hous
 liana_spec <- liana_res %>% liana_aggregate_enh()
 
 
-
 # II) Defaults to be used throughout:
 def_new <- liana_wrap(seurat_object,
                       method = c('call_natmi', 'call_connectome', 'logfc',
