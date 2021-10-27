@@ -286,3 +286,41 @@ list_stats(meth = jaccard_nonspec$meth,
            reso = jaccard_nonspec$reso)
 
 
+
+
+
+### Change simil_dist_heatmap (i.e. Jaccard index heatmap) to ComplexHeat ----
+require(liana)
+require(tidyverse)
+require(magrittr)
+require(RColorBrewer)
+require(pheatmap)
+require(proxy)
+require(UpSetR)
+
+source("analysis/comparison/comparison_utils.R")
+source("src/eval_utils.R")
+source("src/plot_utils.R")
+
+# load liana res
+spec_list <- get_spec_list("data/output/crc_res/liana_crc_all.rds",
+                           .score_spec = liana:::.score_specs)
+spec_list$call_italk <- NULL
+spec_top_list <- get_top_hits(spec_list,
+                              n_ints=c(500))
+
+sig_list <- spec_top_list[["top_500"]]
+p3 <- get_simdist_heatmap(sig_list,
+                          sim_dist = "simil",
+                          method = "Jaccard",
+                          diag = TRUE,
+                          upper = TRUE)
+
+
+png(filename = figure_path_mr('crc_nonspec_test.png'),
+    width = 1600,
+    height = 1450)
+draw(p3, annotation_legend_side = "left")
+invisible(dev.off())
+
+

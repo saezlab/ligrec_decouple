@@ -290,13 +290,16 @@ get_activecell <- function(sig_list,
 
 
 #' Jaccard Similarities Heatmap Function
-#' @param sig_list list of significant hits
+#' @param sig_list list of top ranked hits for each method
+#' (i.e. top hits obtained via `get_top_hits`)
 #' @inheritDotParams get_simil_dist
 #' @export
 get_simdist_heatmap <- function(sig_list,
                                 ...){
 
   heatmap_binary_df <- get_binary_df(sig_list)
+  args <- list(sim_dist = "simil",
+               ...)
 
   simdif_df <- heatmap_binary_df %>%
     t() %>%
@@ -308,7 +311,6 @@ get_simdist_heatmap <- function(sig_list,
   # Any other distance and similarity works just fine
   # but Jaccard results in NAs in the diagonal,
   # and as.matrix replaces them with 0s..., while class(dist) is immutable
-  args <- list(...)
   if(args$method == "Jaccard" && args$sim_dist == "simil"){
     diag(simdif_df) <- 1
   }
@@ -317,6 +319,7 @@ get_simdist_heatmap <- function(sig_list,
   method_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
     separate(value, into = c("method", "resource"), sep = "_") %>%
+    mutate(method=recode_methods(method)) %>%
     pull(method)
   resource_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
@@ -336,22 +339,47 @@ get_simdist_heatmap <- function(sig_list,
   names(mycolors$Resource) <- unique(resource_groups)
   names(mycolors$Method) <- unique(method_groups)
 
+  # define legend params
+  legend_arg_list <- list(title = "Jaccard Index",
+                          title_gp = gpar(fontsize = 24, fontface = "bold"),
+                          grid_height = unit(60, "mm"),
+                          grid_width = unit(16, "mm"),
+                          legend_height = unit(50, "mm"),
+                          size = unit(16, "mm"),
+                          labels_gp = gpar(fontsize = 23),
+                          pch=32)
 
-  pheatmap(simdif_df,
-           annotation_col = annotations_df,
-           annotation_row = annotations_df,
-           annotation_colors = mycolors,
-           display_numbers = FALSE,
-           silent = FALSE,
-           show_colnames = FALSE,
-           show_rownames = FALSE,
-           color = colorRampPalette(c("gray15",
-                                      "darkslategray2"))(20),
-           fontsize = 30,
-           cluster_rows = FALSE,
-           cluster_cols = FALSE,
-           border_color = NA
-  )
+  # define top_annotation
+  top_ann <- HeatmapAnnotation(df = annotations_df,
+                               col = list(Resource=mycolors$Resource,
+                                          Method=mycolors$Method),
+                               simple_anno_size = unit(1.4, "cm"),
+                               annotation_name_gp = gpar(fontsize = 24),
+                               show_legend = TRUE,
+                               annotation_legend_param = list(title_gp = gpar(fontsize = 24, fontface = "bold"),
+                                                              labels_gp = gpar(fontsize = 23),
+                                                              pch=20))
+
+  # define row annotation
+  left_ann <- rowAnnotation(df = annotations_df,
+                            col = list(Resource=mycolors$Resource,
+                                       Method=mycolors$Method),
+                            simple_anno_size = unit(1.4, "cm"),
+                            annotation_name_gp = gpar(fontsize = 24),
+                            show_legend = FALSE)
+
+  ht <- ComplexHeatmap::Heatmap(simdif_df,
+                                col=colorRampPalette(c("gray15",
+                                                       "darkslategray2"))(20),
+                                cluster_rows = FALSE,
+                                cluster_columns = FALSE,
+                                top_annotation = top_ann,
+                                left_annotation = left_ann,
+                                heatmap_legend_param = legend_arg_list,
+                                show_row_names = FALSE,
+                                show_column_names = FALSE)
+
+  return(ht)
 }
 
 

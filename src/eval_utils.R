@@ -62,11 +62,16 @@ recode_methods <- function(methods){
     dplyr::recode(methods,
                   "squidpy" = "CellPhoneDB",
                   "natmi" = "NATMI",
+                  "call.natmi" = "NATMI",
                   "logfc" = "LogFC Mean",
                   "cellchat" = "CellChat",
                   "aggregate_rank" = "Aggregated Ranks",
                   "connectome" = "Connectome",
+                  "call.connectome" = "Connectome",
                   "sca" = "SingleCellSignalR",
+                  "call.sca" = "SingleCellSignalR",
+
+
 
                   # RNA-ADT correlation baseline
                   "RNA-ADT" = "RNA-ADT Baseline"
