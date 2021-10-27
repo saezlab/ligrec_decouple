@@ -10,8 +10,12 @@ require(tidyverse)
 require(magrittr)
 require(RColorBrewer)
 require(pheatmap)
+require(proxy)
+require(UpSetR)
 
 source("analysis/comparison/comparison_utils.R")
+source("src/eval_utils.R")
+source("src/plot_utils.R")
 
 #### Load Results from different Method-Resource Combinations
 ##### Note that the objects loaded here were already generated via
@@ -19,48 +23,50 @@ source("analysis/comparison/comparison_utils.R")
 
 
 # We only define the measures from each method that we wish to have in our analysis
-spec_list <- list("CellChat" =
-                      methods::new("MethodSpecifics",
-                                   method_name="CellChat",
-                                   method_results = readRDS("data/output/crc_res/cellchat_results.rds"),
-                                   method_scores=list(
-                                       "prob"=TRUE
-                                   )),
-                  "Connectome" =
-                      methods::new("MethodSpecifics",
-                                   method_name="Connectome",
-                                   method_results = readRDS("data/output/crc_res/conn_results.rds"),
-                                   method_scores=list(
-                                       "weight_sc"=TRUE
-                                   )),
-                  "iTALK" =
-                      methods::new("MethodSpecifics",
-                                   method_name="iTALK",
-                                   method_results = readRDS("data/output/crc_res/italk_results.rds"),
-                                   method_scores=list(
-                                       "weight_comb"=TRUE
-                                   )),
-                  "NATMI" =
-                      methods::new("MethodSpecifics",
-                                   method_name="NATMI",
-                                   method_results = readRDS("data/output/crc_res/natmi_results.rds"),
-                                   method_scores=list(
-                                       "edge_specificity"=TRUE
-                                   )),
-                  "SCA" = methods::new("MethodSpecifics",
-                                       method_name="SCA",
-                                       method_results = readRDS("data/output/crc_res/sca_results.rds"),
-                                       method_scores=list(
-                                           "LRscore"=TRUE
-                                       )),
-                  "Squidpy" =
-                      methods::new("MethodSpecifics",
-                                   method_name="Squidpy",
-                                   method_results = readRDS("data/output/crc_res/squidpy_results.rds"),
-                                   method_scores=list(
-                                       "pvalue"=FALSE
-                                   )))
+# spec_list <- list("CellChat" =
+#                       methods::new("MethodSpecifics",
+#                                    method_name="CellChat",
+#                                    method_results = readRDS("data/output/crc_res/cellchat_results.rds"),
+#                                    method_scores=list(
+#                                        "prob"=TRUE
+#                                    )),
+#                   "Connectome" =
+#                       methods::new("MethodSpecifics",
+#                                    method_name="Connectome",
+#                                    method_results = readRDS("data/output/crc_res/conn_results.rds"),
+#                                    method_scores=list(
+#                                        "weight_sc"=TRUE
+#                                    )),
+#                   "iTALK" =
+#                       methods::new("MethodSpecifics",
+#                                    method_name="iTALK",
+#                                    method_results = readRDS("data/output/crc_res/italk_results.rds"),
+#                                    method_scores=list(
+#                                        "weight_comb"=TRUE
+#                                    )),
+#                   "NATMI" =
+#                       methods::new("MethodSpecifics",
+#                                    method_name="NATMI",
+#                                    method_results = readRDS("data/output/crc_res/natmi_results.rds"),
+#                                    method_scores=list(
+#                                        "edge_specificity"=TRUE
+#                                    )),
+#                   "SCA" = methods::new("MethodSpecifics",
+#                                        method_name="SCA",
+#                                        method_results = readRDS("data/output/crc_res/sca_results.rds"),
+#                                        method_scores=list(
+#                                            "LRscore"=TRUE
+#                                        )),
+#                   "Squidpy" =
+#                       methods::new("MethodSpecifics",
+#                                    method_name="Squidpy",
+#                                    method_results = readRDS("data/output/crc_res/squidpy_results.rds"),
+#                                    method_scores=list(
+#                                        "pvalue"=FALSE
+#                                    )))
 
+
+spec_list <-
 
 # Define the numbers of highest interactions that we wish to explore
 # and get a list with each threshold as its element

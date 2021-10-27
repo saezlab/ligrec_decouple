@@ -15,7 +15,13 @@ get_spec_list <- function(liana_all_path,
 
     readRDS(liana_all_path) %>%
         map2(names(.), function(liana_meth, method_name){
-            message(str_glue("Now reading {method_name}"))
+
+            if(is.null(.score_spec()[[method_name]])){
+                warning(str_glue(" NO SCORE FOUND FOR {method_name}"))
+                return()
+            } else{
+                message(str_glue("Now reading {method_name}"))
+            }
 
             methods::new("MethodSpecifics",
                          method_name=method_name,
@@ -23,7 +29,7 @@ get_spec_list <- function(liana_all_path,
                          method_scores=list(
                              .score_spec()[[method_name]]@descending_order
                          ) %>% setNames(.score_spec()[[method_name]]@method_score))
-        })
+        }) %>% compact()
 }
 
 #' Helper function to obtain scores used in the comparison
