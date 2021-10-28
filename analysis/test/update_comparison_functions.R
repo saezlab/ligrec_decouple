@@ -89,9 +89,10 @@ liana_all_spec$call_italk <- NULL # I changed the name of the score
 
 top_lists <- get_top_hits(liana_all_spec,
                           n_ints=c(100,
-                                   250,
+                                   # 250,
                                    500,
                                    1000))
+
 
 #### Combine all binary results into heatmap (top500)
 png(filename = figure_path_mr('crc_binheat_top500.png'),

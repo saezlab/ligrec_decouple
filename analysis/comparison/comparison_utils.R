@@ -29,6 +29,7 @@ get_spec_list <- function(liana_all_path,
                          method_scores=list(
                              .score_spec()[[method_name]]@descending_order
                          ) %>% setNames(.score_spec()[[method_name]]@method_score))
+
         }) %>% compact()
 }
 
@@ -76,7 +77,15 @@ get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000)){
                                                 -.tn),
                                       wt=parm) %>%
                                 as_tibble() %>%
-                                distinct()
+                                distinct() %>%
+                                # decomplexify cellchat output
+                                {if(method_name=="cellchat") liana:::decomplexify(., columns = c("ligand", "receptor")) %>%
+                                        rename(ligand.complex = ligand_complex,
+                                               receptor.complex = receptor_complex) %>%
+                                        select(ligand, receptor, source, target, everything()) %>%
+                                        ungroup()
+                                    else .}
+
                         })
                 }) %>%
                     {if(length(spec_list[[method_name]]@method_scores) > 1)
