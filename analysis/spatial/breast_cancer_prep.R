@@ -1,8 +1,8 @@
 # Author: Daniel Dimitrov
 # Date: 14.10.2021
-# Purpose: Here, I'm preprocessing the Breast cancer (BRCA) single-cell atlas from
-# Wu et al., 2021 https://doi.org/10.1038/s41588-021-00911-1, along with the
-# visium BRCA slides used in the same publication.
+# Purpose: Here, I'm pre-processing the Breast cancer (BRCA) single-cell atlas
+# from Wu et al., 2021 https://doi.org/10.1038/s41588-021-00911-1, along with
+# the visium BRCA slides used in the same publication.
 
 # Load libs
 require(tidyverse)
@@ -123,16 +123,16 @@ deconv_spec_plots$`ER_celltype_minor/CID4290_ER_celltype_minor_deconv.RDS`[[2]]
 ### RUN LIANA on BRCA subtype atlases ----
 ## ! ER and TNBC for spatial and cytosig, HER2 only for cytosig
 # Tibble with all subtype - celltype combinations
-all_combs <- tibble(slide_subtype = c(#"TNBC",
-                                      # "ER",
-                                      # "TNBC",
-                                      # "ER",
+all_combs <- tibble(slide_subtype = c("TNBC",
+                                      "ER",
+                                      "TNBC",
+                                      "ER",
                                       "HER2"
                                       ),
-                    cluster_key = c(#"celltype_major",
-                                    # "celltype_minor",
-                                    # "celltype_minor",
-                                    # "celltype_major",
+                    cluster_key = c("celltype_major",
+                                    "celltype_minor",
+                                    "celltype_minor",
+                                    "celltype_major",
                                     "celltype_minor"))
 
 pmap(all_combs, function(slide_subtype, cluster_key){
