@@ -1,12 +1,13 @@
 #!/bin/bash
 ## declare an array variable
-declare -a subtypes=("ER2" "TNBC" "HER2")
+declare -a subtypes=("ER" "TNBC" "HER2")
 
 # get length of an array
 arraylength=${#subtypes[@]}
 
-# use for loop to read all values and indexes
+# Loop over brca_types and first comm arg is path_to_project
 for (( i=0; i<${arraylength}; i++ ));
 do
- Rscript ./brca_prep.R ${subtypes[$i]}
+ echo "Submitted: Rscript ./comp_brca_prep.R $1 ${subtypes[$i]}"
+ Rscript ./comp_brca_prep.R $1 ${subtypes[$i]}
 done
