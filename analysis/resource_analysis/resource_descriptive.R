@@ -327,8 +327,7 @@ ligrec_overlap <- function(ligrec){
     keys <- c('transmitters', 'receivers', 'interactions')
 
     keys %>%
-    map(
-        function(key){
+    map(function(key){
             ligrec %>%
             map2(
                 names(.),
@@ -351,8 +350,7 @@ ligrec_overlap <- function(ligrec){
                 unique = ifelse(omnipath, op_unique, n_resources) == 1
             ) %>%
             shorten_resources()
-        }
-    ) %>%
+        }) %>%
     setNames(keys) %T>%
     {log_success('Finished finding overlaps between resources.')}
 
@@ -718,7 +716,8 @@ ligand_receptor_classes <- function(
     filter_annot <- enexprs(filter_annot)
 
     annot <-
-        import_omnipath_annotations(resource = resource, wide = TRUE) %>%
+        import_omnipath_annotations(resource = resource, wide = TRUE) %T>%
+        print() %>%
         filter(!!!filter_annot) %>%
         mutate(!!attr := label_annot(!!attr))
 
@@ -908,7 +907,27 @@ ligrec_classes_all <- function(ligrec){
         geneset,
         15,
         filter_annot = collection == 'hallmark',
-        label_annot = function(x){str_to_title(str_sub(x, 10))}
+        label_annot = function(x){str_to_title(str_sub(x, 10))})  %T>%
+    ligrec_classes_bar_enrich(
+        'DisGeNet',
+        disease,
+        15,
+        # filter_annot = label == 'disease',
+        label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
+        ) %T>%
+    ligrec_classes_bar_enrich(
+        'HPA_tissue',
+        tissue,
+        15,
+        filter_annot = level == "High",
+        label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
+    ) %T>%
+    ligrec_classes_bar_enrich(
+        'HPA_tissue',
+        organ,
+        15,
+        filter_annot = level == "High",
+        label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
     ) %T>%
     ligrec_classes_bar_enrich('HGNC', category, 15) %T>%
     ligrec_classes_bar_enrich('OP-L', location) %T>%
@@ -955,19 +974,19 @@ ligrec_classes_bar_enrich <- function(
     walk2(
         names(.),
         classes_bar,
-        resource,
+        ifelse(resource == "HPA_tissue", str_glue("{resource}_{as.character(as_label(attr)[1])}"), resource),
         !!attr
     ) %>%
     walk2(
         names(.),
         classes_bar_perc,
-        resource,
+        ifelse(resource == "HPA_tissue", str_glue("{resource}_{as.character(as_label(attr)[1])}"), resource),
         !!attr
     ) %>%
     walk2(
         names(.),
         classes_enrich,
-        resource,
+        ifelse(resource == "HPA_tissue", str_glue("{resource}_{as.character(as_label(attr)[1])}"), resource),
         !!attr
     ) %>%
     invisible
@@ -1193,6 +1212,24 @@ classes_enrich <- function(data, entity, resource, var, ...){
 
     p <- ggplot(data, aes(x = resource, y = !!var, fill = enrichment)) +
         geom_tile() +
+        shadowtext::geom_shadowtext(
+            # star: '\u2605'
+            mapping = aes(
+                label = ifelse(
+                    padj < 0.2,
+                    ifelse(
+                        padj < 0.1,
+                        ifelse(padj < 0.5, '\u274B', '\u273B'),
+                        '\u2723'
+                    ),
+                    ''
+                )
+            ),
+            color = 'white',
+            bg.colour='black',
+            size = 2,
+            family = 'DejaVu Sans'
+        ) +
         scale_fill_viridis(
             option = 'cividis',
             limits = c(-lim, lim),
