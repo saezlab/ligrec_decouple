@@ -19,6 +19,7 @@ arraylength=${#subtypes[@]}
 # Loop over brca_types and first comm arg is path_to_project
 for (( i=0; i<${arraylength}; i++ ));
 do
- echo "Submitted: Rscript analysis/comparison/comp_brca_prep.R $1 ${subtypes[$i]}"
- Rscript analysis/comparison/comp_brca_prep.R $1 ${subtypes[$i]}
+ # $1 project directory, $2 cancer subtype
+ echo "Submitted: Rscript analysis/comparison/comp_brca_prep.R $SLURM_SUBMIT_DIR ${subtypes[$i]}"
+ Rscript analysis/comparison/comp_brca_prep.R $SLURM_SUBMIT_DIR ${subtypes[$i]}
 done
