@@ -62,11 +62,11 @@ get_BinaryHeat <- function(sig_list,
   # annotation groups (sequential vectors as in heatmap_binary_df)
   method_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
-    separate(value, into = c("method", "resource"), sep = "_") %>%
+    separate(value, into = c("method", "resource"), sep = "⊎") %>%
     pull(method)
   resource_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
-    separate(value, into = c("method", "resource"), sep = "_") %>%
+    separate(value, into = c("method", "resource"), sep = "⊎") %>%
     pull(resource)
 
   # data frame with column annotations.
@@ -82,26 +82,26 @@ get_BinaryHeat <- function(sig_list,
   names(mycolors$Resource) <- unique(resource_groups)
   names(mycolors$Method) <- unique(method_groups)
 
-  binary_heatmap <- pheatmap(heatmap_binary_df,
-                             annotation_col = annotations_df,
-                             annotation_colors = mycolors,
-                             display_numbers = FALSE,
-                             silent = FALSE,
-                             show_rownames = FALSE,
-                             show_colnames = FALSE,
-                             legend_breaks = 0:1,
-                             fontsize = 34,
-                             drop_levels = TRUE,
-                             cluster_rows = FALSE,
-                             cluster_cols = TRUE,
-                             color = c("gray15", "darkslategray2"),
-                             border_color = NA,
-                             clustering_distance_rows = "binary",
-                             clustering_distance_cols = "binary",
-                             treeheight_row = 0,
-                             treeheight_col = 100,
-                             ...
-                             )
+  binary_heatmap <- pheatmap::pheatmap(heatmap_binary_df,
+                                       annotation_col = annotations_df,
+                                       annotation_colors = mycolors,
+                                       display_numbers = FALSE,
+                                       silent = FALSE,
+                                       show_rownames = FALSE,
+                                       show_colnames = FALSE,
+                                       legend_breaks = 0:1,
+                                       fontsize = 34,
+                                       drop_levels = TRUE,
+                                       cluster_rows = FALSE,
+                                       cluster_cols = TRUE,
+                                       color = c("gray15", "darkslategray2"),
+                                       border_color = NA,
+                                       clustering_distance_rows = "binary",
+                                       clustering_distance_cols = "binary",
+                                       treeheight_row = 0,
+                                       treeheight_col = 100,
+                                       ...
+                                       )
 
   return(binary_heatmap)
 }
@@ -124,10 +124,10 @@ get_swapped_list <- function(sig_list){
                       function(m_name){
                         map(names(sig_list[[m_name]]),
                             function(r_name){
-                              str_glue("{m_name}_{r_name}")
+                              str_glue("{m_name}⊎{r_name}")
                             })
                       }) %>% unlist()) %>%
-    separate(name, into = c("method", "resource"), sep = "_") %>%
+    separate(name, into = c("method", "resource"), sep = "⊎") %>%
     mutate(value = value %>% setNames(method)) %>%
     group_by(resource)
 
@@ -161,7 +161,7 @@ plot_freq_pca <- function(freq_df){
                 id_cols = name,
                 values_fill = 0) %>%
     as.data.frame() %>%
-    separate(name, into = c("Method", "Resource"), remove = FALSE, sep="_") %>%
+    separate(name, into = c("Method", "Resource"), remove = FALSE, sep="⊎") %>%
     mutate(Method = factor(Method, # prevent ggplot2 from rearranging
                            )) %>%
     mutate(Resource = factor(Resource)) %>%
@@ -229,15 +229,15 @@ get_activecell <- function(sig_list,
     }) %>%
     enframe(name = "method", value = "results_resource") %>%
     unnest(results_resource) %>%
-    unite(method, resource, col = "mr") %>%
+    unite(method, resource, col = "mr", sep = "⊎") %>%
     mutate_all(~ replace(., is.na(.), 0))
 
   # annotation groups (sequential vectors as in heatmap_binary_list)
   method_groups <- top_frac %>%
-    separate(mr, into = c("method", "resource"), sep = "_") %>%
+    separate(mr, into = c("method", "resource"), sep = "⊎") %>%
     pull(method)
   resource_groups <- top_frac %>%
-    separate(mr, into = c("method", "resource"), sep = "_") %>%
+    separate(mr, into = c("method", "resource"), sep = "⊎") %>%
     pull(resource)
 
   # data frame with column annotations.
@@ -265,25 +265,25 @@ get_activecell <- function(sig_list,
     separate(cellname, into = c("cell", "cat"), sep = "_") %>%
     pull(cell)
 
-  cellfraq_heat <- pheatmap(top_frac %>%
-                              column_to_rownames("mr") %>%
-                              t(),
-                            annotation_row = annotations_row,
-                            annotation_col = annotations_df,
-                            annotation_colors = mycolors,
-                            display_numbers = FALSE,
-                            silent = FALSE,
-                            show_colnames = FALSE,
-                            color = colorRampPalette(c("darkslategray2",
-                                                       "violetred2"))(20),
-                            fontsize = 30,
-                            drop_levels = TRUE,
-                            cluster_rows = TRUE,
-                            cluster_cols = TRUE,
-                            border_color = NA,
-                            treeheight_row = 0,
-                            treeheight_col = 100,
-                            ...)
+  cellfraq_heat <- pheatmap::pheatmap(top_frac %>%
+                                        column_to_rownames("mr") %>%
+                                        t(),
+                                      annotation_row = annotations_row,
+                                      annotation_col = annotations_df,
+                                      annotation_colors = mycolors,
+                                      display_numbers = FALSE,
+                                      silent = FALSE,
+                                      show_colnames = FALSE,
+                                      color = colorRampPalette(c("darkslategray2",
+                                                                 "violetred2"))(20),
+                                      fontsize = 30,
+                                      drop_levels = TRUE,
+                                      cluster_rows = TRUE,
+                                      cluster_cols = TRUE,
+                                      border_color = NA,
+                                      treeheight_row = 0,
+                                      treeheight_col = 100,
+                                      ...)
 }
 
 
@@ -318,12 +318,12 @@ get_simdist_heatmap <- function(sig_list,
 
   method_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
-    separate(value, into = c("method", "resource"), sep = "_") %>%
+    separate(value, into = c("method", "resource"), sep = "⊎") %>%
     mutate(method=recode_methods(method)) %>%
     pull(method)
   resource_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
-    separate(value, into = c("method", "resource"), sep = "_") %>%
+    separate(value, into = c("method", "resource"), sep = "⊎") %>%
     pull(resource)
 
   # data frame with column annotations.

@@ -58,7 +58,7 @@ get_spec_list <- function(liana_all_path,
 #' @param spec_list list of spec objects with ligrec results
 #' @return A list of top hits per tool/tool_parameter
 #' @export
-get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000)){
+get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000), top_fun = "top_n"){
     map(n_ints, function(.tn){
         names(spec_list) %>%
             map(function(method_name){
@@ -75,7 +75,8 @@ get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000)){
                                 top_enh(n=if_else(parm_order,
                                                 .tn,
                                                 -.tn),
-                                      wt=parm) %>%
+                                      wt=parm,
+                                      top_fun = top_fun) %>%
                                 as_tibble() %>%
                                 distinct() %>%
                                 # decomplexify cellchat output
@@ -93,10 +94,10 @@ get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000)){
                         else setNames(., method_name)
                     }
             }) %>% setNames(names(spec_list)) %>%
-            flatten() %>%
-            setNames(str_replace_all(names(.),
-                                     pattern = "_",
-                                     replacement = "\\."))
+            flatten() #%>%
+            # setNames(str_replace_all(names(.),
+            #                          pattern = "_",
+            #                          replacement = "\\."))
     }) %>% setNames(str_glue("top_{n_ints}"))
 }
 
@@ -119,13 +120,16 @@ setClass("MethodSpecifics",
 #' Helper Function to handle specific cases for the different Methods
 #'
 #' @inheritDotParams dplyr::top_n
+#' @inheritDotParams dplyr::top_frac
 #' @importFrom dplyr top_n
 #' @importFrom magrittr %>%
 #' @importFrom tibble tibble
 #'
 #' @return Ordered tibble/df as from top_n
 top_enh <- function(...,
-                    pval_thresh = 0.05){
+                    pval_thresh = 0.05,
+                    top_fun = "top_n"
+                    ){
 
     elipses <- list(...)
     elipses$wt <- sym(elipses$wt)
@@ -143,7 +147,7 @@ top_enh <- function(...,
         elipses[[1]] %<>% filter(p_val_adj.rec <= pval_thresh) %>%
             filter(p_val_adj.lig <= pval_thresh)
     }
-    return(do.call(top_n, elipses))
+    return(do.call(top_fun, elipses))
 }
 
 
@@ -273,7 +277,7 @@ get_binary_df <- function(sig_list){
     # get method and resource names combined
     lnames <- map(names(sig_list), function(m_name){
         map(names(sig_list[[m_name]]), function(r_name){
-            str_glue("{m_name}_{r_name}")
+            str_glue("{m_name}⊎{r_name}")
         })
     }) %>%
         unlist()

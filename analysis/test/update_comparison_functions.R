@@ -5,6 +5,8 @@ require(RColorBrewer)
 require(pheatmap)
 require(proxy)
 require(UpSetR)
+require(grid)
+require(ComplexHeatmap)
 
 source("analysis/comparison/comparison_utils.R")
 source("src/eval_utils.R")
@@ -111,7 +113,7 @@ png(filename = figure_path_mr('crc_activityheat_top500.png'),
     height = 1700)
 # Cap to 0.2 (due to high activity in SCA)
 p <- get_activecell(top_lists$top_500, cap_value = 0.2)
-grid::grid.draw(p$gtable)
+print(p)
 invisible(dev.off())
 
 
@@ -124,9 +126,9 @@ p <- get_simdist_heatmap(top_lists$top_500,
                          upper = TRUE)
 
 png(filename = figure_path_mr('crc_jaccard_top500.png'),
-    width = 3200,
-    height = 2800)
-grid::grid.draw(p$gtable)
+    width = 1600,
+    height = 1300)
+print(p)
 invisible(dev.off())
 
 # Get Jaccard Stats
