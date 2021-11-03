@@ -24,6 +24,10 @@ liana_all <- liana_wrap(testdata,
                         expr_prop=0)
 saveRDS(liana_all, "data/output/liana_all_resources.RDS")
 
+# transpose to resource-method
+liana_all_transpose <- liana_all %>% transpose()
+saveRDS(liana_all_transpose, "data/output/liana_all_transpose.RDS")
+
 
 # LOAD New Results from different Method-Resource Combinations
 liana_all <- readRDS("data/output/liana_all_resources.RDS")
@@ -88,7 +92,6 @@ liana_all_spec <- get_spec_list("data/output/crc_res/liana_crc_all.rds",
 # Define the numbers of highest interactions that we wish to explore
 # and get a list with each threshold as its element
 liana_all_spec$call_italk <- NULL # I changed the name of the score
-
 top_lists <- get_top_hits(liana_all_spec,
                           n_ints=c(100,
                                    # 250,

@@ -20,18 +20,15 @@ liana_all_spec <- get_spec_list("data/output/liana_all_resources.RDS",
 
 # Obtain Fractions (here we obtain all interactions)
 
-# Distributions of full methods - no filtering (only DE for connectome)
-# This is the ont to be used
+# Distributions of full methods - no filtering (only DE for Connectome)
+# As done in the comparisons - i.e. the one to present
 plot_score_distributions(liana_all_spec,
                          hit_prop = 1,
+                         resource = "OmniPath",
                          pval_thresh = 1,
                          sca_thresh = 0,
                          de_thresh = 0.05)
 
+# PCA by ranks
 
-# Distribution of filtered methods (wherever a threshold exists)
-plot_score_distributions(liana_all_spec,
-                         hit_prop = 1,
-                         pval_thresh = 0.05,
-                         sca_thresh = 0.5,
-                         de_thresh = 0.05)
+

@@ -29,7 +29,6 @@ get_spec_list <- function(liana_all_path,
                          method_scores=list(
                              .score_spec()[[method_name]]@descending_order
                          ) %>% setNames(.score_spec()[[method_name]]@method_score))
-
         }) %>% compact()
 }
 
@@ -365,6 +364,7 @@ list_stats <- function(...){
         mutate(name = str_glue("{name}_comb")) %>%
         mutate(simdist = simdist %>%
                    map(function(sim_mat) as.vector(sim_mat) %>% unlist))
+
     # averaged simdists per each element in the list
     df_mean <- args %>%
         enframe(value="simdist") %>%

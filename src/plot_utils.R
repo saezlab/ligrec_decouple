@@ -8,8 +8,14 @@
 #' @export
 prepForUpset <- function(named_list){
   map(names(named_list), function(l_name){
+
+    if(nrow(named_list[[l_name]])==0){
+      message(str_glue("{l_name} has 0 hits"))
+      return(tibble(interaction=character()))
+    }
+
       named_list[[l_name]] %>%
-      select(1:4) %>%
+      select(source, target, ligand, receptor) %>%
       unite("interaction", source, target,
             ligand, receptor, sep="_") %>%
       mutate(!!l_name := 1)
@@ -295,6 +301,8 @@ get_activecell <- function(sig_list,
 #' @inheritDotParams get_simil_dist
 #' @export
 get_simdist_heatmap <- function(sig_list,
+                                cluster_rows = FALSE,
+                                cluster_columns = FALSE,
                                 ...){
 
   heatmap_binary_df <- get_binary_df(sig_list)
@@ -371,8 +379,8 @@ get_simdist_heatmap <- function(sig_list,
   ht <- ComplexHeatmap::Heatmap(simdif_df,
                                 col=colorRampPalette(c("gray15",
                                                        "darkslategray2"))(20),
-                                cluster_rows = FALSE,
-                                cluster_columns = FALSE,
+                                cluster_rows = cluster_rows,
+                                cluster_columns = cluster_columns,
                                 top_annotation = top_ann,
                                 left_annotation = left_ann,
                                 heatmap_legend_param = legend_arg_list,
@@ -427,11 +435,13 @@ recode_methods <- function(methods){
 #'
 #' @param liana_res_specced liana as a specced list (i.e. output of `get_spec_list`)
 #' @param hit_prop proportions/fractions of hits to be used
+#' @param resource name of the resource to be used
 #' @inheritDotParams passed to `get_top_hits` and `liana_aggregate_enh`
 #'
 #' @returns ggplot object
 plot_score_distributions <- function(liana_res_specced,
                                      hit_prop = 1,
+                                     resource = "OmniPath",
                                      ...){
 
   top_frac_lists <- get_top_hits(liana_all_spec,
@@ -457,7 +467,7 @@ plot_score_distributions <- function(liana_res_specced,
 
 
   # liana aggregate rank
-  liana_ag_res <- liana_resmeth$OmniPath %>%
+  liana_ag_res <- liana_resmeth[[resource]] %>%
     liana_aggregate_enh(...) %>%
     mutate(method = "aggregate_rank") %>%
     select(method, source, target, ligand, receptor, score=aggregate_rank)
