@@ -56,9 +56,15 @@ get_spec_list <- function(liana_all_path,
 #' Get top hits list
 #'
 #' @param spec_list list of spec objects with ligrec results
+#' @param n_ints n of top integers or fractions
+#'
+#' @inheritDotParams top_enh
+#'
 #' @return A list of top hits per tool/tool_parameter
 #' @export
-get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000), top_fun = "top_n"){
+get_top_hits <- function(spec_list,
+                         n_ints,
+                         ...){
     map(n_ints, function(.tn){
         names(spec_list) %>%
             map(function(method_name){
@@ -76,7 +82,7 @@ get_top_hits <- function(spec_list, n_ints=c(100, 250, 500, 1000), top_fun = "to
                                                 .tn,
                                                 -.tn),
                                       wt=parm,
-                                      top_fun = top_fun) %>%
+                                      ...) %>%
                                 as_tibble() %>%
                                 distinct() %>%
                                 # decomplexify cellchat output
@@ -128,6 +134,8 @@ setClass("MethodSpecifics",
 #' @return Ordered tibble/df as from top_n
 top_enh <- function(...,
                     pval_thresh = 0.05,
+                    de_thresh = 0.05,
+                    sca_thresh = 0.5,
                     top_fun = "top_n"
                     ){
 
@@ -142,10 +150,10 @@ top_enh <- function(...,
     } else if(elipses$wt == "pvalue"){ # Squidpy pvalue
         elipses[[1]] %<>% filter(pvalue <= pval_thresh)
     } else if (elipses$wt == "LRscore"){ # SCA LRscore
-        elipses[[1]] %<>% filter(LRscore >= pval_thresh)
+        elipses[[1]] %<>% filter(LRscore >= sca_thresh)
     } else if (elipses$wt == "weight_sc"){ # Connectome DE ligrecs
-        elipses[[1]] %<>% filter(p_val_adj.rec <= pval_thresh) %>%
-            filter(p_val_adj.lig <= pval_thresh)
+        elipses[[1]] %<>% filter(p_val_adj.rec <= de_thresh) %>%
+            filter(p_val_adj.lig <= de_thresh)
     }
     return(do.call(top_fun, elipses))
 }

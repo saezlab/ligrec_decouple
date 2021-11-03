@@ -393,3 +393,90 @@ get_simil_dist <- function(sim_dist = "simil", ...){
           list(...))
 }
 
+
+#' @title Recode method names
+#' @param dataset - vector /w method names
+recode_methods <- function(methods){
+  dplyr::recode(methods,
+                "squidpy" = "CellPhoneDB",
+                "cellchat" = "CellChat",
+                "aggregate_rank" = "Aggregated Ranks",
+                "logfc" = "LogFC Mean",
+                "cytotalk" = "Cytotalk",
+
+                "natmi" = "NATMI",
+                "call.natmi" = "NATMI",
+                "call_natmi" = "NATMI",
+
+                "call.connectome" = "Connectome",
+                "call_connectome" = "Connectome",
+                "connectome" = "Connectome",
+
+                "sca" = "SingleCellSignalR",
+                "call.sca" = "SingleCellSignalR",
+                "call_sca" = "SingleCellSignalR",
+
+                # RNA-ADT correlation baseline
+                "RNA-ADT" = "RNA-ADT Baseline"
+  )
+}
+
+
+
+#' @title Function to plot distribution densities
+#'
+#' @param liana_res_specced liana as a specced list (i.e. output of `get_spec_list`)
+#' @param hit_prop proportions/fractions of hits to be used
+#' @inheritDotParams passed to `get_top_hits` and `liana_aggregate_enh`
+#'
+#' @returns ggplot object
+plot_score_distributions <- function(liana_res_specced,
+                                     hit_prop = 1,
+                                     ...){
+
+  top_frac_lists <- get_top_hits(liana_all_spec,
+                                 n_ints=c(hit_prop),
+                                 top_fun = "top_frac",
+                                 ...)
+
+  # Transpose to resource-method
+  liana_resmeth <- top_frac_lists[[str_glue("top_{hit_prop}")]] %>%
+    transpose()
+
+  # Format scores
+  liana_scores <- liana_resmeth$OmniPath %>%
+    map2(names(.), function(met_res, met_name){
+      message(met_name)
+
+      met_res %>%
+        rename(score = liana:::.score_specs()[[met_name]]@method_score) %>%
+        select(source, target, ligand, receptor, score)
+    }) %>%
+    enframe(name = "method", value = "results") %>%
+    unnest(results)
+
+
+  # liana aggregate rank
+  liana_ag_res <- liana_resmeth$OmniPath %>%
+    liana_aggregate_enh(...) %>%
+    mutate(method = "aggregate_rank") %>%
+    select(method, source, target, ligand, receptor, score=aggregate_rank)
+
+  # append aggragate
+  liana_scores <- bind_rows(liana_scores, liana_ag_res) %>%
+    mutate(method = recode_methods(method))
+
+  # plot
+  p <- liana_scores %>%
+    ggplot(aes(x=score, color=method, fill=method)) +
+    geom_density() +
+    theme(text = element_text(size=16)) +
+    facet_wrap(~ method, scales='free', nrow = 1) +
+    xlab('Method Scores') +
+    theme_bw()
+
+  return(p)
+
+}
+
+

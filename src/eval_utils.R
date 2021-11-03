@@ -56,28 +56,6 @@ liana_agg_to_long <- function(liana_agg){
 }
 
 
-#' @title Recode method names
-#' @param dataset - vector /w method names
-recode_methods <- function(methods){
-    dplyr::recode(methods,
-                  "squidpy" = "CellPhoneDB",
-                  "natmi" = "NATMI",
-                  "call.natmi" = "NATMI",
-                  "logfc" = "LogFC Mean",
-                  "cellchat" = "CellChat",
-                  "aggregate_rank" = "Aggregated Ranks",
-                  "connectome" = "Connectome",
-                  "call.connectome" = "Connectome",
-                  "sca" = "SingleCellSignalR",
-                  "call.sca" = "SingleCellSignalR",
-
-
-
-                  # RNA-ADT correlation baseline
-                  "RNA-ADT" = "RNA-ADT Baseline"
-    )
-}
-
 
 
 #' @title Calculate AUROC and PRROC from rank-adt tibbles- `prepare_for_roc`-formated
@@ -310,7 +288,7 @@ liana_aggregate_enh <- function(liana_res,
                                 filt_de_pvals = TRUE,
                                 de_thresh = 0.05,
                                 filt_outs = FALSE,
-                                pval_tresh = 0.05,
+                                pval_thresh = 0.05,
                                 sca_thresh = 0.5,
                                 ...){
     if(filt_de_pvals){
@@ -324,9 +302,9 @@ liana_aggregate_enh <- function(liana_res,
     # Filter according to end threshold
     if(filt_outs){
         ## CellChat
-        liana_res$cellchat %<>% filter(pval <= pval_tresh)
+        liana_res$cellchat %<>% filter(pval <= pval_thresh)
         ## CellPhoneDB/Squidpy
-        liana_res$squidpy %<>% filter(pvalue <= pval_tresh)
+        liana_res$squidpy %<>% filter(pvalue <= pval_thresh)
         ## sca
         liana_res$call_sca %<>% filter(LRscore >= sca_thresh)
     }

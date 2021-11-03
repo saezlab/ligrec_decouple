@@ -15,37 +15,23 @@ liana_all <- readRDS("data/output/liana_all_resources.RDS")
 
 
 liana_all_spec <- get_spec_list("data/output/liana_all_resources.RDS",
-    #"data/output/crc_res/liana_crc_all.rds",
+    #"data/output/crc_res/liana_crc_all.rds", # crc results
                                 .score_spec = liana:::.score_specs) # liana:::.score_*
 
+# Obtain Fractions (here we obtain all interactions)
 
-# Obtain top hits lists
-top_lists <- get_top_hits(liana_all_spec,
-                          n_ints=c(100,
-                                   # 250,
-                                   500,
-                                   1000))
-
-# Obtain Fractions
-top_frac_lists <- get_top_hits(liana_all_spec,
-                               n_ints=c(1),
-                               top_fun = "top_frac")
-
-# Transpose to resource-method
-liana_resmet <- top_frac_lists$top_1 %>%
-    transpose()
+# Distributions of full methods - no filtering (only DE for connectome)
+# This is the ont to be used
+plot_score_distributions(liana_all_spec,
+                         hit_prop = 1,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         de_thresh = 0.05)
 
 
-liana_resmet$OmniPath %>%
-    map(function(met_res){
-
-    })
-
-liana_resmet$OmniPath$call.natmi
-
-liana:::.score_specs()[["call.natmi"]]
-
-
-top_frac_lists$top_1$squidpy$OmniPath %>%
-    ggplot(aes(x=pvalue)) +
-    geom_density()
+# Distribution of filtered methods (wherever a threshold exists)
+plot_score_distributions(liana_all_spec,
+                         hit_prop = 1,
+                         pval_thresh = 0.05,
+                         sca_thresh = 0.5,
+                         de_thresh = 0.05)

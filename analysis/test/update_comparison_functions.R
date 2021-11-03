@@ -20,7 +20,7 @@ testdata <- readRDS(file.path(liana_path , "testdata",
 liana_all <- liana_wrap(testdata,
                         resource = liana::show_resources()[-c(1:13)], # [-c(1:2)] all resources except Default
                         method = c('call_natmi', 'call_connectome', 'logfc',
-                                   'cellchat', 'call_sca', 'squidpy'),
+                                   'cellchat', 'call_sca', 'squidpy', 'cytotalk'),
                         expr_prop=0)
 saveRDS(liana_all, "data/output/liana_all_resources.RDS")
 
