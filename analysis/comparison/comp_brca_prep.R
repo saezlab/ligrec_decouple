@@ -4,17 +4,14 @@ require(magrittr)
 require(Seurat)
 require(liana)
 
-
 # Get Args from std in
 args <- commandArgs(trailingOnly=TRUE)
-
 
 # Path to Project
 path_to_project <- args[[1]] # ~/Repos/ligrec_decouple/ (on local)
 # Get brca_subtpye
 brca_subtype <- args[[2]] # "TNBC", "ER", "HER2"
 message(str_glue("Now Running: LIANA with {brca_subtype}"))
-
 
 
 # Spatial Deconv Directory (i.e atlas directory)
@@ -29,14 +26,14 @@ seurat_object <- readRDS(file.path(deconv_directory,
 
 # Here, we run LIANA but with multiple resources
 liana_res <- liana_wrap(seurat_object,
-                        method = c('call_natmi'#,
-                                   # 'call_connectome', 'logfc', #'cellchat',
-                                   #'call_sca', 'squidpy', "cytotalk"
+                        method = c('call_natmi',
+                                   'call_connectome', 'logfc', 'cellchat',
+                                   'call_sca', 'squidpy', "cytotalk"
                                    ),
-                        resource = c("ICELLNET"#,
-                                     # "OmniPath",
-                                    # "CellChatDB"#,
-                                     #"CellTalkDB"
+                        resource = c("ICELLNET",
+                                    "OmniPath",
+                                    "CellChatDB",
+                                    "CellTalkDB"
                                      ),
                         # this is passed only to squidpy, cellchat, cytotalk, and logfc
                         expr_prop=0.1,
