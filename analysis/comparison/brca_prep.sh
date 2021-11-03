@@ -4,7 +4,7 @@
 #SBATCH --time=71:00:00
 #SBATCH --mem=200000
 #SBATCH --job-name="brca_run"
-#SBATCH --output=brca_run.out
+#SBATCH --output=out/brca_run.out
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
 #SBATCH --mail-type=ALL
 #SBATCH --requeue
