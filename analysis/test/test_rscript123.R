@@ -11,5 +11,6 @@ liana_res <- liana_wrap(seurat_object, method = c('call_natmi',  'call_connectom
                                                   'logfc', 'cellchat',
                                                   'call_sca', 'squidpy',
                                                   "cytotalk"))
+liana_res
 
-saveRDS("data/output/test123.RDS")
+saveRDS(liana_res, "data/output/test123.RDS")
