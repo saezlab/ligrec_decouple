@@ -28,7 +28,7 @@ seurat_object <- readRDS(file.path(deconv_directory,
 liana_res <- liana_wrap(seurat_object,
                         method = c('call_natmi',
                                    'call_connectome', 'logfc', 'cellchat',
-                                   'call_sca', 'squidpy', "cytotalk"
+                                   'call_sca', 'cellphonedb', "cytotalk"
                                    ),
                         resource = c("ICELLNET",
                                     "OmniPath",

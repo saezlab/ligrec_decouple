@@ -9,7 +9,7 @@ testdata <-
 
 liana_res <- liana_wrap(testdata, method = c('call_natmi',  'call_connectome',
                                              'logfc', 'cellchat',
-                                             'call_sca', 'squidpy',
+                                             'call_sca', 'cellphonedb',
                                              "cytotalk"))
 liana_res
 
