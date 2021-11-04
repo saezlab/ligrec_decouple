@@ -1,100 +1,42 @@
-# Script used for the ADT-LR, ADT-RNA correlation (~Proteomics benchmark)
-
-# Note that to work this pipeline requires a single {"_seurat.RDS"} object
-# containing a v4 seurat_object with RNA and ADT assays
-# additionally, it requires {"liana_res"}-containing objects which contain the
-# liana results generated for the *single* Seurat object in each subdir
-
-
-# Run mouse_citeseq_convert.Rmd to generate seurat objects from the h5anndata
-# and format them appropriately for the LIANA analysis
-require(liana)
-require(tidyverse)
-require(yardstick)
-require(magrittr)
-require(ComplexHeatmap)
-require(SingleCellExperiment)
-require(Seurat)
-require(SeuratDisk)
-library(ggsignif)
 source("analysis/citeseq/citeseq_src.R")
 source("src/eval_utils.R")
+source("src/plot_utils.R")
 
+require(liana)
+require(tidyverse)
+require(magrittr)
+require(Seurat)
+require(ComplexHeatmap)
+require(ggsignif)
+require(yardstick)
+arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
+
+# load prereqs
 citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
-arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
-
-### I) Generate Generate Seurat Objects and run LIANA ----
-# Iterate over all citeseq directories (i.e. datasets)
-list.files(citeseq_dir) %T>%
-    # Load 10x .h5 mat and cluster each, and save the appropriate Seurat object
-    map(function(subdir){
-        if(subdir %in% c("10k_malt", "10k_pbmcs", "5k_pbmcs", "5k_pbmcs_nextgem")){
-            load_and_cluster(subdir = subdir, dir = citeseq_dir, pattern = ".h5")
-        } else(
-            return()
-        )
-    }) %T>%
-    # Run LIANA
-    map(function(subdir){
-        # Run LIANA /w mouse specific
-        if(stringr::str_detect(subdir, pattern = "spleen")){
-            wrap_liana_wrap(subdir = subdir,
-                            dir = citeseq_dir,
-                            expr_prop = 0.1, # only applied to Squidpy and cellchat
-                            # method = c("call_natmi", "call_connectome", "logfc",
-                            #            "cellchat", "call_sca", "squidpy"),
-                            squidpy.params=list(cluster_key = "seurat_clusters",
-                                                seed = as.integer(1)),
-                            cellchat.params=list(organism="mouse",
-                                                 nboot = 100),
-                            resource = "custom",
-                            external_resource = murine_resource,
-                            organism = "mouse"
-                            )
-        } else { # human
-            wrap_liana_wrap(subdir = subdir,
-                            dir = citeseq_dir,
-                            expr_prop = 0.1, # only applied to Squidpy and cellchat
-                            # method = c("call_natmi", "call_connectome", "logfc",
-                            #            "cellchat", "call_sca", "squidpy"),
-                            squidpy.params=list(cluster_key = "seurat_clusters",
-                                                seed = as.integer(1)),
-                            cellchat.params=list(nboot = 100),
-                            resource = "custom",
-                            external_resource = op_resource,
-                            organism = "human"
-                            )
-        }
-    }) %>% setNames(list.files(citeseq_dir)) %>%
-    enframe() %>%
-    unnest(value) %>%
-    rename(dataset = name)
-
-
-### II) Correlations
+### I) Correlations ----
 corr_table <- list.files(citeseq_dir) %>%
     map(function(subdir){
         # If mouse, load convert use murine-specific conversion
         if(stringr::str_detect(subdir, pattern = "spleen")){
             run_adt_pipe(dir = citeseq_dir,
-                        subdir = subdir,
-                        op_resource = murine_resource,
-                        cluster_key = "seurat_clusters",
-                        liana_pattern = "liana_res-0.1.RDS",
-                        organism = "mouse",
-                        adt_pipe_type = "correlation"
+                         subdir = subdir,
+                         op_resource = murine_resource,
+                         cluster_key = "seurat_clusters",
+                         liana_pattern = "liana_res-0.1.RDS",
+                         organism = "mouse",
+                         adt_pipe_type = "correlation"
             )
         } else { # human
             run_adt_pipe(dir = citeseq_dir,
-                        subdir = subdir,
-                        op_resource = op_resource,
-                        cluster_key = "seurat_clusters",
-                        liana_pattern = "liana_res-0.1.RDS",
-                        organism = "human",
-                        adt_pipe_type = "correlation"
+                         subdir = subdir,
+                         op_resource = op_resource,
+                         cluster_key = "seurat_clusters",
+                         liana_pattern = "liana_res-0.1.RDS",
+                         organism = "human",
+                         adt_pipe_type = "correlation"
             )
         }
 
@@ -120,8 +62,8 @@ corr_table %<>%
 
 
 pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
-                                        data = corr_table,
-                                        method = "t.test")
+                                            data = corr_table,
+                                            method = "t.test")
 my_comparisons <- pairwise_contrasts %>%
     filter(p.adj <= 0.05) %>%
     select(group1, group2) %>%
@@ -152,7 +94,7 @@ corr_table %>%
 
 
 
-### III) Receptor Specificity ROC -----
+### II) Receptor Specificity ROC -----
 pr_roc_tibble <- list.files(citeseq_dir) %>%
     map(function(subdir){
         # If mouse, load convert use murine-specific conversion
@@ -200,7 +142,7 @@ pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
     filter(p.adj <=0.05)
 pairwise_contrasts
 pairwise_contrasts %>%
-    select(group1, group2, p, p.adj, p.signif) %>%
+    dplyr::select(group1, group2, p, p.adj, p.signif) %>%
     as.data.frame() %>%
     write.csv("~/Downloads/auroc_specificity.csv", row.names = FALSE)
 get_auroc_heat(pr_roc_tibble, "roc")
@@ -212,9 +154,7 @@ pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
                                             method = "t.test") %>%
     filter(p.adj <=0.05)
 pairwise_contrasts %>%
-    select(group1, group2, p, p.adj, p.signif) %>%
+    dplyr::select(group1, group2, p, p.adj, p.signif) %>%
     as.data.frame() %>%
     write.csv("~/Downloads/auprc_specificity.csv", row.names = FALSE)
 get_auroc_heat(pr_roc_tibble, "prc")
-
-#
