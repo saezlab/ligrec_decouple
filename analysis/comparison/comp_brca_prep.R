@@ -32,8 +32,8 @@ liana_res <- liana_wrap(seurat_object,
                                    ),
                         resource = c("ICELLNET",
                                     "OmniPath",
-                                    "CellChatDB",
-                                    "CellTalkDB"
+                                    "CellChatDB"#,
+                                    # "CellTalkDB"
                                      ),
                         # this is passed only to squidpy, cellchat, cytotalk, and logfc
                         expr_prop=0.1,
