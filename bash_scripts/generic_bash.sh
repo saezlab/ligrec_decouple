@@ -3,12 +3,13 @@
 #SBATCH -N 1
 #SBATCH --time=71:00:00
 #SBATCH --mem=200000
-#SBATCH --job-name="brca_run"
-#SBATCH --output=out/brca_run.out
+#SBATCH --output=out/R-%x.%j.out
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
 #SBATCH --mail-type=ALL
 #SBATCH --requeue
 #SBATCH --chdir /net/data.isilon/ag-saez/bq_ddimitrov/Repos/ligrec_decouple
+
+# Job name is passed with --job-name=$A.$b.run
 
 echo "Submitted: $1"
 Rscript $1
