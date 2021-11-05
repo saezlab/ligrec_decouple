@@ -10,6 +10,5 @@
 #SBATCH --requeue
 #SBATCH --chdir /net/data.isilon/ag-saez/bq_ddimitrov/Repos/ligrec_decouple
 
-# $SLURM_SUBMIT_DIR project directory, $1 cancer subtype  - subtypes=("ER" "TNBC" "HER2")
-echo "Submitted: Rscript analysis/comparison/comp_brca_prep.R $SLURM_SUBMIT_DIR $1"
-Rscript analysis/comparison/comp_brca_prep.R $SLURM_SUBMIT_DIR $1
+echo "Submitted: $1"
+Rscript $1

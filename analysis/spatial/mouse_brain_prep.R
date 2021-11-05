@@ -10,53 +10,53 @@ require(SPOTlight)
 brain_dir <- "data/input/spatial/brain_cortex"
 
 
-# I) Prep Allen Brain Atlas
-# think whether I want to use this, possibly better for LIANA, but for some reason deconv. topics are slightly less specific
-cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex.rds")) # whole atlas
-# SPOTlight tutorial
-# cortex_sc <- readRDS(glue::glue("{system.file(package = 'SPOTlight')}/allen_cortex_dwn.rds"))
-
-# Downsample (since SPOTlight shows stable performance with 100 cells,
-# we downsample the dataset for computational speed and memory)
-cortex_sc@meta.data %<>%
-    mutate(subclass = str_replace_all(subclass, "[/]", ".")) %>%
-    mutate(subclass = str_replace_all(subclass, " ", ".")) #%>%
-    # rownames_to_column(var = "barcode") %>%
-    # group_by(subclass) %>%
-    # slice_sample(n=200) %>%
-    # ungroup() %>%
-    # as.data.frame() %>%
-    # column_to_rownames("barcode")
-cortex_sc <- subset(cortex_sc, cells = rownames(cortex_sc@meta.data))
-Idents(cortex_sc) <- cortex_sc@meta.data$subclass
-gc()
-
-# Normalize appropriately
-cortex_sc %<>%
-    Seurat::SCTransform(verbose = FALSE,
-                        conserve.memory= TRUE) %>%
-    Seurat::RunPCA(verbose = FALSE) %>%
-    Seurat::RunUMAP(dims = 1:30, verbose = FALSE)
-
-Seurat::DimPlot(cortex_sc,
-                group.by = "subclass",
-                label = TRUE) + Seurat::NoLegend()
-cortex_sc@assays$RNA <- NULL # we don't need this assay
-
-# save the formatted object
-saveRDS(cortex_sc, file.path(brain_dir, "allen_cortex_prep.rds"))
-
-# save a downsampled object (to be used for deconv?)
-
-
-# save markers
-cluster_markers_all <- Seurat::FindAllMarkers(object = cortex_sc,
-                                              assay = "SCT",
-                                              slot = "data",
-                                              verbose = TRUE,
-                                              only.pos = TRUE)
-saveRDS(object = cluster_markers_all,
-        file = file.path(brain_dir, "markers.rds"))
+# # I) Prep Allen Brain Atlas
+# # think whether I want to use this, possibly better for LIANA, but for some reason deconv. topics are slightly less specific
+# cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex.rds")) # whole atlas
+# # SPOTlight tutorial
+# # cortex_sc <- readRDS(glue::glue("{system.file(package = 'SPOTlight')}/allen_cortex_dwn.rds"))
+#
+# # Downsample (since SPOTlight shows stable performance with 100 cells,
+# # we downsample the dataset for computational speed and memory)
+# cortex_sc@meta.data %<>%
+#     mutate(subclass = str_replace_all(subclass, "[/]", ".")) %>%
+#     mutate(subclass = str_replace_all(subclass, " ", ".")) #%>%
+#     # rownames_to_column(var = "barcode") %>%
+#     # group_by(subclass) %>%
+#     # slice_sample(n=200) %>%
+#     # ungroup() %>%
+#     # as.data.frame() %>%
+#     # column_to_rownames("barcode")
+# cortex_sc <- subset(cortex_sc, cells = rownames(cortex_sc@meta.data))
+# Idents(cortex_sc) <- cortex_sc@meta.data$subclass
+# gc()
+#
+# # Normalize appropriately
+# cortex_sc %<>%
+#     Seurat::SCTransform(verbose = FALSE,
+#                         conserve.memory= TRUE) %>%
+#     Seurat::RunPCA(verbose = FALSE) %>%
+#     Seurat::RunUMAP(dims = 1:30, verbose = FALSE)
+#
+# Seurat::DimPlot(cortex_sc,
+#                 group.by = "subclass",
+#                 label = TRUE) + Seurat::NoLegend()
+# cortex_sc@assays$RNA <- NULL # we don't need this assay
+#
+# # save the formatted object
+# # saveRDS(cortex_sc, file.path(brain_dir, "allen_cortex_prep.rds"))
+#
+# # save a downsampled object (to be used for deconv?)
+#
+#
+# # save markers
+# cluster_markers_all <- Seurat::FindAllMarkers(object = cortex_sc,
+#                                               assay = "SCT",
+#                                               slot = "data",
+#                                               verbose = TRUE,
+#                                               only.pos = TRUE)
+# saveRDS(object = cluster_markers_all,
+#         file = file.path(brain_dir, "markers.rds"))
 
 
 # II) Deconvolute Mouse slides ----
@@ -120,26 +120,26 @@ topic_profile_plts <- SPOTlight::dot_plot_profiles_fun(
 topic_profile_plts[[2]]
 
 
-
-# III) Run LIANA ----
-gc()
-cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex_dwn.rds"))
-murine_resource <- readRDS("data/input/murine_omnipath.RDS")
-
-liana_res <- liana_wrap(cortex_sc,
-                        cellchat.params=list(organism="mouse"),
-                        resource = "custom",
-                        external_resource = murine_resource,
-                        assay = "SCT",
-                        expr_prop=0.1,
-                        squidpy.params = list(cluster_key = "subclass"))
-
-
-# squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
-# set all others to title just in case
-liana_res %<>% map(function(res) res %>%
-                       mutate_at(.vars = c("ligand", "receptor"), str_to_title))
-saveRDS(liana_res, "data/input/spatial/brain_cortex/brain_liana_results.RDS")
+#
+# # III) Run LIANA ----
+# gc()
+# cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex_dwn.rds"))
+# murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+#
+# liana_res <- liana_wrap(cortex_sc,
+#                         cellchat.params=list(organism="mouse"),
+#                         resource = "custom",
+#                         external_resource = murine_resource,
+#                         assay = "SCT",
+#                         expr_prop=0.1,
+#                         squidpy.params = list(cluster_key = "subclass"))
+#
+#
+# # squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
+# # set all others to title just in case
+# liana_res %<>% map(function(res) res %>%
+#                        mutate_at(.vars = c("ligand", "receptor"), str_to_title))
+# saveRDS(liana_res, "data/input/spatial/brain_cortex/brain_liana_results.RDS")
 
 
 
