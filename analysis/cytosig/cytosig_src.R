@@ -1,7 +1,7 @@
 #' Pipeline Function to build eval curves on cytokine activity as ground truth
 #'
 #' @param seurat_object Seurat object with celltypes
-#' @param liana_res liana results (not aggregated)
+#' @param liana_res liana results (AGGREGATED)
 #' @param cytosig_net cytosig network formatted obyained from `load_cytosig`
 #' @param z_scale z-transform NES scores from decoupleR
 #' @param expr_prop minimum proportion of gene expression per cell type
@@ -18,43 +18,51 @@ run_cytosig_eval <- function(seurat_object,
                              expr_prop,
                              assay,
                              sum_count_thresh,
-                             NES_thresh){
+                             NES_thresh,
+                             subtype,
+                             generate = TRUE){
 
     # aggregate liana
-    liana_res <- liana_res %>% liana_aggregate()
+    # liana_res <- liana_res %>% liana_aggregate()
 
     # get pseudobulk and filter
-    pseudo <- get_pseudobulk(seurat_object,
-                             assay = assay,
-                             expr_prop = expr_prop,
-                             sum_count_thresh = sum_count_thresh)
+    if(generate){
+        pseudo <- get_pseudobulk(seurat_object,
+                                 assay = assay,
+                                 expr_prop = expr_prop,
+                                 sum_count_thresh = sum_count_thresh)
 
-    message("Pseudobulk Cytokine Enrichment")
-    # Cytokine Activity Enrichment
-    pseudo_cytosig <- pseudo %>%
-        mutate(cytosig_res = logcounts %>%
-                   map(function(logc){
-                       run_wmean(
-                           logc,
-                           cytosig_net,
-                           .source = "cytokine",
-                           .target = "target",
-                           .mor = "mor",
-                           .likelihood = "weight",
-                           times = 1000,
-                           seed = 1234,
-                           sparse = TRUE,
-                           randomize_type = "cols_independently") %>%
-                           # keep only norm weighted mean
-                           filter(statistic == "norm_wmean") %>%
-                           # rename
-                           select(cytokine=source,
-                                  NES=score,
-                                  p_value) %>%
-                           # correct p
-                           mutate(adj_pvalue = p.adjust(p_value))
-                   }))
-    saveRDS(pseudo_cytosig, "data/output/cytosig_out/ER_BRCA_cytosig.RDS")
+        message("Pseudobulk Cytokine Enrichment")
+        # Cytokine Activity Enrichment
+        pseudo_cytosig <- pseudo %>%
+            mutate(cytosig_res = logcounts %>%
+                       map(function(logc){
+                           run_wmean(
+                               logc,
+                               cytosig_net,
+                               .source = "cytokine",
+                               .target = "target",
+                               .mor = "mor",
+                               .likelihood = "weight",
+                               times = 1000,
+                               seed = 1234,
+                               sparse = TRUE,
+                               randomize_type = "cols_independently") %>%
+                               # keep only norm weighted mean
+                               filter(statistic == "norm_wmean") %>%
+                               # rename
+                               select(cytokine=source,
+                                      NES=score,
+                                      p_value) %>%
+                               # correct p
+                               mutate(adj_pvalue = p.adjust(p_value))
+                       }))
+        saveRDS(pseudo_cytosig, str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
+
+    } else{
+        pseudo_cytosig <- readRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
+
+    }
 
     ### Join LIANA to cytosig
     # Cytosig: add aliases (as in OP) and cytokine family members if appropriate
@@ -119,9 +127,8 @@ run_cytosig_eval <- function(seurat_object,
                          function(df) calc_curve(df,
                                                  curve="ROC",
                                                  downsampling = FALSE,
-                                                 times = 100,
                                                  source_name = "cytokine_in_target",
-                                                 auc_only = FALSE)
+                                                 auc_only = TRUE)
         )) %>%
         mutate(prc = map(cyto_liana,
                          function(df) calc_curve(df,
@@ -129,7 +136,7 @@ run_cytosig_eval <- function(seurat_object,
                                                  downsampling = TRUE,
                                                  times = 100,
                                                  source_name = "cytokine_in_target",
-                                                 auc_only = FALSE))) %>%
+                                                 auc_only = TRUE))) %>%
         mutate(corr = cyto_liana %>%
                    map(function(df){
                        cor.test(df[["NES"]],

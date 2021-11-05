@@ -9,19 +9,20 @@ require(decoupleR)
 
 source("analysis/cytosig/cytosig_src.R")
 source("src/eval_utils.R")
-
+source("src/plot_utils.R")
 
 # path_tibble (relative paths to the relevant objects)
-path_tibble <- tibble(dataset = c("BRCA ER+",
-                                  "BRCA HER2+",
+path_tibble <- tibble(dataset = c("ER",
+                                  "HER2",
                                   "TNBC"),
                       seurat_path = c("data/input/spatial/Wu_etal_2021_BRCA/deconv/ER_celltype_minor/ER_celltype_minor_seurat.RDS",
                                       "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
                                       "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
                                       ),
-                      liana_path = c("data/input/spatial/Wu_etal_2021_BRCA/deconv/ER_celltype_minor/ER_celltype_minor_liana_res.RDS",
-                                     "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_liana_res.RDS",
-                                     "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_liana_res.RDS"))
+                      liana_path = c(file.path("data/output/comparison_out/", str_glue("BRCA_ER_liana_omni.RDS")),
+                                     file.path("data/output/comparison_out/", str_glue("BRCA_HER2_liana_omni.RDS")),
+                                     file.path("data/output/comparison_out/", str_glue("BRCA_TNBC_liana_omni.RDS"))
+                                     ))
 
 # get cytosig
 cytosig_net <- load_cytosig()
@@ -48,14 +49,16 @@ cytosig_eval <- path_tibble %>%
                                                      expr_prop = 0.1,
                                                      assay = "RNA",
                                                      sum_count_thresh = 5,
-                                                     NES_thresh = 1.645)
+                                                     NES_thresh = 1.645,
+                                                     subtype = dataset,
+                                                     generate = FALSE) #!
                         gc()
                         return(cyto_res)
     }))
-saveRDS(cytosig_eval, "data/output/cytosig_out/brca_cytosig.RDS")
+saveRDS(cytosig_eval, "data/output/cytosig_out/brca_cytosig_res.RDS")
 
 # Read results
-cytosig_eval <- readRDS("data/output/cytosig_out/brca_cytosig.RDS") %>%
+cytosig_eval <- readRDS("data/output/cytosig_out/brca_cytosig_res.RDS") %>%
     select(dataset, cytosig_res) %>%
     unnest(cytosig_res)
 
