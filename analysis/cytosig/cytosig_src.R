@@ -53,9 +53,7 @@ run_cytosig_eval <- function(seurat_object,
                                # rename
                                select(cytokine=source,
                                       NES=score,
-                                      p_value) %>%
-                               # correct p
-                               mutate(adj_pvalue = p.adjust(p_value))
+                                      p_value)
                        }))
         saveRDS(pseudo_cytosig, str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
 
@@ -112,7 +110,10 @@ run_cytosig_eval <- function(seurat_object,
 
 
     # Prep for ROC
-    cytosig_eval <- liana_cytosig %>%
+    cytosig_eval <- liana_cytosig       %>%
+        # correct p
+        mutate(adj_pvalue = p.adjust(p_value)) %>%
+        filter(adj_pvalue <= 0.05) %>%
         mutate(response = if_else(NES > NES_thresh,
                                   1,
                                   0)) %>%

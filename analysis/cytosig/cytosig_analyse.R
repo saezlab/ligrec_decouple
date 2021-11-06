@@ -51,7 +51,7 @@ cytosig_eval <- path_tibble %>%
                                                      sum_count_thresh = 5,
                                                      NES_thresh = 1.645,
                                                      subtype = dataset,
-                                                     generate = FALSE) #!
+                                                     generate = TRUE) #!
                         gc()
                         return(cyto_res)
     }))
@@ -78,8 +78,8 @@ aucs <- cytosig_eval %>%
     mutate(method_name = recode_methods(method_name))
 
 
-roc_min <- min(aucs$roc_auc)
-prc_min <- min(aucs$prc_auc)
+roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
+prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
 
 # min_lim <- floor(min(c(aucs$roc, aucs$prc)) * 100)/100
 # max_lim <- ceiling(max(c(aucs$roc, aucs$prc)) * 100)/100
