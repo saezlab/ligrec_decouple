@@ -11,5 +11,5 @@
 
 # Job name is passed with --job-name=$A.$b.run
 
-echo "Submitted: $1" ("jobid: "+${SLURM_JOBID})
+echo "Submitted: $1 (Job ID: $SLURM_JOBID)"
 Rscript $1
