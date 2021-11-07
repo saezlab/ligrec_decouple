@@ -9,7 +9,6 @@ require(Seurat)
 require(ComplexHeatmap)
 require(ggsignif)
 require(yardstick)
-require(SingleCellExperiment)
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 # load prereqs
