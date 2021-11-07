@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p single
 #SBATCH -N 1
-#SBATCH --time=23:00:00
-#SBATCH --mem=40000
+#SBATCH --time=71:00:00
+#SBATCH --mem=200000
 #SBATCH --output=out/R-%x.%j.out
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
 #SBATCH --mail-type=ALL
