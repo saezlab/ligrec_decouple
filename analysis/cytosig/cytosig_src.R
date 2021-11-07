@@ -90,7 +90,7 @@ run_cytosig_eval <- function(seurat_object,
                                  cytokine,
                                  aliases)) %>%
         select(-cytokine, cytokine=aliases) %>%
-        select(cytokine, celltype, NES) %>% # exludes p-vals
+        select(cytokine, celltype, NES, p_value) %>%
         { if(z_scale) z_transform_nes(.)  else . } # cluster-specific or not
 
 
@@ -110,11 +110,10 @@ run_cytosig_eval <- function(seurat_object,
 
 
     # Prep for ROC
-    cytosig_eval <- liana_cytosig       %>%
+    cytosig_eval <- liana_cytosig %>%
         # correct p
-        mutate(adj_pvalue = p.adjust(p_value)) %>%
-        filter(adj_pvalue <= 0.05) %>%
-        mutate(response = if_else(NES > NES_thresh,
+        mutate(adj_pvalue = p.adjust(p_value, "BH")) %>%
+        mutate(response = if_else(NES > NES_thresh & adj_pvalue <=0.05,
                                   1,
                                   0)) %>%
         mutate(response = factor(response, levels = c(1, 0))) # first level is the truth

@@ -66,7 +66,8 @@ lr_omni <- liana_res %>%
                         pval_thresh = 1,
                         sca_thresh = 0,
                         .score_mode = liana:::.score_specs,
-                        cap = 500000)
+                        cap = 500000  # cap for speed has no effect on performance
+                        )
 saveRDS(lr_omni,
         file.path(path_to_project, "data/output/comparison_out/",
-                  str_glue("BRCA_{brca_subtype}_liana_omni.RDS")))
+                  str_glue("BRCA_{brca_subtype}_liana_OmniPath.RDS")))

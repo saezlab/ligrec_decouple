@@ -7,6 +7,7 @@ require(yardstick)
 
 source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
+source("src/plot_utils.R")
 
 z_thresh <- 1.645 # alpha = 0.05 # 0.842 # alpha = 0.2
 corr_thresh <- 0.25
@@ -57,11 +58,6 @@ seqfish_lr_coloc %>%
 
 ### III) BRCA ------
 brca_lr_coloc <- readRDS("data/output/spatial_out/brca_lrcoloc.RDS")
-
-
-brca_lr_coloc %<>%
-    filter(method_name!="call_sca.rank") %>%
-    filter(!is.na(estimate))
 
 # A) Coloc by individual slides
 # establish colocalisation truth

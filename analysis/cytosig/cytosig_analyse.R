@@ -19,9 +19,9 @@ path_tibble <- tibble(dataset = c("ER",
                                       "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
                                       "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
                                       ),
-                      liana_path = c(file.path("data/output/comparison_out/", str_glue("BRCA_ER_liana_omni.RDS")),
-                                     file.path("data/output/comparison_out/", str_glue("BRCA_HER2_liana_omni.RDS")),
-                                     file.path("data/output/comparison_out/", str_glue("BRCA_TNBC_liana_omni.RDS"))
+                      liana_path = c(file.path("data/output/comparison_out/", str_glue("BRCA_TNBC_liana_OmniPath.RDS")),
+                                     file.path("data/output/comparison_out/", str_glue("BRCA_HER2_liana_OmniPath.RDS")),
+                                     file.path("data/output/comparison_out/", str_glue("BRCA_TNBC_liana_OmniPath.RDS"))
                                      ))
 
 # get cytosig
@@ -51,7 +51,7 @@ cytosig_eval <- path_tibble %>%
                                                      sum_count_thresh = 5,
                                                      NES_thresh = 1.645,
                                                      subtype = dataset,
-                                                     generate = TRUE) #!
+                                                     generate = FALSE) #!
                         gc()
                         return(cyto_res)
     }))
@@ -89,7 +89,11 @@ ggplot(aucs,
            y=prc_mean,
            color=method_name)) +
     geom_point(shape = 9, size = 12, alpha=1) +
-    geom_point(aes(x = roc_auc, prc_auc, shape=dataset), size = 6, alpha = 0.3) +
+    geom_point(aes(x = roc_auc,
+                   prc_auc,
+                   shape=dataset),
+               size = 6,
+               alpha = 0.3) +
     theme(text = element_text(size=16)) +
     xlab('AUROC') +
     ylab('AUPRC') +

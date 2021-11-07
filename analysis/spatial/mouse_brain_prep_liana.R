@@ -12,6 +12,10 @@ cortex_sc <- readRDS(file.path(brain_dir, "allen_cortex_prep.rds"))
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 
 liana_res <- liana_wrap(cortex_sc,
+                        method = c('call_natmi',
+                                   'call_connectome', 'logfc', 'cellchat',
+                                   'call_sca', 'cellphonedb', "cytotalk"
+                        ),
                         resource = "custom",
                         external_resource = murine_resource,
                         # this is passed only to squidpy, cellchat, cytotalk, and logfc
