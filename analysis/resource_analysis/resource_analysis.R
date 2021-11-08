@@ -10,6 +10,8 @@ require(liana)
 require(shadowtext)
 require(logger)
 require(rlang)
+library(patchwork)
+library(ggplotify)
 
 # Source required functions
 source("src/plot_utils.R")

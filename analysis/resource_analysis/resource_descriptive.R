@@ -151,6 +151,8 @@ descriptive_plots <- function(
     total_unique_bar %T>%
     {log_success('Finished descriptive visualizations.')} %>%
     invisible
+
+    patchwork_resources() # Compile all resources
 }
 
 
@@ -654,11 +656,13 @@ upset_generic <- function(data, label, omnipath, upset_args, ...){
         `if`(omnipath, 'omnipath', 'no-omnipath')
     )
 
-    cairo_pdf_enh(path, plot=data %>%
-                  fromList %>%
-                  list %>%
-                  c(upset_args) %>%
-                  do.call(what = upset),
+    p <- data %>%
+        fromList %>%
+        list %>%
+        c(upset_args) %>%
+        do.call(what = UpSetR::upset)
+
+    cairo_pdf_enh(path, plot=p,
               width = 8, height = 4, family = 'DINPro')
 
     invisible(data)
@@ -893,14 +897,19 @@ ligrec_classes_all <- function(ligrec){
     {log_success('Stacked barplots of classifications.')} %T>%
     ligrec_classes_bar_enrich('SignaLink_pathway', pathway, NULL) %T>%
     ligrec_classes_bar_enrich('SIGNOR', pathway, 15) %T>%
-    ligrec_classes_bar_enrich('NetPath', pathway, 15) %T>%
+    ligrec_classes_bar_enrich(
+        'NetPath',
+        pathway,
+        15,
+        label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
+        ) %T>%
     ligrec_classes_bar_enrich('CancerSEA', state, 15) %T>%
     ligrec_classes_bar_enrich(
         'MSigDB',
         geneset,
         15,
         filter_annot = collection == 'hallmark',
-        label_annot = function(x){str_to_title(str_sub(x, 10))})  %T>%
+        label_annot = function(x){str_to_title(str_sub(x, start = 10))})  %T>%
     ligrec_classes_bar_enrich(
         'DisGeNet',
         disease,
@@ -1018,7 +1027,7 @@ classes_bar <- function(data, entity, resource, var){
                                )
                            )
 
-    path <- figure_path('classes_%s_%s.pdf', entity, resource)
+    path <- figure_path('classes_enrich_%s_%s.pdf', entity, resource)
 
     data %<>%
         filter(!is.na(!!var)) %>%
@@ -1898,4 +1907,101 @@ cairo_pdf_enh <- function(filename,
     print(plot)
     dev.off()
 
+}
+
+
+
+#' Helper Function to compile all resource plots
+#'
+#' @details makes use of `.resource_env` - a predefined environment to which I
+#' use to save every resource plot. Then this function converts it into a list
+#' and compiles all supp. figs.
+patchwork_resources <- function(){
+    # convert env to tibble
+    resource_outs <- tibble(s_name = names(as.list(.resource_env)),
+                            plot = as.list(.resource_env) %>% unname)
+
+    # types of plots
+    ptypes <- c("jaccard",
+                "shared",
+                "classes_enrich",
+                "classes_perc",
+                "enrich_heatmap")
+
+    # external databases list
+    dbs <- c("SignaLink",
+             "SIGNOR",
+             "NetPath",
+             "CancerSEA",
+             "MSigDB",
+             "DisGeNet",
+             "HPA_tissue_tissue",
+             "HPA_tissue_organ",
+             "HGNC",
+             "OP-L")
+
+    i <<- 0
+    map(ptypes, function(plot_type){
+        message(str_glue("Now compiling: {plot_type}"))
+
+        # iterate for SuppFig Names
+        i <<- i+1
+
+        # filter by plot type
+        resource_outs_filt <- resource_outs %>%
+            filter(str_detect(s_name, plot_type))
+
+        if(plot_type %in% c("jaccard", "shared")){
+
+            path <- figure_path(
+                'SuppFig_%s_%s.pdf',
+                i, plot_type)
+
+            pp <- patchwork::wrap_plots(resource_outs_filt %>% pluck("plot"),
+                                        ncol=1,
+                                        nrow(3)) +
+                plot_annotation(tag_levels = 'A',
+                                tag_suffix = ')') &
+                theme(plot.tag = element_text(face = 'bold',
+                                              size = 32))
+
+            cairo_pdf(filename = path,
+                      width = 16,
+                      height = 32)
+            print(pp)
+            dev.off()
+
+
+        } else if(plot_type %in% c("enrich_heatmap",
+                                   "classes_enrich",
+                                   "classes_perc")){
+
+            map(dbs, function(db){
+                path <- figure_path(
+                    'SuppFig_%s_%s_%s.pdf',
+                    i, plot_type, db)
+
+                # additionally filter by db
+                resource_outs_filt_plots <- resource_outs_filt %>%
+                    filter(str_detect(s_name, db)) %>%
+                    pluck("plot")
+
+                # patchwork
+                pp <- patchwork::wrap_plots(resource_outs_filt_plots,
+                                            ncol=2,
+                                            nrow(3)) +
+                    plot_annotation(tag_levels = 'A',
+                                    tag_suffix = ')') &
+                    theme(plot.tag = element_text(face = 'bold',
+                                                  size = 12))
+
+                # to pdf
+                cairo_pdf(filename = path,
+                          width = 11,
+                          height = 6)
+                print(pp)
+                dev.off()
+            })
+        }
+    })
 }
