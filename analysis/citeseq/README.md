@@ -9,9 +9,12 @@ Run citeseq_convert.Rmd - convert murine_datasets.h5a to seurat objects
 ```
 
 Generate Seurat objects and LAINA results
+```{sh}
+sbatch bash_scripts/large_bash.sh analysis/citeseq/citeseq_prep.R
+# source("analysis/citeseq/citeseq_prep.R") on local
 ```
-source("analysis/citeseq/citeseq_prep.R")
-```
+
+
 
 Generate Plots
 ```

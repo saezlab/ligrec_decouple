@@ -117,6 +117,9 @@
     OmniPath_q50 = 'OmniPath_Q'
 )
 
+# resources
+.resource_env <- new.env()
+
 
 #' Ligand-receptor resources descriptive plots
 #'
@@ -148,8 +151,6 @@ descriptive_plots <- function(
     total_unique_bar %T>%
     {log_success('Finished descriptive visualizations.')} %>%
     invisible
-
-
 }
 
 
@@ -543,16 +544,13 @@ total_unique_bar <- function(ligrec_olap){
             legend.key.size = unit(21, 'mm')
         )
 
-    cairo_pdf(
+    cairo_pdf_enh(
         figure_path('size_overlap_combined.pdf'),
+        plot=p,
         width = 19,
         height = 9,
         family = 'DINPro'
     )
-
-    print(p)
-
-    dev.off()
 
 }
 
@@ -656,19 +654,14 @@ upset_generic <- function(data, label, omnipath, upset_args, ...){
         `if`(omnipath, 'omnipath', 'no-omnipath')
     )
 
-    cairo_pdf(path, width = 8, height = 4, family = 'DINPro')
-
-        data %>%
-        fromList %>%
-        list %>%
-        c(upset_args) %>%
-        do.call(what = upset) %>%
-        print()
-
-    dev.off()
+    cairo_pdf_enh(path, plot=data %>%
+                  fromList %>%
+                  list %>%
+                  c(upset_args) %>%
+                  do.call(what = upset),
+              width = 8, height = 4, family = 'DINPro')
 
     invisible(data)
-
 }
 
 
@@ -1056,11 +1049,11 @@ classes_bar <- function(data, entity, resource, var){
 
     wide <- (data %>% pull(!!var) %>% as.character %>% nchar %>% max) > 30
 
-    cairo_pdf(path, width = `if`(wide, 7, 5), height = 3, family = 'DINPro')
-
-        print(p)
-
-    dev.off()
+    cairo_pdf_enh(path,
+                  plot = p,
+                  width = `if`(wide, 7, 5),
+                  height = 3,
+                  family = 'DINPro')
 
 }
 
@@ -1157,11 +1150,9 @@ classes_bar_perc <- function(data, entity, resource, var){
 
     wide <- (data %>% pull(!!var) %>% as.character %>% nchar %>% max) > 30
 
-    cairo_pdf(path, width = `if`(wide, 7, 5), height = 3, family = 'DINPro')
-
-    print(p)
-
-    dev.off()
+    cairo_pdf_enh(path, plot = p,
+                  width = `if`(wide, 7, 5),
+                  height = 3, family = 'DINPro')
 
 }
 
@@ -1256,11 +1247,8 @@ classes_enrich <- function(data, entity, resource, var, ...){
         data %>% pull(!!var) %>% as.character %>% nchar %>% max %>%
         {`if`(. > 25, `if`(. > 40, 7.5, 6.5), 5.5)}
 
-    cairo_pdf(path, width = width, height = height, family = 'DINPro')
-
-    print(p)
-
-    dev.off()
+    cairo_pdf_enh(path, plot = p,
+                  width = width, height = height, family = 'DINPro')
 
     invisible(NULL)
 
@@ -1822,15 +1810,14 @@ jaccheat_save <- function(df, plotname, guide_title){
             strip.text.x = element_blank()
         ) +
         xlab("Resource") +
-        geom_text(aes(name, resource, label = round(value, digits = 3)),
+        geom_text(aes(name, resource,
+                      label = round(value, digits = 2)),
                   color = "white", size = 5) +
         scale_y_discrete(limits=rev)
 
-    cairo_pdf(plotname, width = 16, height = 9, family = 'DINPro')
-
-    print(p)
-
-    dev.off()
+    cairo_pdf_enh(plotname,
+                  plot = p,
+                  width = 16, height = 9, family = 'DINPro')
 }
 
 
@@ -1843,7 +1830,6 @@ jaccheat_save <- function(df, plotname, guide_title){
 #' @importFrom ggplot2 ggplot aes geom_tile
 #' @importFrom ggplot2 theme xlab theme_minimal element_text element_blank
 #' @importFrom ggplot2 guide_colorbar geom_text
-#' @importFrom grDevices cairo_pdf dev.off
 #' @importFrom viridis scale_fill_viridis
 overheat_save <- function(df, plotname, guide_title){
     p <- ggplot(data = df) +
@@ -1869,8 +1855,7 @@ overheat_save <- function(df, plotname, guide_title){
             legend.title = element_text(size=14),
             legend.text = element_text(size=12),
             strip.text.x = element_blank(),
-            strip.text.y = element_blank(),
-            panel.spacing = unit(1, "lines")
+            strip.text.y = element_blank()
         ) +
         xlab("Resource") +
         shadowtext::geom_shadowtext(aes(name, resource,
@@ -1879,11 +1864,7 @@ overheat_save <- function(df, plotname, guide_title){
         facet_grid(name~., scales='free_y', space="free_y") +
         coord_flip()
 
-    cairo_pdf(plotname, width = 16, height = 9, family = 'DINPro')
-
-    print(p)
-
-    dev.off()
+    cairo_pdf_enh(plotname, plot = p, width = 16, height = 9, family = 'DINPro')
 }
 
 
@@ -1895,4 +1876,26 @@ overheat_save <- function(df, plotname, guide_title){
 #' @seealso \code{\link{compile_ligrec}}
 compile_ligrec_descr <- function(){
     liana:::compile_ligrec(lr_pipeline = FALSE)
+}
+
+
+#' Helper function to save to plot, but also assign to global env
+#' @param filename
+#' @importFrom grDevices cairo_pdf dev.off
+cairo_pdf_enh <- function(filename,
+                          plot,
+                          ...){
+
+    s_name <- gsub("(.*)\\/", "\\2", filename) %>%
+        gsub(".pdf*", "\\1", .)
+
+    message(s_name)
+
+    .resource_env[[s_name]] <- plot
+
+    # assign to global env
+    cairo_pdf(filename, ...)
+    print(plot)
+    dev.off()
+
 }
