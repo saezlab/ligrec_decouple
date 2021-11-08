@@ -47,7 +47,8 @@ list.files(citeseq_dir) %T>%
                                                 seed = as.integer(1004)),
                             expr_prop=0.1,
                             cellchat.params = list(nboot=1000,
-                                                   expr_prop = 0),
+                                                   expr_prop = 0,
+                                                   organism="mouse"),
                             call_natmi.params = list(
                                 expr_file = str_glue("{subdir}_em.csv"),
                                 meta_file = str_glue("{subdir}_metadata.csv"),
