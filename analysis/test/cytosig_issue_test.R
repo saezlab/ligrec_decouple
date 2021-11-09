@@ -16,7 +16,6 @@ mat <- file.path(inputs_dir, "input-expr_matrix.rds") %>%
 
 cytosig_net <- load_cytosig(cytosig_path = "~/Repos/ligrec_decouple/data/input/cytosig/cytosig_signature_centroid.csv")
 
-
 seurat_object <- readRDS("data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS")
 pseudo <- get_pseudobulk(seurat_object,
                          assay = "RNA",

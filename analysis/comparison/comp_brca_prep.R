@@ -59,7 +59,7 @@ lr_omni <- liana_res %>%
     transpose() %>%
     pluck("OmniPath") %>%
     liana_aggregate_enh(filt_de_pvals = TRUE,
-                        de_thresh = 0.05, # we only filter connectome DEs
+                        de_thresh = 0.05, # we only filter Connectome DEs
                         filt_outs = FALSE,
                         pval_thresh = 1,
                         sca_thresh = 0,

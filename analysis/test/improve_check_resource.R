@@ -54,7 +54,6 @@ xd
 reflipped_interactions %>%
     select(names(xd))
 
-
 # Omni ++ (filtered) ----
 omni <- select_resource("OmniPath")[[1]] %>%
     # filter mediators
@@ -67,20 +66,46 @@ omni <- select_resource("OmniPath")[[1]] %>%
 # Omni_CPDB
 omni_cpdb <- select_resource("CellPhoneDB")[[1]]
 
-
 # check if any ambigous interactions (wrongly annotated ligands/receptors) exist
 omni_cpdb %<>%
     mutate(interaction = paste(source, target)) %>%
-    mutate(interaction2 = paste(target, source))
+    mutate(interaction2 = paste(target, source)) %>%
+    # OmniPath contains ~all correctly annotated receptors and ligands
+    # hence we remove any ligand in CPDB that is a receptor in OmniPath
+    filter(!(source %in% omni$target)) # remove mislaballed interactions (i.e duplicated ligands and receptors)
 
+# get duplations alone
 interact_dups <- c(omni_cpdb$interaction,
-                   omni_cpdb$interaction2)
-
-interact_dups[duplicated(interact_dups)]
+                   omni_cpdb$interaction2) %>%
+    .[duplicated(.)]
 
 
 # check if any non-membrane bound receptors/ligands are regarded
 #  as both receptor and ligand
+duplicated_cpdb <- omni_cpdb %>%
+    filter((interaction2 %in% interact_dups) | (interaction %in% interact_dups))
+
+# The rest, we manually fix
+duplicated_cpdb$source %>% unique()
+# here we include receptor proteins and such which are involved in cell-adhesion interactions
+# predominantly such involved in cell-adhesion signalling (often ambiguous whether
+# transmitter or receiver of signal)
+actual_receivers <- c("P20292", "COMPLEX:P05556_Q13797", "P06731",
+                      "P15813", "Q92478", "Q9NZS2", "P27487", "Q12918",
+                      "Q9UHP7", "P41217", "Q8TD46", "Q15762", "P16150",
+                       "Q15223", "Q8N126", "Q9NQS3", "P16150", "Q9BZZ2",
+                      "COMPLEX:P05556_P13612"
+                      )
+
+
+duplicated_cpdb %>% filter(!(source %in% actual_receivers))
+
+# Appropriately Filter CPDB ----
+omni_cpdb <- select_resource("CellPhoneDB")[[1]]  %>%
+    filter(!(source %in% omni$target)) %>%
+    filter(!(source %in% actual_receivers))
+
+
 
 
 # remove activating_cofactor, inhibitory_cofactor
@@ -102,7 +127,8 @@ cpdb_interaction <- cpdb_interaction %>%
     as_tibble()
 
 cpdb_protein <- cpdb_protein %>%
-    select(uniprot, protein_name)
+    select(uniprot, protein_name) %>%
+    mutate(protein_name = gsub("_HUMAN", "", protein_name))
 
 cpdb_interaction
 cpdb_complex

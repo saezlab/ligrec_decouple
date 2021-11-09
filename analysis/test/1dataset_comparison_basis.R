@@ -11,10 +11,10 @@ source("src/eval_utils.R")
 source("src/plot_utils.R")
 
 # LOAD New Results from different Method-Resource Combinations
-liana_all <- readRDS("data/output/liana_all_resources.RDS")
+liana_all <- readRDS("data/output/temp/liana_all_resources.RDS")
 
 # Ranked Scores according to a set of criteria (here by specificy whenever available)
-liana_all_spec <- get_spec_list("data/output/liana_all_resources.RDS",
+liana_all_spec <- get_spec_list("data/output/temp/liana_all_resources.RDS",
                                 #"data/output/crc_res/liana_crc_all.rds", # crc results
                                 .score_spec = liana:::.score_specs) # liana:::.score_*
 
@@ -35,12 +35,17 @@ top_lists_n <- get_top_hits(liana_all_spec,
                             de_thresh = 0.05)
 
 # I) Score Distributions -----
+# obtain Per method list
+liana_scores <- get_score_distributions(liana_all_spec,
+                                        hit_prop = 1,
+                                        pval_thresh = 1,
+                                        sca_thresh = 0,
+                                        de_thresh = 0.05)
+saveRDS(liana_scores, "data/output/temp/liana_scores.RDS")
+
 # This is the one to be used (full methods - no filtering (only DE for connectome)
-plot_score_distributions(liana_all_spec,
-                         hit_prop = 1,
-                         pval_thresh = 1,
-                         sca_thresh = 0,
-                         de_thresh = 0.05)
+# Density Distributions
+plot_score_distributions(liana_scores)
 
 # II) Obtain JI Heatmap ----
 p <- get_simdist_heatmap(top_lists_n$top_100, # top hits in this case

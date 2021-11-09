@@ -438,8 +438,8 @@ recode_methods <- function(methods){
 #' @param resource name of the resource to be used
 #' @inheritDotParams passed to `get_top_hits` and `liana_aggregate_enh`
 #'
-#' @returns ggplot object
-plot_score_distributions <- function(liana_res_specced,
+#' @returns a dataframe with method scores
+get_score_distributions <- function(liana_res_specced,
                                      hit_prop = 1,
                                      resource = "OmniPath",
                                      ...){
@@ -476,6 +476,14 @@ plot_score_distributions <- function(liana_res_specced,
   liana_scores <- bind_rows(liana_scores, liana_ag_res) %>%
     mutate(method = recode_methods(method))
 
+
+  return(liana_scores)
+
+}
+
+#' Helper Function to plot Score distributions
+#' @param liana_scores liana scores list obtained via `get_score_distributions`
+plot_score_distributions <- function(liana_scores){
   # plot
   p <- liana_scores %>%
     ggplot(aes(x=score, color=method, fill=method)) +
@@ -486,7 +494,7 @@ plot_score_distributions <- function(liana_res_specced,
     theme_bw()
 
   return(p)
-
 }
+
 
 
