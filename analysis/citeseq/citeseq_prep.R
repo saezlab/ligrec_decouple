@@ -83,8 +83,5 @@ list.files(citeseq_dir) %T>%
                             organism = "human"
                             )
         }
-    }) %>% setNames(list.files(citeseq_dir)) %>%
-    enframe() %>%
-    unnest(value) %>%
-    rename(dataset = name)
+    })
 
