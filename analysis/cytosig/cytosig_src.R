@@ -37,7 +37,7 @@ run_cytosig_eval <- function(seurat_object,
         pseudo_cytosig <- pseudo %>%
             mutate(cytosig_res = logcounts %>%
                        map(function(logc){
-                           run_wmean(
+                           run_viper(
                                logc,
                                cytosig_net,
                                .source = "cytokine",
@@ -47,7 +47,8 @@ run_cytosig_eval <- function(seurat_object,
                                times = 1000,
                                seed = 1234,
                                sparse = TRUE,
-                               randomize_type = "cols_independently") %>%
+                               randomize_type = "cols_independently"
+                               ) %>%
                                # keep only norm weighted mean
                                filter(statistic == "norm_wmean") %>%
                                # rename

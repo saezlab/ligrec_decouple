@@ -51,7 +51,7 @@ cytosig_eval <- path_tibble %>%
                                                      sum_count_thresh = 5,
                                                      NES_thresh = 1.645,
                                                      subtype = dataset,
-                                                     generate = FALSE) #!
+                                                     generate = TRUE) #!
                         gc()
                         return(cyto_res)
     }))

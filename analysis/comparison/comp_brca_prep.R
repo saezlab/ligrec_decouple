@@ -15,7 +15,7 @@ message(str_glue("Now Running: LIANA with {brca_subtype}"))
 
 
 # Spatial Deconv Directory (i.e atlas directory)
-brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
+brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA" # should change to comparison
 deconv_directory <- file.path(path_to_project, brca_dir,
                               "deconv", str_glue("{brca_subtype}_celltype_minor"))
 
@@ -52,8 +52,6 @@ message("Saving LIANA RESULTS")
 saveRDS(liana_res,
         file.path(path_to_project, "data/output/comparison_out/",
                   str_glue("BRCA_{brca_subtype}_liana_res.RDS")))
-
-
 
 # Aggregate and Save OmniPath's out - to be used in Spatial and CytoSig evals
 source("src/eval_utils.R")
