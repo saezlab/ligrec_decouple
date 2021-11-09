@@ -96,13 +96,11 @@ actual_receivers <- c("P20292", "COMPLEX:P05556_Q13797", "P06731",
                        "Q15223", "Q8N126", "Q9NQS3", "P16150", "Q9BZZ2",
                       "COMPLEX:P05556_P13612"
                       )
-
-
 duplicated_cpdb %>% filter(!(source %in% actual_receivers))
 
 # Appropriately Filter CPDB ----
-omni_cpdb <- select_resource("CellPhoneDB")[[1]]  %>%
-    filter(!(source %in% omni$target)) %>%
+omni_cpdb <- select_resource("CellPhoneDB")[[1]] %>%
+    # remove known receivers from source # and interactions which are duplicated but flipped
     filter(!(source %in% actual_receivers))
 
 
