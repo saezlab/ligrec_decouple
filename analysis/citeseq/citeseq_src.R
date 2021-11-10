@@ -326,6 +326,8 @@ list.subfiles <- function(subdir, dir, pattern = ".h5"){
 #' @param dir directory of citeseq input and output
 #' @param expr_prop proportion expressed
 #' @param method liana wrap method
+#'
+#' @inheritDotParams liana_aggregate
 wrap_liana_wrap <- function(subdir,
                             dir,
                             expr_prop,
@@ -354,7 +356,7 @@ wrap_liana_wrap <- function(subdir,
                               ~str_to_symbol(string = .x,
                                              organism=organism)))
             ) %>%
-        liana_aggregate()
+        liana_aggregate() # needs to be changed
 
     message(str_glue("Saving liana_res to: ",
                      file.path(dir, subdir,

@@ -21,9 +21,15 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 liana_res <- readRDS(str_glue("{brain_dir}/brain_liana_results.RDS"))
 # Format LIANA res to long tibble /w method_name and predictor (ranks)
 liana_format <- liana_res %>%
-    liana_aggregate() %>%
+    liana_aggregate_enh(filt_de_pvals = TRUE,
+                        de_thresh = 0.05, # we only filter Connectome DEs
+                        filt_outs = FALSE,
+                        pval_thresh = 1,
+                        sca_thresh = 0,
+                        .score_mode = liana:::.score_specs,
+                        cap = 500000  # cap for speed has no effect on performance
+    ) %>% # CHANGE TO ENH
     liana_agg_to_long()
-
 
 # load deconvolution results and do correlation
 slides <- c("anterior1",
