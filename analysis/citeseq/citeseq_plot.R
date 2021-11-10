@@ -6,13 +6,16 @@ require(liana)
 require(tidyverse)
 require(Seurat)
 require(ComplexHeatmap)
+require(magrittr)
 
 # Generate Plots
 pr_roc_tibble <- readRDS("data/output/citeseq_out/citeseq_aurocs.RDS")
 
 
 # AUROC
-auroc_tib <- get_auroc_heat(pr_roc_tibble, "roc", mat_only = TRUE)
+auroc_tib <- get_auroc_heat(pr_roc_tibble,
+                            "roc",
+                            mat_only = TRUE)
 pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
                                             data = auroc_tib,
                                             method = "t.test") %>%
@@ -29,9 +32,11 @@ auprc_tib <- get_auroc_heat(pr_roc_tibble, "prc", mat_only = TRUE)
 pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
                                             data = auprc_tib,
                                             method = "t.test") %>%
-    filter(p.adj <=0.05)
+    filter(p.adj <= 0.05)
 pairwise_contrasts %>%
     dplyr::select(group1, group2, p, p.adj, p.signif) %>%
     as.data.frame() %>%
     write.csv("~/Downloads/auprc_specificity.csv", row.names = FALSE)
 get_auroc_heat(pr_roc_tibble, "prc")
+
+

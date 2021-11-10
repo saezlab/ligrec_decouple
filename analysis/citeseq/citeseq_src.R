@@ -20,7 +20,8 @@ run_adt_pipe <- function(subdir = subdir,
                          cluster_key,
                          arbitrary_thresh,
                          organism = "human",
-                         adt_pipe_type = "correlation"){
+                         adt_pipe_type = "correlation",
+                         ...){
 
     # read seurat
     seurat_object_path <- list.subfiles(subdir = subdir,
@@ -33,7 +34,8 @@ run_adt_pipe <- function(subdir = subdir,
     liana_res_path <- list.subfiles(subdir = subdir,
                                     dir = citeseq_dir,
                                     pattern = liana_pattern)
-    liana_res <- readRDS(liana_res_path)
+    liana_res <- readRDS(liana_res_path) %>%
+        liana_aggregate_enh(...)
 
     # Get Symbols of Receptors from OP
     receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
@@ -73,7 +75,7 @@ run_adt_pipe <- function(subdir = subdir,
         adt_lr_roc <-
             generate_specificity_roc(
                 seurat_object = readRDS(seurat_object_path),
-                liana_res = readRDS(liana_res_path),
+                liana_res = liana_res,
                 op_resource = op_resource,
                 cluster_key = cluster_key,
                 organism=organism,
@@ -290,7 +292,8 @@ load_and_cluster <- function(dir, subdir, pattern = ".h5"){
     # Change cluster names (CellChat does not allow 0s...)
     # Squidpy splits clusters at _
     seurat_object@meta.data %<>%
-        mutate(seurat_clusters = str_glue("cluster.{seurat_clusters}"))
+        mutate(seurat_clusters = str_glue("cluster.{seurat_clusters}")) %>%
+        mutate(seurat_clusters = as.factor(seurat_clusters))
     Seurat::Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
 
 
@@ -355,8 +358,7 @@ wrap_liana_wrap <- function(subdir,
                 mutate(across(c(ligand, receptor),
                               ~str_to_symbol(string = .x,
                                              organism=organism)))
-            ) %>%
-        liana_aggregate() # needs to be changed
+            )
 
     message(str_glue("Saving liana_res to: ",
                      file.path(dir, subdir,
@@ -371,6 +373,7 @@ wrap_liana_wrap <- function(subdir,
             file.path(dir, subdir, str_glue(subdir,
                                             "liana_res-{expr_prop}.RDS",
                                             .sep="-")))
+
 }
 
 

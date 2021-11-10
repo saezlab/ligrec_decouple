@@ -26,13 +26,13 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 # Iterate over all citeseq directories (i.e. datasets)
 list.files(citeseq_dir) %T>%
     # Load 10x .h5 mat and cluster each, and save the appropriate Seurat object
-    # map(function(subdir){
-    #     if(subdir %in% c("10k_malt", "10k_pbmcs", "5k_pbmcs", "5k_pbmcs_nextgem")){
-    #         load_and_cluster(subdir = subdir, dir = citeseq_dir, pattern = ".h5")
-    #     } else(
-    #         return()
-    #     )
-    # }) %T>%
+    map(function(subdir){
+        if(subdir %in% c("10k_malt", "10k_pbmcs", "5k_pbmcs", "5k_pbmcs_nextgem")){
+            load_and_cluster(subdir = subdir, dir = citeseq_dir, pattern = ".h5")
+        } else(
+            return()
+        )
+    }) %T>%
     # Run LIANA
     map(function(subdir){
         # Run LIANA /w mouse specific
@@ -45,7 +45,7 @@ list.files(citeseq_dir) %T>%
                             ),
                             squidpy.params=list(cluster_key = "seurat_clusters",
                                                 seed = as.integer(1004)),
-                            expr_prop=0.1,
+                            expr_prop = 0.1,
                             cellchat.params = list(nboot=1000,
                                                    expr_prop = 0,
                                                    organism="mouse"),
@@ -69,7 +69,7 @@ list.files(citeseq_dir) %T>%
                             ),
                             squidpy.params=list(cluster_key = "seurat_clusters",
                                                 seed = as.integer(1004)),
-                            expr_prop=0.1,
+                            expr_prop = 0.1,
                             cellchat.params = list(nboot=1000,
                                                    expr_prop = 0),
                             call_natmi.params = list(

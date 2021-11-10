@@ -124,9 +124,8 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
         }
 
     }) %>% setNames(list.files(citeseq_dir)) %>%
-    enframe() %>%
-    unnest(value) %>%
-    rename(dataset = name)
+    enframe(name = "dataset") %>%
+    unnest(value)
 
 # Save obj
 saveRDS(pr_roc_tibble, "data/output/citeseq_out/citeseq_aurocs.RDS")
