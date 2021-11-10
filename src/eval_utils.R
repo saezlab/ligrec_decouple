@@ -310,7 +310,8 @@ liana_aggregate_enh <- function(liana_res,
     }
 
     # aggregate liana results
-    liana_res %<>% liana_aggregate(...)
+    liana_res %<>% liana_aggregate(...,
+                                   cap = 500000)
 
     return(liana_res)
 }

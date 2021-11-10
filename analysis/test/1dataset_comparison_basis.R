@@ -18,48 +18,141 @@ liana_all_spec <- get_spec_list("data/output/temp/liana_all_resources.RDS",
                                 #"data/output/crc_res/liana_crc_all.rds", # crc results
                                 .score_spec = liana:::.score_specs) # liana:::.score_*
 
+# params
+top_x <- 0.05
+top_fun = "top_frac"
+pval_thresh = 1
+sca_thresh = 0
+de_thresh = 1
+resource = "OmniPath"
+
+# in function
+top_hits_key <- str_glue({"top_{top_x}"})
+
+
 # Top X proportion of hits (according to the ranking specs above)
 top_lists <- get_top_hits(liana_all_spec,
-                          n_ints=c(0.01, 0.05), # top 1% and top 5%
-                          top_fun = "top_frac",
-                          pval_thresh = 1,
-                          sca_thresh = 0,
-                          de_thresh = 0.05)
+                          n_ints=top_x, # top 1% and top 5%
+                          top_fun = top_fun,
+                          pval_thresh = pval_thresh,
+                          sca_thresh = sca_thresh,
+                          de_thresh = de_thresh)
 
 # Top X of hits
-top_lists_n <- get_top_hits(liana_all_spec,
-                            n_ints=c(100, 500), # top 100 and 500
-                            top_fun = "top_n",
-                            pval_thresh = 1,
-                            sca_thresh = 0,
-                            de_thresh = 0.05)
+# top_lists_n <- get_top_hits(liana_all_spec,
+#                             n_ints=c(100, 500), # top 100 and 500
+#                             top_fun = "top_n",
+#                             pval_thresh = 1,
+#                             sca_thresh = 0,
+#                             de_thresh = 0.05)
+
 
 # I) Score Distributions -----
-# obtain Per method list
+# obtain Per method list (NOT per resource - too many and they are the same...)
 liana_scores <- get_score_distributions(liana_all_spec,
                                         hit_prop = 1,
-                                        pval_thresh = 1,
-                                        sca_thresh = 0,
-                                        de_thresh = 0.05)
-saveRDS(liana_scores, "data/output/temp/liana_scores.RDS")
+                                        resource = resource,
+                                        pval_thresh = pval_thresh,
+                                        sca_thresh = sca_thresh,
+                                        de_thresh = de_thresh)
+liana_scores
+saveRDS(liana_scores, str_glue("data/output/temp/liana_scores_{resource}.RDS"))
+
 
 # This is the one to be used (full methods - no filtering (only DE for connectome)
-# Density Distributions
+# A) Density Distributions
 plot_score_distributions(liana_scores)
 
-# II) Obtain JI Heatmap ----
-p <- get_simdist_heatmap(top_lists_n$top_100, # top hits in this case
+# II) Interaction Relative Strength per Cell Type -----
+
+# Test Interactions strength per Cell Type and per Cell Pair
+# Obtain regularized scores
+liana_scores_regularized <- regularize_scores(liana_scores,
+                                              .score_spec = liana:::.score_specs)
+
+# relative strength per cell pair
+liana_scores_strength <- liana_scores_regularized %>%
+    group_by(method) %>%
+    mutate(global_score = mean(score)) %>%
+    group_by(method, source, target) %>%
+    mutate(cp_score = mean(score)) %>%
+    mutate(cp_strength = cp_score/global_score) %>%
+    ungroup() %>%
+    select(method, source, target, cp_strength) %>%
+    unite(source, target, col = "cell_pair") %>%
+    distinct() %>%
+    arrange(desc(cp_strength)) %>%
+    pivot_wider(names_from = cell_pair,
+                values_from = cp_strength) %>%
+    as.data.frame() %>%
+    column_to_rownames("method") %>%
+    as.matrix()
+
+# relative strength per cell pair
+liana_scores_strength <- liana_scores_regularized %>%
+    pivot_longer(cols = c(source, target),
+                 names_to = "cat",
+                 values_to = "cell") %>%
+    unite(cell, cat, col = "cell_cat") %>%
+    group_by(method) %>%
+    mutate(global_score = mean(score)) %>%
+    group_by(method, cell_cat) %>%
+    mutate(cp_score = mean(score)) %>%
+    mutate(cp_strength = cp_score/global_score) %>%
+    ungroup() %>%
+    select(method, cell_cat, cp_strength) %>%
+    distinct() %>%
+    pivot_wider(names_from = cell_cat, values_from = cp_strength) %>%
+    as.data.frame() %>%
+    column_to_rownames("method") %>%
+    as.matrix()
+
+
+# ^ we get some NAs in the test data (Connectome no sig after filtering)
+
+# Relative regularized strength per cell type pair
+# The idea is to show that different methods assign different
+# interaction strength to different cell type pairs
+# to be split to source and target (as in the other cell pair frequency heatmap)
+# i.e. I should merge them
+ComplexHeatmap::Heatmap(t(liana_scores_strength))
+
+
+
+# get cp_strength
+pval_thresh = 1
+sca_thresh = 0
+de_thresh = 0.05
+
+ct_strength <- get_ct_strength(liana_all_spec,
+                               pval_thresh = pval_thresh,
+                               sca_thresh = sca_thresh,
+                               de_thresh = de_thresh)
+get_ct_heatmap(ct_strength, cap_value = 1)
+
+
+
+# III) Interaction Frequencies per Cell Type ----
+# This works TOP x
+ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]])
+
+get_ct_heatmap(ct_frequncies, cap_value = 1)
+
+
+
+# IV) Obtain JI Heatmap ----
+p <- get_simdist_heatmap(top_lists[[top_hits_key]], # top hits in this case
                          sim_dist = "simil",
                          method = "Jaccard",
                          diag = TRUE,
                          upper = TRUE,
-                         cluster_rows = FALSE,
-                         cluster_columns = FALSE)
+                         cluster_rows = TRUE,
+                         cluster_columns = TRUE)
 p
 
-# III) Obtain JI Stats ----
+# V) Obtain JI Stats ----
 # Get Jaccard Stats
-jaccard_per_mr <- simdist_resmet(top_lists_n$top_100,
+jaccard_per_mr <- simdist_resmet(top_lists[[top_hits_key]],
                                  sim_dist = "simil",
                                  method = "Jaccard")
 
@@ -161,9 +254,6 @@ jac_summary
 # ^ this becomes a table
 
 
-# IV) Interaction Frequencies ----
-get_activecell(top_lists_n$top_100,
-               cap_value = 1
-               )
+
 
 

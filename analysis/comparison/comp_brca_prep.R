@@ -63,8 +63,7 @@ lr_omni <- liana_res %>%
                         filt_outs = FALSE,
                         pval_thresh = 1,
                         sca_thresh = 0,
-                        .score_mode = liana:::.score_specs,
-                        cap = 500000  # cap for speed has no effect on performance
+                        .score_mode = liana:::.score_specs
                         )
 saveRDS(lr_omni,
         file.path(path_to_project, "data/output/comparison_out/",

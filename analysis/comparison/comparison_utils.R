@@ -24,7 +24,7 @@ get_spec_list <- function(liana_all_path,
             }
 
             methods::new("MethodSpecifics",
-                         method_name=method_name,
+                         method_name = method_name,
                          method_results = liana_meth,
                          method_scores=list(
                              .score_spec()[[method_name]]@descending_order
@@ -485,3 +485,266 @@ get_cellnum <- function(seurat_path){
         arrange(Cell_subtype)
 }
 
+
+
+#' Helper Function to regularize all methods from 0 to 1
+#'
+#' @param liana_scores liana scores obtained from `get_score_distributions`
+#'
+#' @details Keep in mind the way that methods are arranged!!!!
+regularize_scores <- function(liana_scores,
+                              .score_spec = liana:::.score_specs){
+
+    if(identical(.score_spec, liana:::.score_specs)){
+        message("LIANA SCORE SPECS!!!!")
+        methods_to_revert <- c("CellChat", "CellPhoneDB", "Aggregated Ranks")
+    } else{
+        message("NOT LIANA SCORE SPECS!!!!")
+        methods_to_revert <- c("Aggregated Ranks")
+    }
+
+    liana_scores %>%
+        # regularize logFC and Connectome to 0-1 (+every negative is 0)
+        mutate(score = if_else(method %in% c("LogFC Mean", "Connectome"),
+                               if_else(score < 0,
+                                       0,
+                                       score/max(score)
+                               ),
+                               score
+        )) %>%
+        # revert cellchat and squidpy p-values (1 becomes highest)
+        rowwise() %>%
+        mutate(score = if_else(method %in% methods_to_revert,
+                               1 - score,
+                               score)) %>%
+        ungroup()
+}
+
+
+
+#' Function to get Activity per Cell Type heatmap
+#'
+#' @param ct_tibble tibble with ~'activities' per cell type
+#' (relative strength/frequncies)
+#' > mr(method⊎resource), cell1_source, cell1_target, cell2_source,...
+#' @param cap_value Cap cell fraction (prop cell activity) to a given value
+#'
+#' @return Cell Type Activity Heatmap
+#'
+#' @import pheatmap tidyverse
+#' @inheritDotParams pheatmap::pheatmap
+#' @export
+get_ct_heatmap <- function(ct_tibble,
+                           cap_value = 1,
+                           ...){
+
+    # annotation groups (sequential vectors as in heatmap_binary_list)
+    method_groups <- ct_tibble %>%
+        separate(mr, into = c("method", "resource"), sep = "⊎") %>%
+        pull(method)
+    resource_groups <- ct_tibble %>%
+        separate(mr, into = c("method", "resource"), sep = "⊎") %>%
+        pull(resource)
+
+    # data frame with column annotations.
+    # with a column for resources and a column for methods
+    annotations_df <- data.frame(Resource = resource_groups,
+                                 Method = method_groups)  %>%
+        mutate(rn = ct_tibble$mr) %>%
+        column_to_rownames("rn")
+
+    annotations_row <- data.frame(cell_cat = colnames(ct_tibble)[-1]) %>%
+        separate(cell_cat, sep="_", into = c("Cell", "Category"), remove = FALSE) %>%
+        column_to_rownames("cell_cat") %>%
+        select(Category)
+
+    # List with colors for each annotation.
+    mycolors <- list(Method = colorRampPalette(brewer.pal(8, "Dark2"))(length(unique(method_groups))),
+                     Resource = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(resource_groups))),
+                     Category = c("#E41A1C", "#377EB8"))
+    names(mycolors$Resource) <- unique(resource_groups)
+    names(mycolors$Method) <- unique(method_groups)
+    names(mycolors$Category) <- unique(annotations_row$Category)
+
+    lab_rows <- annotations_row %>%
+        rownames_to_column("cellname") %>%
+        separate(cellname, into = c("cell", "cat"), sep = "_") %>%
+        pull(cell)
+
+    cellfraq_heat <- pheatmap::pheatmap(ct_tibble %>%
+                                            column_to_rownames("mr") %>%
+                                            t(),
+                                        annotation_row = annotations_row,
+                                        annotation_col = annotations_df,
+                                        annotation_colors = mycolors,
+                                        display_numbers = FALSE,
+                                        silent = FALSE,
+                                        show_colnames = FALSE,
+                                        color = colorRampPalette(c("darkslategray2",
+                                                                   "violetred2"))(20),
+                                        fontsize = 30,
+                                        drop_levels = TRUE,
+                                        cluster_rows = TRUE,
+                                        cluster_cols = TRUE,
+                                        border_color = NA,
+                                        treeheight_row = 0,
+                                        treeheight_col = 100,
+                                        ...)
+}
+
+#' Helper function to get Frequncies of Interactions per Cell Type
+#' @param sig_list list of list with top hist (top_frac/top_n)
+#' @param cap_value Cap cell fraction (prop cell activity) to a given value
+#'
+#' @return returns a tibble with method⊎resource frequncies per `cell pair`
+get_ct_frequncies <- function(sig_list,
+                              cap_value = 1){
+    sig_list %>%
+        map(function(db){
+            db %>%
+                enframe(name = "resource", value = "results") %>%
+                mutate(results = results %>% map(function(res) res %>%
+                                                     select(source, target))) %>%
+                unnest(results) %>%
+                mutate_at(.vars = c("source", "target"), ~str_replace(., "_", ".")) %>%
+                pivot_longer(cols = c(source, target),
+                             names_to = "cat",
+                             values_to = "cell") %>%
+                group_by(resource) %>%
+                mutate(total_count = n()) %>%
+                ungroup() %>%
+                group_by(resource, cat, cell) %>%
+                mutate(cell_count = n()) %>%
+                group_by(resource, cat, cell) %>%
+                mutate(cell_fraq = cell_count/total_count) %>%
+                mutate(cell_fraq = if_else(cell_fraq > cap_value,
+                                           cap_value,
+                                           cell_fraq)) %>%
+                distinct() %>%
+                unite(cell, cat, col = "cell_cat") %>%
+                pivot_wider(id_cols = resource,
+                            names_from = cell_cat,
+                            values_from = cell_fraq,
+                            values_fill = 0)
+        }) %>%
+        enframe(name = "method", value = "results_resource") %>%
+        mutate(method = recode_methods(method)) %>%
+        unnest(results_resource) %>%
+        unite(method, resource, col = "mr", sep = "⊎") %>%
+        mutate_all(~ replace(., is.na(.), 0))
+}
+
+
+#' @title Function to plot distribution densities
+#'
+#' @param liana_res_specced liana as a specced list (i.e. output of `get_spec_list`)
+#' @param hit_prop proportions/fractions of hits to be used
+#' @param resource name of the resource to be used
+#' @inheritDotParams passed to `get_top_hits` and `liana_aggregate_enh`
+#'
+#' @returns a dataframe with method scores
+get_score_distributions <- function(liana_res_specced,
+                                    hit_prop = 1,
+                                    resource = "OmniPath",
+                                    ...){
+
+    top_frac_lists <- get_top_hits(liana_res_specced,
+                                   n_ints=c(hit_prop),
+                                   top_fun = "top_frac",
+                                   ...)
+
+    # Transpose to resource-method
+    liana_resmeth <- top_frac_lists[[str_glue("top_{hit_prop}")]] %>%
+        transpose()
+
+    # Format scores
+    liana_scores <- liana_resmeth[[resource]] %>%
+        map2(names(.), function(met_res, met_name){
+            message(met_name)
+
+            met_res %>%
+                rename(score = liana:::.score_specs()[[met_name]]@method_score) %>%
+                select(source, target, ligand, receptor, score)
+        }) %>%
+        enframe(name = "method", value = "results") %>%
+        unnest(results)
+
+
+    # liana aggregate rank
+    liana_ag_res <- liana_resmeth[[resource]] %>%
+        liana_aggregate_enh(...) %>%
+        mutate(method = "aggregate_rank") %>%
+        select(method, source, target, ligand, receptor, score=aggregate_rank)
+
+    # append aggragate
+    liana_scores <- bind_rows(liana_scores, liana_ag_res) %>%
+        mutate(method = recode_methods(method))
+
+
+    return(liana_scores)
+
+}
+
+#' Helper Function to plot Score distributions
+#' @param liana_scores liana scores list obtained via `get_score_distributions`
+plot_score_distributions <- function(liana_scores){
+    # plot
+    p <- liana_scores %>%
+        ggplot(aes(x=score, color=method, fill=method)) +
+        geom_density() +
+        theme(text = element_text(size=16)) +
+        facet_wrap(~ method, scales='free', nrow = 1) +
+        xlab('Method Scores') +
+        ylab("Density")
+    theme_bw()
+
+    return(p)
+}
+
+
+#' Function to generate relative strenth per cell type (as source and target)
+#'
+#' @param liana_all_spec liana as a specced list (i.e. output of `get_spec_list`)
+#' @inheritDotParams get_score_distributions
+#'
+#' @returns a tibble with mr (methodUresource), cell1_source, cell2_source, etc
+get_ct_strength <- function(liana_all_spec,
+                            ...){
+
+    # Get Available Resources
+    resources_used <- liana_all_spec[[1]]@method_results %>% names()
+    print(resources_used)
+
+
+    ct_strength <- map(resources_used, function(resource){
+        # scores for that resource
+        liana_scores <- get_score_distributions(liana_all_spec,
+                                                hit_prop = 1,
+                                                resource = resource,
+                                                ...)
+        # Obtain regularized scores
+        liana_scores_regularized <- regularize_scores(liana_scores)
+
+        # relative strength per cell pair
+        liana_scores_strength <- liana_scores_regularized %>%
+            pivot_longer(cols = c(source, target),
+                         names_to = "cat",
+                         values_to = "cell") %>%
+            unite(cell, cat, col = "cell_cat") %>%
+            group_by(method) %>%
+            mutate(global_score = mean(score)) %>%
+            group_by(method, cell_cat) %>%
+            mutate(cp_score = mean(score)) %>%
+            mutate(cp_strength = cp_score/global_score) %>%
+            ungroup() %>%
+            select(method, cell_cat, cp_strength) %>%
+            distinct() %>%
+            pivot_wider(names_from = cell_cat, values_from = cp_strength)
+
+        return(liana_scores_strength)
+    }) %>%
+        setNames(resources_used) %>%
+        enframe(name = "resource") %>%
+        unnest(value) %>%
+        unite(method, resource, sep ="⊎", col = "mr")
+}
