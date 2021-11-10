@@ -296,7 +296,6 @@ load_and_cluster <- function(dir, subdir, pattern = ".h5"){
         mutate(seurat_clusters = as.factor(seurat_clusters))
     Seurat::Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
 
-
     # Normalize ADT
     seurat_object <- NormalizeData(seurat_object,
                                    assay = "ADT",

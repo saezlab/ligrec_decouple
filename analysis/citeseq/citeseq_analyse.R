@@ -28,7 +28,15 @@ corr_table <- list.files(citeseq_dir) %>%
                          cluster_key = "seurat_clusters",
                          liana_pattern = "liana_res-0.1.RDS",
                          organism = "mouse",
-                         adt_pipe_type = "correlation"
+                         adt_pipe_type = "correlation",
+                         # liana_aggregate_enh params
+                         filt_de_pvals = TRUE,
+                         de_thresh = 0.05, # we only filter Connectome DEs
+                         filt_outs = FALSE,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         .score_mode = liana:::.score_specs,
+                         cap = 500000  # cap for speed has no effect on performance
             )
         } else { # human
             run_adt_pipe(dir = citeseq_dir,
@@ -37,7 +45,15 @@ corr_table <- list.files(citeseq_dir) %>%
                          cluster_key = "seurat_clusters",
                          liana_pattern = "liana_res-0.1.RDS",
                          organism = "human",
-                         adt_pipe_type = "correlation"
+                         adt_pipe_type = "correlation",
+                         # liana_aggregate_enh params
+                         filt_de_pvals = TRUE,
+                         de_thresh = 0.05, # we only filter Connectome DEs
+                         filt_outs = FALSE,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         .score_mode = liana:::.score_specs,
+                         cap = 500000  # cap for speed has no effect on performance
             )
         }
 
@@ -108,7 +124,15 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
                          sobj_pattern = "_seurat.RDS",
                          liana_pattern = "liana_res-0.1.RDS",
                          arbitrary_thresh = arbitrary_thresh,
-                         adt_pipe_type = "specificity"
+                         adt_pipe_type = "specificity",
+                         # liana_aggregate_enh params
+                         filt_de_pvals = TRUE,
+                         de_thresh = 0.05, # we only filter Connectome DEs
+                         filt_outs = FALSE,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         .score_mode = liana:::.score_specs,
+                         cap = 500000  # cap for speed has no effect on performance
             )
         } else { # human
             run_adt_pipe(subdir = subdir,
@@ -119,7 +143,16 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
                          sobj_pattern = "_seurat.RDS",
                          liana_pattern = "liana_res-0.1.RDS",
                          arbitrary_thresh = arbitrary_thresh,
-                         adt_pipe_type = "specificity"
+                         adt_pipe_type = "specificity",
+                         # liana_aggregate_enh params
+                         filt_de_pvals = TRUE,
+                         de_thresh = 0.05, # we only filter Connectome DEs
+                         filt_outs = FALSE,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         .score_mode = liana:::.score_specs,
+                         cap = 500000  # cap for speed has no effect on performance
+
             )
         }
 
