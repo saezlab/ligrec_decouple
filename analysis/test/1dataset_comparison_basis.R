@@ -116,9 +116,6 @@ liana_scores_strength <- liana_scores_regularized %>%
 # to be split to source and target (as in the other cell pair frequency heatmap)
 # i.e. I should merge them
 ComplexHeatmap::Heatmap(t(liana_scores_strength))
-
-
-
 # get cp_strength
 pval_thresh = 1
 sca_thresh = 0
@@ -157,75 +154,20 @@ jaccard_per_mr <- simdist_resmet(top_lists[[top_hits_key]],
                                  method = "Jaccard")
 
 
-# Methods jaccard index across different resources
-methods_ji <- jaccard_per_mr$meth %>%
-    map2(names(.), function(met_ji, met_name){
-        met_ji %>%
-            as.matrix() %>%
-            as.data.frame() %>%
-            as_tibble(rownames="method_resource1") %>%
-            pivot_longer(-method_resource1,
-                         names_to = "method_resource2",
-                         values_to = "jacc") %>%
-            distinct() %>%
-            filter(method_resource1!=method_resource2) %>%
-            mutate(method = met_name)
-    }) %>%
-    bind_rows() %>%
-    unite(method_resource1, method_resource2, col = "combination")
-
-
-# Boxplot
-ggplot(methods_ji,
-       aes(x = method,
-           y = jacc,
-           color = method
-           # color = dataset_type,
-           # fill = dataset_type
-       )) +
-    geom_boxplot(alpha = 0.2,
-                 outlier.size = 1.5,
-                 width = 0.8)  +
-    geom_jitter(aes(shape=combination), size = 5, alpha = 0.3, width = 0.15) +
-    scale_shape_manual(values = rep(1:20, len = length(unique(methods_ji$combination)))) +
-    # facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-    theme_bw(base_size = 24) +
-    theme(strip.text.x = element_text(angle = 90),
-          axis.text.x = element_text(angle = 45, hjust=1)
-    ) +
-    # guides(color = "none") +
-    guides(fill = "none",
-           color = "none",
-           shape = "none") +
-    ylab("Jaccard index") +
-    xlab("Methods")
 
 
 
-# Resources jaccard index across different methods
-resource_ji <- jaccard_per_mr$reso %>%
-    map2(names(.), function(reso_ji, reso_name){
-        reso_ji %>%
-            as.matrix() %>%
-            as.data.frame() %>%
-            as_tibble(rownames="resource_method1") %>%
-            pivot_longer(-resource_method1,
-                         names_to = "resource_method2",
-                         values_to = "jacc") %>%
-            distinct() %>%
-            filter(resource_method1!=resource_method2) %>%
-            mutate(resource = reso_name)
-    }) %>%
-    bind_rows() %>%
-    unite(resource_method1, resource_method2, col = "combination")
+
+
+
+methods_jaccbox <- jacc_1d_boxplot(resource_ji, entity="resource")
+resources_jaccbox <- jacc_1d_boxplot(methods_ji, entity="method")
 
 
 ggplot(resource_ji,
        aes(x = resource,
            y = jacc,
            color = resource
-           # color = dataset_type,
-           # fill = dataset_type
        )) +
     geom_boxplot(alpha = 0.2,
                  outlier.size = 1.5,

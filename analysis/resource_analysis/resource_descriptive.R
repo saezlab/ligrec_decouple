@@ -1889,7 +1889,7 @@ compile_ligrec_descr <- function(){
 
 
 #' Helper function to save to plot, but also assign to global env
-#' @param filename
+#' @param filename name of the file to be saved
 #' @importFrom grDevices cairo_pdf dev.off
 cairo_pdf_enh <- function(filename,
                           plot,
