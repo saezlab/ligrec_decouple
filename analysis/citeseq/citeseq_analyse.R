@@ -10,12 +10,12 @@ require(ComplexHeatmap)
 require(ggsignif)
 require(yardstick)
 require(SingleCellExperiment)
-arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 # load prereqs
 citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 ### I) Correlations ----
 corr_table <- list.files(citeseq_dir) %>%
