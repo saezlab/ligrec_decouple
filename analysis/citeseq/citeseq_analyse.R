@@ -16,8 +16,63 @@ citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
+.eval = "max"
 
-### I) Correlations ----
+
+### Receptor Specificity ROC -----
+pr_roc_tibble <- list.files(citeseq_dir) %>%
+    map(function(subdir){
+        # If mouse, load convert use murine-specific conversion
+        if(stringr::str_detect(subdir, pattern = "spleen")){
+            run_adt_pipe(subdir = subdir,
+                         dir = citeseq_dir,
+                         op_resource = murine_resource,
+                         organism = "mouse",
+                         cluster_key = "seurat_clusters",
+                         sobj_pattern = "_seurat.RDS",
+                         liana_pattern = "liana_res-0.1.RDS",
+                         arbitrary_thresh = arbitrary_thresh,
+                         adt_pipe_type = "specificity",
+                         # liana_aggregate_enh params
+                         filt_de_pvals = TRUE,
+                         de_thresh = 0.05, # we only filter Connectome DEs
+                         filt_outs = FALSE,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         .score_mode = liana:::.score_specs,
+                         .eval = .eval
+            )
+        } else { # human
+            run_adt_pipe(subdir = subdir,
+                         dir = citeseq_dir,
+                         op_resource = op_resource,
+                         organism = "human",
+                         cluster_key = "seurat_clusters",
+                         sobj_pattern = "_seurat.RDS",
+                         liana_pattern = "liana_res-0.1.RDS",
+                         arbitrary_thresh = arbitrary_thresh,
+                         adt_pipe_type = "specificity",
+                         # liana_aggregate_enh params
+                         filt_de_pvals = TRUE,
+                         de_thresh = 0.05, # we only filter Connectome DEs
+                         filt_outs = FALSE,
+                         pval_thresh = 1,
+                         sca_thresh = 0,
+                         .score_mode = liana:::.score_specs,
+                         .eval = .eval
+
+            )
+        }
+
+    }) %>% setNames(list.files(citeseq_dir)) %>%
+    enframe(name = "dataset") %>%
+    unnest(value)
+
+# Save obj
+saveRDS(pr_roc_tibble, str_glue("data/output/citeseq_out/citeseq_aurocs_{.eval}.RDS"))
+
+
+### Supp) Correlations ----
 corr_table <- list.files(citeseq_dir) %>%
     map(function(subdir){
         # If mouse, load convert use murine-specific conversion
@@ -108,58 +163,3 @@ corr_table %>%
          shape=guide_legend(title="Dataset")) +
     geom_signif(comparisons = my_comparisons,
                 map_signif_level=TRUE)
-
-
-
-### II) Receptor Specificity ROC -----
-pr_roc_tibble <- list.files(citeseq_dir) %>%
-    map(function(subdir){
-        # If mouse, load convert use murine-specific conversion
-        if(stringr::str_detect(subdir, pattern = "spleen")){
-            run_adt_pipe(subdir = subdir,
-                         dir = citeseq_dir,
-                         op_resource = murine_resource,
-                         organism = "mouse",
-                         cluster_key = "seurat_clusters",
-                         sobj_pattern = "_seurat.RDS",
-                         liana_pattern = "liana_res-0.1.RDS",
-                         arbitrary_thresh = arbitrary_thresh,
-                         adt_pipe_type = "specificity",
-                         # liana_aggregate_enh params
-                         filt_de_pvals = TRUE,
-                         de_thresh = 0.05, # we only filter Connectome DEs
-                         filt_outs = FALSE,
-                         pval_thresh = 1,
-                         sca_thresh = 0,
-                         .score_mode = liana:::.score_specs,
-                         cap = 500000  # cap for speed has no effect on performance
-            )
-        } else { # human
-            run_adt_pipe(subdir = subdir,
-                         dir = citeseq_dir,
-                         op_resource = op_resource,
-                         organism = "human",
-                         cluster_key = "seurat_clusters",
-                         sobj_pattern = "_seurat.RDS",
-                         liana_pattern = "liana_res-0.1.RDS",
-                         arbitrary_thresh = arbitrary_thresh,
-                         adt_pipe_type = "specificity",
-                         # liana_aggregate_enh params
-                         filt_de_pvals = TRUE,
-                         de_thresh = 0.05, # we only filter Connectome DEs
-                         filt_outs = FALSE,
-                         pval_thresh = 1,
-                         sca_thresh = 0,
-                         .score_mode = liana:::.score_specs,
-                         cap = 500000  # cap for speed has no effect on performance
-
-            )
-        }
-
-    }) %>% setNames(list.files(citeseq_dir)) %>%
-    enframe(name = "dataset") %>%
-    unnest(value)
-
-# Save obj
-saveRDS(pr_roc_tibble, "data/output/citeseq_out/citeseq_aurocs.RDS")
-

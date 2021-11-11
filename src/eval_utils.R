@@ -311,7 +311,7 @@ liana_aggregate_enh <- function(liana_res,
 
     # aggregate liana results
     liana_res %<>% liana_aggregate(...,
-                                   cap = 500000)
+                                   cap = 500000) # TO BE REMOVED!!!!
 
     return(liana_res)
 }

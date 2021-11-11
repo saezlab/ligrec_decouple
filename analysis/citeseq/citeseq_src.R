@@ -21,6 +21,7 @@ run_adt_pipe <- function(subdir = subdir,
                          arbitrary_thresh,
                          organism = "human",
                          adt_pipe_type = "correlation",
+                         .eval = "max",
                          ...){
 
     # read seurat
@@ -34,8 +35,25 @@ run_adt_pipe <- function(subdir = subdir,
     liana_res_path <- list.subfiles(subdir = subdir,
                                     dir = citeseq_dir,
                                     pattern = liana_pattern)
-    liana_res <- readRDS(liana_res_path) %>%
-        liana_aggregate_enh(...)
+    liana_res <- readRDS(liana_res_path) # %>%
+        # liana_aggregate_enh(...)
+
+
+    if(.eval=="intersect"){
+        liana_res %<>%
+            mutate(across(ends_with("rank"),
+                          ~ifelse(.x==nrow(liana_res), NA, .x))) %>%
+            na.omit()
+    } else if(.eval=="individual"){
+        liana_res %<>%
+            mutate(across(ends_with("rank"),
+                          ~ifelse(.x==nrow(liana_res), NA, .x)))
+
+    }
+
+    if(!(.eval %in% c("intersect", "individual", "max"))){
+        stop("Evaluation Measure incorrect")
+    }
 
     # Get Symbols of Receptors from OP
     receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
@@ -350,7 +368,7 @@ wrap_liana_wrap <- function(subdir,
     liana_res <- liana_wrap(seurat_object,
                             expr_prop = expr_prop,
                             ...)
-    # aggregate method results
+    # Format Method Results
     liana_res %<>%
         # standardize symbols
         map(function(res) res %>%
