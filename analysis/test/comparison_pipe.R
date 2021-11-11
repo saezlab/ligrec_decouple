@@ -17,6 +17,10 @@ source("src/plot_utils.R")
 # Runs all things
 # saves plot data
 # patchwork
+
+# top 500,000 is the default for liana_aggregate_enh
+# consider only looking at some resources - no need for all 20
+
 xxx <- comparison_pipe(input_filepath = "data/output/temp/liana_all_resources.RDS",
                        output_filepath = "test123",
                        resource = "OmniPath",
