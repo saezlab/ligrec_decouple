@@ -18,9 +18,10 @@ Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
 # Run liana
 liana_res <- liana_wrap(seurat_object,
                         resource = c('OmniPath'),
-                        method = c("natmi", "connectome", "logfc", "cellchat",
-                                   "sca", "cellphonedb", "cytotalk",
-                                   "squidpy", "call_natmi"),
+                        method = c("natmi", "connectome", "logfc",
+                                   "sca", "scconnect", "cytotalk"
+                                   #, "squidpy", "call_natmi", "cellphonedb",  "cellchat"
+                                   ),
                         expr_prop = 0.1)
 saveRDS(liana_res, "data/output/temp/small_test2.RDS")
 
@@ -33,9 +34,6 @@ liana_res_intersect <- liana_res_full %>%
     na.omit()
 liana_res_ind <- liana_res_full %>%
     mutate(across(ends_with("rank"), ~ifelse(.x==max(.x), NA, .x)))
-liana_res_partial <- list(cellphonedb = liana_res$cellphonedb,
-                          natmi = liana_res$natmi) %>%
-    liana_aggregate()
 
 
 # Citeseq check ----
@@ -65,7 +63,7 @@ adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
 adt_lr_roc <-
     generate_specificity_roc(
         seurat_object = seurat_object,
-        liana_res = xd,
+        liana_res = liana_res_full,
         op_resource = op_resource,
         cluster_key = "seurat_clusters",
         organism=organism,
@@ -80,32 +78,11 @@ adt_lr_roc %>%
     dplyr::select(method_name, auc) %>%
     distinct()
 
-
-# ROC Partial
-adt_lr_roc_part <-
-    generate_specificity_roc(
-        seurat_object = seurat_object,
-        liana_res = liana_res_partial,
-        op_resource = op_resource,
-        cluster_key = "seurat_clusters",
-        organism=organism,
-        receptor_syms = receptor_syms,
-        adt_symbols = adt_symbols,
-        adt_aliases = adt_aliases,
-        arbitrary_thresh = arbitrary_thresh)
-
-adt_lr_roc_part %>%
-    dplyr::select(method_name, roc) %>%
-    unnest(roc) %>%
-    dplyr::select(method_name, auc) %>%
-    distinct()
-
-
 # Intersect
 adt_lr_roc_intersect <-
     generate_specificity_roc(
         seurat_object = seurat_object,
-        liana_res = xd2,
+        liana_res = liana_res_intersect,
         op_resource = op_resource,
         cluster_key = "seurat_clusters",
         organism=organism,
@@ -126,7 +103,6 @@ adt_lr_roc_ind <-
         adt_symbols = adt_symbols,
         adt_aliases = adt_aliases,
         arbitrary_thresh = arbitrary_thresh)
-
 
 # Full
 adt_lr_roc %>%

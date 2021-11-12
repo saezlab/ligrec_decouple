@@ -6,13 +6,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE,
+                      root.dir = withr::with_dir("../..", rprojroot::find_root("LICENSE")))
 require(liana)
 require(tidyverse)
 require(magrittr)
-
-omni_resources <- compile_ligrec(lr_pipeline = TRUE)
-
 
 #' Helper Function to get uniques values of a given column
 #' @param left_res e.g. OmniPath version of a Resource
@@ -33,6 +31,36 @@ get_uniques <- function(left_res, right_res, column){
 ```
 
 
+## Here, we will check how well OP represents OG resources
+```{r list_resources}
+liana:::show_resources()
+# To check (Jaccard Index between interactions):
+# 1. CellChatDB (0.814)
+# 2. ICELLNET (0.396)
+# 3. iTALK (>0.93)
+# 4. Ramilowski2015 (>0.95)
+# 5. ConnectomeDB (0.97)
+# 6. LRdb (>0.97)
+# 7. CellTalkDB (0.982)
+
+# To be checked:
+
+# 8. Cellinker
+# 9. CellCall
+# 10. scConnect?
+  
+# Unsure whether to check:
+# EMBRACE, HPMR, Kirouac2010, Guide2Pharma
+
+# CPDB - We cannot as parter_a and partner_b are ambigous
+# Baccin2019 - converted to murine in OmniPath
+
+```
+
+
+
+
+
 
 ### I) Check CellChat
 ##### inbuilt Resource CellChatDB
@@ -49,9 +77,12 @@ cc_omnipath <- cellchat_formatDB(CellChat::CellChatDB.human,
     pluck("interaction") %>%
     select(interaction_name, ligand, receptor)
 
-# 984 interactions for Original CellChatDB, 2,551 for OmniPath
+# 1,939 interactions for Original CellChatDB, 1,882 for OmniPath
 cc_omnipath %>% glimpse()
 cc_inbuilt %>% glimpse()
+
+# examine
+cc_fj <- full_join(cc_omnipath, cc_inbuilt, by="interaction_name")
 ```
 
 
@@ -147,9 +178,13 @@ get_uniques(lrdb_inbuilt, lrdb_omni, "receptor") %>%
 ##### inbuilt Resource iTALK
 ```{r italk}
 italk_omni <- omni_resources$iTALK %>%
-    italk_formatDB()
+    italk_formatDB() %>%
+  rename(interaction = Pair.Name,
+         source_genesymbol = Ligand.ApprovedSymbol,
+         target_genesymbol = Receptor.ApprovedSymbol)
 
-italk_inbuilt <- iTALK::database
+italk_inbuilt <- iTALK::database %>%
+  rename(interaction = Pair.Name)
 
 # Glimpse Both
 italk_omni %>% glimpse()
@@ -158,28 +193,28 @@ italk_inbuilt %>% glimpse()
 
 #### 1) Unique Interactions
 ```{r italk_interactions}
-get_uniques(italk_omni, italk_inbuilt, "Pair.Name") %>%
+get_uniques(italk_omni, italk_inbuilt, "interaction") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(italk_inbuilt, italk_omni, "Pair.Name") %>%
+get_uniques(italk_inbuilt, italk_omni, "interaction") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
 #### 2) Unique Ligands
 ```{r italk_ligands}
-get_uniques(italk_omni, italk_inbuilt, "Ligand.ApprovedSymbol") %>%
+get_uniques(italk_omni, italk_inbuilt, "source_genesymbol") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(italk_inbuilt, italk_omni, "Ligand.ApprovedSymbol") %>%
+get_uniques(italk_inbuilt, italk_omni, "source_genesymbol") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
 
 # 3) Unique Receptors
 ```{r italk_receptors}
-get_uniques(italk_omni, italk_inbuilt, "Receptor.ApprovedSymbol") %>%
+get_uniques(italk_omni, italk_inbuilt, "target_genesymbol") %>%
   rmarkdown::paged_table() # Unique to OmniPath
-get_uniques(italk_inbuilt, italk_omni, "Receptor.ApprovedSymbol") %>%
+get_uniques(italk_inbuilt, italk_omni, "target_genesymbol") %>%
   rmarkdown::paged_table()# Unique to Inbuilt
 ```
 
@@ -188,14 +223,15 @@ get_uniques(italk_inbuilt, italk_omni, "Receptor.ApprovedSymbol") %>%
 ##### Inbuilt Resource is FANTOM5 (aka Ramilowski)
 ```{r conn}
 conn_omni <- omni_resources$Ramilowski2015 %>%
-    conn_formatDB() %>%
-    unite(source_genesymbol, target_genesymbol,
-          col = "Pair.Name", remove = FALSE) %>%
-    rename("Ligand.ApprovedSymbol" = source_genesymbol,
-           "Receptor.ApprovedSymbol" = target_genesymbol)
+  conn_formatDB() %>%
+  unite(source_genesymbol, target_genesymbol,
+        col = "interaction", remove = FALSE)
 
-conn_inbuilt <- Connectome::ncomms8866_human  %>%
-            filter(Pair.Evidence == "literature supported")
+conn_inbuilt <- Connectome::ncomms8866_human %>%
+            filter(Pair.Evidence == "literature supported") %>%
+    rename(source_genesymbol = Ligand.ApprovedSymbol,
+           target_genesymbol = Receptor.ApprovedSymbol,
+           interaction = Pair.Name)
 
 # Glimpse Both
 conn_omni %>% glimpse()
@@ -204,28 +240,28 @@ conn_inbuilt %>% glimpse()
 
 ```{r conn_interactions}
 #### 1) Unique Interactions
-get_uniques(conn_omni, conn_inbuilt, "Pair.Name") %>%
+get_uniques(conn_omni, conn_inbuilt, "interaction") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(conn_inbuilt, conn_omni, "Pair.Name") %>%
+get_uniques(conn_inbuilt, conn_omni, "interaction") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
 #### 2) Unique Ligands
 ```{r conn_ligands}
-get_uniques(conn_omni, conn_inbuilt, "Ligand.ApprovedSymbol") %>%
+get_uniques(conn_omni, conn_inbuilt, "source_genesymbol") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(conn_inbuilt, conn_omni, "Ligand.ApprovedSymbol") %>%
+get_uniques(conn_inbuilt, conn_omni, "source_genesymbol") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
 #### 3) Unique Receptors
 ```{r conn_receptors}
-get_uniques(conn_omni, conn_inbuilt, "Receptor.ApprovedSymbol") %>%
+get_uniques(conn_omni, conn_inbuilt, "target_genesymbol") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(conn_inbuilt, conn_omni, "Receptor.ApprovedSymbol") %>%
+get_uniques(conn_inbuilt, conn_omni, "target_genesymbol") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
@@ -234,13 +270,15 @@ get_uniques(conn_inbuilt, conn_omni, "Receptor.ApprovedSymbol") %>%
 ##### Inbuilt Resource is ConnectomeDB (aka Ramilowski2015 follow up)
 
 ```{r natmi}
-natmi_omni <- read.csv("~/Repos/ligrec_decouple/data/input/connectomeDB2020.csv") %>%
-    unite(Ligand.gene.symbol, Receptor.gene.symbol,
-          col = "Pair.Name", remove = FALSE)
+natmi_omni <- select_resource("connectomeDB2020")[[1]] %>%
+    unite(source_genesymbol, target_genesymbol,
+          col = "interaction", remove = FALSE)
 
-natmi_inbuilt <- read.csv("~/Repos/ligrec_decouple/data/input/lrc2p.csv") %>%
-    unite(Ligand.gene.symbol, Receptor.gene.symbol,
-          col = "Pair.Name", remove = FALSE)
+natmi_inbuilt <- read.csv("renv/library/R-4.0/x86_64-pc-linux-gnu/liana/NATMI/lrdbs/lrc2p.csv") %>%
+  select(source_genesymbol = Ligand.gene.symbol,
+         target_genesymbol = Receptor.gene.symbol) %>%
+  unite(source_genesymbol, target_genesymbol,
+        col = "interaction", remove = FALSE)
 
 # Glimpse Both
 natmi_omni %>% glimpse()
@@ -249,27 +287,128 @@ natmi_inbuilt %>% glimpse()
 
 ```{r natmi_interactions}
 #### 1) Unique Interactions
-get_uniques(natmi_omni, natmi_inbuilt, "Pair.Name") %>%
+get_uniques(natmi_omni, natmi_inbuilt, "interaction") %>%
   rmarkdown::paged_table()# Unique to OmniPath
 
-get_uniques(natmi_inbuilt, natmi_omni, "Pair.Name") %>%
+get_uniques(natmi_inbuilt, natmi_omni, "interaction") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
 ```{r natmi_ligands}
 #### 2) Unique Ligands
-get_uniques(natmi_omni, natmi_inbuilt, "Ligand.gene.symbol") %>%
+get_uniques(natmi_omni, natmi_inbuilt, "source_genesymbol") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(natmi_inbuilt, natmi_omni, "Ligand.gene.symbol") %>%
+get_uniques(natmi_inbuilt, natmi_omni, "source_genesymbol") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
 
 ```{r natmi_receptors}
 #### 3) Unique Receptors
-get_uniques(natmi_omni, natmi_inbuilt, "Receptor.gene.symbol") %>%
+get_uniques(natmi_omni, natmi_inbuilt, "target_genesymbol") %>%
   rmarkdown::paged_table() # Unique to OmniPath
 
-get_uniques(natmi_inbuilt, natmi_omni, "Receptor.gene.symbol") %>%
+get_uniques(natmi_inbuilt, natmi_omni, "target_genesymbol") %>%
   rmarkdown::paged_table() # Unique to Inbuilt
 ```
+
+
+### VI) ICELLNET
+
+```{r icellnet}
+icellnet_omni <- select_resource("ICELLNET")[[1]] %>%
+    unite(source_genesymbol, target_genesymbol,
+          col = "interaction", remove = FALSE)
+
+# Original ICELLNET
+icellnet_inbuilt <- read.delim("https://raw.githubusercontent.com/soumelis-lab/ICELLNET/master/data/ICELLNETdb.csv",
+                       sep=";")  %>%
+  distinct_at(vars("Ligand.1", "Ligand.2",
+                   "Receptor.1", "Receptor.2",
+                   "Receptor.3")) %>%
+  unite("Ligand.1", "Ligand.2", col = "source_genesymbol") %>%
+  unite("Receptor.1", "Receptor.2", "Receptor.3", col = "target_genesymbol") %>%
+  mutate(target_genesymbol =  sub("\\__[^_]*$", "", target_genesymbol)) %>%
+  mutate(target_genesymbol =  sub("\\_[^_]*$", "", target_genesymbol))  %>%
+  mutate(source_genesymbol =  sub("\\__[^_]*$", "", source_genesymbol)) %>%
+  mutate(source_genesymbol =  sub("\\_[^_]*$", "", source_genesymbol)) %>%
+  unite(source_genesymbol, target_genesymbol,
+          col = "interaction", remove = FALSE)
+
+
+# Glimpse Both
+icellnet_omni %>% glimpse()
+icellnet_inbuilt %>% glimpse()
+```
+
+```{r icellnet}
+#### 1) Unique Interactions
+get_uniques(icellnet_omni, icellnet_inbuilt, "interaction") %>%
+  rmarkdown::paged_table()# Unique to OmniPath
+
+get_uniques(icellnet_inbuilt, icellnet_omni, "interaction") %>%
+  rmarkdown::paged_table() # Unique to Inbuilt
+```
+
+```{r icellnet}
+#### 2) Unique Ligands
+get_uniques(icellnet_omni, icellnet_inbuilt, "source_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to OmniPath
+
+get_uniques(icellnet_inbuilt, icellnet_omni, "source_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to Inbuilt
+```
+
+```{r icellnet}
+#### 3) Unique Receptors
+get_uniques(icellnet_omni, icellnet_inbuilt, "target_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to OmniPath
+
+get_uniques(icellnet_inbuilt, icellnet_omni, "target_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to Inbuilt
+```
+
+### VII) CellTalkDB
+```{r celltalkdb}
+celltalkdb_omni <- select_resource("CellTalkDB")[[1]] %>%
+    unite(source_genesymbol, target_genesymbol,
+          col = "interaction", remove = FALSE)
+
+# Original celltalkdb
+celltalkdb_inbuilt <- read.table("data/input/human_lr_pair.txt", header = TRUE) %>%
+  select(interaction = lr_pair,
+         source_genesymbol = ligand_gene_symbol,
+         target_genesymbol = receptor_gene_symbol)
+
+celltalkdb_omni %>% glimpse()
+celltalkdb_inbuilt %>% glimpse()
+
+```
+
+```{r celltalkdb}
+#### 1) Unique Interactions
+get_uniques(celltalkdb_omni, celltalkdb_inbuilt, "interaction") %>%
+  rmarkdown::paged_table()# Unique to OmniPath
+
+get_uniques(celltalkdb_inbuilt, celltalkdb_omni, "interaction") %>%
+  rmarkdown::paged_table() # Unique to Inbuilt
+```
+
+```{r celltalkdb}
+#### 2) Unique Ligands
+get_uniques(celltalkdb_omni, celltalkdb_inbuilt, "source_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to OmniPath
+
+get_uniques(celltalkdb_inbuilt, celltalkdb_omni, "source_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to Inbuilt
+```
+
+```{r celltalkdb}
+#### 3) Unique Receptors
+get_uniques(celltalkdb_omni, celltalkdb_inbuilt, "target_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to OmniPath
+
+get_uniques(celltalkdb_inbuilt, celltalkdb_omni, "target_genesymbol") %>%
+  rmarkdown::paged_table() # Unique to Inbuilt
+```
+
