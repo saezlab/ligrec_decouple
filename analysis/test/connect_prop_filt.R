@@ -11,7 +11,7 @@ source("src/plot_utils.R")
 # liana_path <- system.file(package = "liana")
 # seurat_object <-
 #     readRDS(file.path(liana_path , "testdata", "input", "testdata.rds"))
-seurat_object <- readRDS("data/input/citeseq/10k_malt/10k_malt_seurat.RDS")
+seurat_object <- readRDS("data/input/citeseq/5k_pbmcs_nextgem/5k_pbmcs_nextgem_seurat.RDS")
 seurat_object@meta.data %<>% mutate(seurat_clusters = as.factor(seurat_clusters))
 Idents(seurat_object) <- seurat_object@meta.data$seurat_clusters
 
@@ -65,7 +65,7 @@ adt_aliases <- get_adt_aliases(adt_symbols = adt_symbols,
 adt_lr_roc <-
     generate_specificity_roc(
         seurat_object = seurat_object,
-        liana_res = liana_res_full,
+        liana_res = xd,
         op_resource = op_resource,
         cluster_key = "seurat_clusters",
         organism=organism,
@@ -105,7 +105,7 @@ adt_lr_roc_part %>%
 adt_lr_roc_intersect <-
     generate_specificity_roc(
         seurat_object = seurat_object,
-        liana_res = liana_res_intersect,
+        liana_res = xd2,
         op_resource = op_resource,
         cluster_key = "seurat_clusters",
         organism=organism,

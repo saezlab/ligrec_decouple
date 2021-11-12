@@ -323,13 +323,14 @@ liana_aggregate_enh <- function(liana_res,
 
     if(.eval=="intersect"){
         liana_res %<>%
-            mutate(across(ends_with("rank"),
-                          ~ifelse(.x==nrow(liana_res), NA, .x))) %>%
-            na.omit()
+            na.omit() # interactions with missing scores are simply removed
+
+        message(str_glue("INTERSECT: {nrow(liana_res)} interactions"))
     } else if(.eval=="independent"){
         liana_res %<>%
-            mutate(across(ends_with("rank"),
-                          ~ifelse(.x==nrow(liana_res), NA, .x)))
+            rowwise() %>%
+            mutate(across(ends_with("rank"), # REMOVE |.x==500000 when cap is removed
+                          ~ifelse(.x==nrow(liana_res) || .x==500000, NA, .x)))
     }
 
     return(liana_res)
