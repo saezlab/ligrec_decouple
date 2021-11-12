@@ -16,7 +16,7 @@ citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
-.eval = "max"
+.eval = "intersect"
 
 
 ### Receptor Specificity ROC -----
@@ -64,12 +64,15 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
             )
         }
 
-    }) %>% setNames(list.files(citeseq_dir)) %>%
+    }) %>%
+    setNames(list.files(citeseq_dir)) %>%
     enframe(name = "dataset") %>%
     unnest(value)
 
 # Save obj
 saveRDS(pr_roc_tibble, str_glue("data/output/citeseq_out/citeseq_aurocs_{.eval}.RDS"))
+
+
 
 
 ### Supp) Correlations ----

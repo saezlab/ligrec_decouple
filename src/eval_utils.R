@@ -156,7 +156,7 @@ calc_curve = function(df,
 
     if(auc_only){
         res %<>%
-            select(-c(th, !!res_col_1, !!res_col_2)) %>%
+            dplyr::select(-c(th, !!res_col_1, !!res_col_2)) %>%
             distinct()
     }
 
@@ -290,8 +290,10 @@ liana_aggregate_enh <- function(liana_res,
                                 filt_outs = FALSE,
                                 pval_thresh = 0.05,
                                 sca_thresh = 0.5,
+                                .eval,
                                 ...){
-    if(filt_de_pvals){
+
+    if(filt_de_pvals & !is.null(liana_res$call_connectome)){
         # Filter Connectome genes below 0.05
         liana_res$call_connectome %<>%
             filter(p_val_adj.lig <= de_thresh) %>%
@@ -312,6 +314,23 @@ liana_aggregate_enh <- function(liana_res,
     # aggregate liana results
     liana_res %<>% liana_aggregate(...,
                                    cap = 500000) # TO BE REMOVED!!!!
+
+    message(str_glue("Eval: {.eval} still capped!"))
+
+    if(!(.eval %in% c("intersect", "independent", "max"))){
+        stop("Evaluation Measure incorrect")
+    }
+
+    if(.eval=="intersect"){
+        liana_res %<>%
+            mutate(across(ends_with("rank"),
+                          ~ifelse(.x==nrow(liana_res), NA, .x))) %>%
+            na.omit()
+    } else if(.eval=="independent"){
+        liana_res %<>%
+            mutate(across(ends_with("rank"),
+                          ~ifelse(.x==nrow(liana_res), NA, .x)))
+    }
 
     return(liana_res)
 }

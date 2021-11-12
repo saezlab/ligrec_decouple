@@ -35,29 +35,15 @@ run_adt_pipe <- function(subdir = subdir,
     liana_res_path <- list.subfiles(subdir = subdir,
                                     dir = citeseq_dir,
                                     pattern = liana_pattern)
-    liana_res <- readRDS(liana_res_path) # %>%
-        # liana_aggregate_enh(...)
+    liana_res <- readRDS(liana_res_path) %>%
+        liana_aggregate_enh(...,
+                            .eval = .eval
+                            )
 
 
-    if(.eval=="intersect"){
-        liana_res %<>%
-            mutate(across(ends_with("rank"),
-                          ~ifelse(.x==nrow(liana_res), NA, .x))) %>%
-            na.omit()
-    } else if(.eval=="individual"){
-        liana_res %<>%
-            mutate(across(ends_with("rank"),
-                          ~ifelse(.x==nrow(liana_res), NA, .x)))
-
-    }
-
-    if(!(.eval %in% c("intersect", "individual", "max"))){
-        stop("Evaluation Measure incorrect")
-    }
 
     # Get Symbols of Receptors from OP
     receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
-
     # Get ADT Symbols
     adt_symbols <- rownames(seurat_object@assays$ADT)
 
@@ -157,9 +143,6 @@ wrap_adt_corr <- function(seurat_object,
 
     return(adt_corr)
 }
-
-
-
 
 
 
@@ -742,14 +725,16 @@ generate_specificity_roc <- function(seurat_object,
         mutate(roc = .data$adt_rank %>%
                    map(function(df) calc_curve(df,
                                                downsampling = FALSE,
-                                               source = "source.target.entity"))) %>%
+                                               source = "source.target.entity",
+                                               auc_only = TRUE))) %>%
         # Calculate PRROC
         mutate(prc = .data$adt_rank %>%
                    map(function(df) calc_curve(df,
                                                curve = "PR",
                                                downsampling = TRUE,
                                                times = 100,
-                                               source = "source.target.entity")))
+                                               source = "source.target.entity",
+                                               auc_only = TRUE)))
     return(adt_rank_roc)
 }
 
