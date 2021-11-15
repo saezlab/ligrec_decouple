@@ -29,7 +29,7 @@ liana_res <- liana_wrap(seurat_object,
                                    'call_connectome', 'logfc', 'cellchat',
                                    'call_sca', 'cellphonedb', "cytotalk"
                                    ),
-                        resource = c(#"ICELLNET",
+                        resource = c("ICELLNET",
                                     "OmniPath"#,
                                     # "CellChatDB"#,
                                     # "CellTalkDB"
