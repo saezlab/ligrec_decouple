@@ -8,9 +8,9 @@ require(liana)
 args <- commandArgs(trailingOnly=TRUE)
 
 # Path to Project
-path_to_project <- args[[1]] # ~/Repos/ligrec_decouple/ (on local)
+# path_to_project <- args[[1]] # ~/Repos/ligrec_decouple/ (on local)
 # Get brca_subtpye
-brca_subtype <- args[[2]] # "TNBC", "ER", "HER2"
+brca_subtype <- args[[1]] # "TNBC", "ER", "HER2"
 message(str_glue("Now Running: LIANA with {brca_subtype}"))
 
 
