@@ -199,7 +199,9 @@ ligrec_decomplexify <- function(ligrec){
     complex_resources <- c("CellChatDB",
                            "CellPhoneDB",
                            "Baccin2019",
-                           "ICELLNET"
+                           "ICELLNET",
+                           "CellCall",
+                           "Cellinker"
     )
 
     cats <- list(transmitters = "uniprot",

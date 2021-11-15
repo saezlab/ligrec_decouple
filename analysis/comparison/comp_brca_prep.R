@@ -60,7 +60,8 @@ lr_omni <- liana_res %>%
                         filt_outs = FALSE,
                         pval_thresh = 1,
                         sca_thresh = 0,
-                        .score_mode = liana:::.score_specs
+                        .score_mode = liana:::.score_specs,
+                        resource = "OmniPath"
                         )
 saveRDS(lr_omni,
         file.path("data/output/comparison_out/",
