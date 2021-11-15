@@ -8,7 +8,7 @@ sbatch <<EOT
 #SBATCH --mem=100000
 #SBATCH --job-name=$1"brca_run"
 #SBATCH --output="out/"$1"brca_run.out"
-#SBATCH --e="out/"$1"brca_run.err"
+#SBATCH --error="out/"$1"brca_run.err"
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
 #SBATCH --mail-type=ALL
 #SBATCH --requeue
