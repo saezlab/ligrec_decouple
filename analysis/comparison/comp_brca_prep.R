@@ -42,7 +42,8 @@ liana_res <- liana_wrap(seurat_object,
                             expr_file = str_glue("{brca_subtype}_em.csv"),
                             meta_file = str_glue("{brca_subtype}_metadata.csv"),
                             output_dir = str_glue("brca_{brca_subtype}_results"),
-                            reso_name = str_glue("{brca_subtype}_placeholder")
+                            reso_name = str_glue("{brca_subtype}_placeholder"),
+                            .write_data = FALSE
                             ),
                         assay = "SCT") # by default as in CellChat
 
