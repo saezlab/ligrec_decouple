@@ -1,8 +1,4 @@
 #### Run LIANA with all original methods (with defaults args) + multiple resources
-require(tidyverse)
-require(magrittr)
-require(Seurat)
-require(liana)
 
 # Get Args from std in
 args <- commandArgs(trailingOnly=TRUE)
@@ -13,10 +9,17 @@ args <- commandArgs(trailingOnly=TRUE)
 brca_subtype <- args[[1]] # "TNBC", "ER", "HER2"
 message(str_glue("Now Running: LIANA with {brca_subtype}"))
 
+# load libs
+require(tidyverse)
+require(magrittr)
+require(Seurat)
+require(liana)
+
+
 
 # Spatial Deconv Directory (i.e atlas directory)
 brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA" # should change to comparison
-deconv_directory <- file.path(path_to_project, brca_dir,
+deconv_directory <- file.path(brca_dir,
                               "deconv", str_glue("{brca_subtype}_celltype_minor"))
 
 # Load BRCA object from Spatial Directory
@@ -50,7 +53,7 @@ liana_res <- liana_wrap(seurat_object,
 # save LIANA results
 message("Saving LIANA RESULTS")
 saveRDS(liana_res,
-        file.path(path_to_project, "data/output/comparison_out/",
+        file.path("data/output/comparison_out/",
                   str_glue("BRCA_{brca_subtype}_liana_res.RDS")))
 
 # Aggregate and Save OmniPath's out - to be used in Spatial and CytoSig evals
@@ -66,5 +69,5 @@ lr_omni <- liana_res %>%
                         .score_mode = liana:::.score_specs
                         )
 saveRDS(lr_omni,
-        file.path(path_to_project, "data/output/comparison_out/",
+        file.path("data/output/comparison_out/",
                   str_glue("BRCA_{brca_subtype}_liana_OmniPath.RDS")))
