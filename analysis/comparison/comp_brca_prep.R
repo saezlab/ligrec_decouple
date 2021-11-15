@@ -30,9 +30,9 @@ liana_res <- liana_wrap(seurat_object,
                                    'call_connectome', 'logfc', 'cellchat',
                                    'call_sca', 'cellphonedb', "cytotalk"
                                    ),
-                        resource = c("ICELLNET",
-                                    "OmniPath",
-                                    "CellChatDB"#,
+                        resource = c(#"ICELLNET",
+                                    "OmniPath"#,
+                                    # "CellChatDB"#,
                                     # "CellTalkDB"
                                      ),
                         # this is passed only to squidpy, cellchat, cytotalk, and logfc

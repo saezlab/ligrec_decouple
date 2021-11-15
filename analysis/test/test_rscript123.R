@@ -18,5 +18,4 @@ liana_res <- liana_wrap(testdata, method = c('call_natmi',
                                                   workers = 12),
                         resource = c("ICELLNET", "Default"))
 
-
 saveRDS(liana_res, "data/output/test123.RDS")
