@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH -p single
 #SBATCH -N 1
-#SBATCH -C 48
 #SBATCH --time=71:00:00
 #SBATCH --mem=100000
 #SBATCH --job-name="brca_run"
