@@ -1,8 +1,9 @@
 #!/bin/bash
 #SBATCH -p single
 #SBATCH -N 1
+#SBATCH -C 48
 #SBATCH --time=71:00:00
-#SBATCH --mem=200000
+#SBATCH --mem=100000
 #SBATCH --job-name="brca_run"
 #SBATCH --output=out/brca_run.out
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
