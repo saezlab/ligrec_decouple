@@ -1,20 +1,16 @@
 #### Run LIANA with all original methods (with defaults args) + multiple resources
-
-# Get Args from std in
-args <- commandArgs(trailingOnly=TRUE)
-
-# Path to Project
-# path_to_project <- args[[1]] # ~/Repos/ligrec_decouple/ (on local)
-# Get brca_subtpye
-brca_subtype <- args[[1]] # "TNBC", "ER", "HER2"
-message(str_glue("Now Running: LIANA with {brca_subtype}"))
-
 # load libs
 require(tidyverse)
 require(magrittr)
 require(Seurat)
 require(liana)
 
+# Get Args from std in
+args <- commandArgs(trailingOnly=TRUE)
+
+# Get brca_subtpye
+brca_subtype <- args[[1]] # "TNBC", "ER", "HER2"
+message(str_glue("Now Running: LIANA with {brca_subtype}"))
 
 
 # Spatial Deconv Directory (i.e atlas directory)
@@ -59,8 +55,6 @@ saveRDS(liana_res,
 # Aggregate and Save OmniPath's out - to be used in Spatial and CytoSig evals
 source("src/eval_utils.R")
 lr_omni <- liana_res %>%
-    transpose() %>%
-    pluck("OmniPath") %>%
     liana_aggregate_enh(filt_de_pvals = TRUE,
                         de_thresh = 0.05, # we only filter Connectome DEs
                         filt_outs = FALSE,
