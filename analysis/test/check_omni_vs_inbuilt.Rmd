@@ -72,15 +72,10 @@ cc_inbuilt <- CellChat::CellChatDB.human %>%
 # ITGA1_ITGB1-interactions are missing from OmniPath's CellChatDB -> we append them
 itga_cc <- cc_inbuilt %>%
     filter(str_detect(target_genesymbol, "ITGA1_ITGB1"))
-
-
-# Modify Omni-cc
-cc_omnipath <- select_resource("CellChatDB")[[1]] %>%
-  bind_rows(itga_cc)
   
 # Format to CellChatDB
 cc_omnipath <- cellchat_formatDB(CellChat::CellChatDB.human,
-                                 cc_omnipath,
+                                 select_resource("CellChatDB")[[1]],
                                  exclude_anns = c()) %>%
   pluck("interaction") %>%
   select(interaction_name,
@@ -572,15 +567,15 @@ cellcall_omni <- select_resource("CellCall")[[1]] %>%
 # Original celltalkdb
 cellcall_inbuilt <- read.delim(url("https://raw.githubusercontent.com/ShellyCoder/cellcall/master/inst/extdata/new_ligand_receptor_TFs.txt"), header = TRUE) %>%
   mutate(across(everything(), ~as.character(.x))) %>%
-  bind_rows(read.delim(url("https://raw.githubusercontent.com/ShellyCoder/cellcall/master/inst/extdata/new_ligand_receptor_TFs_extended.txt"), header = TRUE) %>%
-  mutate(across(everything(), ~as.character(.x)))) %>%
+  # bind_rows(read.delim(url("https://raw.githubusercontent.com/ShellyCoder/cellcall/master/inst/extdata/new_ligand_receptor_TFs_extended.txt"), header = TRUE) %>%
+  # mutate(across(everything(), ~as.character(.x)))) %>%
   select(source_genesymbol = Ligand_Symbol,
          target_genesymbol = Receptor_Symbol) %>%
   filter(source_genesymbol != target_genesymbol) %>%
   mutate(across(ends_with("genesymbol"), ~gsub("\\,", "\\_", .x))) %>%
   distinct() %>%
   filter(source_genesymbol != target_genesymbol) %>%
-  # liana:::decomplexify() %>%
+  liana:::decomplexify() %>%
   unite(source_genesymbol, target_genesymbol,
         col = "interaction", remove = FALSE)
 
