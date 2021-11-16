@@ -215,7 +215,9 @@ ligrec_decomplexify <- function(ligrec){
                               function(col, cat)
                                   if(resname %in% complex_resources){
                                       decomplexify(res[[cat]], col)
-                                      } else{ res[[cat]] }
+                                  } else{
+                                          res[[cat]]
+                                      }
                               )
         )
     return(ligrec)
@@ -242,7 +244,8 @@ decomplexify <- function(resource, column){
                 tidyr::drop_na(col) %>%
                 distinct() %>%
                 mutate_at(.vars = c(col),
-                          ~str_replace(., "COMPLEX:", ""))
+                          ~str_replace(., "COMPLEX:", "")) %>%
+                mutate(across(!!col, ~as.character(.x)))
         })
     return(resource)
 }
@@ -284,20 +287,20 @@ ligrec_overheats <- function(ligrec){
     cats %>%
         map2(names(.),
              function(cols, entity){
-                 ligrec %>% map(function(res)
-                     res[[entity]] %>%
-                         select(!!cols)
+                 ligrec %>% map(function(res) res[[entity]] %>%
+                                    select(!!cols) %>%
+                                    distinct()
                  ) %>%
                      binarize_resources(cols)
              }) %>% map2(names(.), function(bindata, entity){
                  jaccheat_save(jacc_pairwise(bindata),
                                figure_path(str_glue("{entity}_jaccard_heat.pdf")),
-                               "Jaccard Index")
+                               str_glue("{str_to_title(entity)} Jaccard Index"))
 
 
                  overheat_save(interactions_shared(bindata),
                                figure_path(str_glue("{entity}_shared_heat.pdf")),
-                               "% Present")
+                               str_glue("{str_to_title(entity)} % Present"))
              })
 
     return(ligrec)
@@ -542,9 +545,10 @@ total_unique_bar <- function(ligrec_olap){
             axis.title.y = element_text(size = 34),
             panel.grid.major = element_blank(),
             panel.background = element_blank(),
+            panel.spacing = unit(2, "lines"),
             axis.ticks = element_blank(),
             legend.text = element_text(size=21),
-            strip.text.x = element_text(size=21),
+            strip.text.x = element_text(size=19),
             legend.key.size = unit(21, 'mm')
         )
 
@@ -1821,9 +1825,9 @@ jaccheat_save <- function(df, plotname, guide_title){
             strip.text.x = element_blank()
         ) +
         xlab("Resource") +
-        geom_text(aes(name, resource,
-                      label = round(value, digits = 2)),
-                  color = "white", size = 5) +
+        shadowtext::geom_shadowtext(aes(name, resource,
+                                        label = round(value, digits = 3)),
+                                    color = "white", size = 5, bg.colour='grey') +
         scale_y_discrete(limits=rev)
 
     cairo_pdf_enh(plotname,
@@ -1920,8 +1924,9 @@ cairo_pdf_enh <- function(filename,
 #' and compiles all supp. figs.
 patchwork_resources <- function(){
     # convert env to tibble
-    resource_outs <- tibble(s_name = names(as.list(.resource_env)),
-                            plot = as.list(.resource_env) %>% unname)
+    resource_env <- as.list(.resource_env)
+    resource_outs <- tibble(s_name = resource_env %>% names,
+                            plot = resource_env %>% unname)
 
     # types of plots
     ptypes <- c("jaccard",
@@ -1999,11 +2004,13 @@ patchwork_resources <- function(){
 
                 # to pdf
                 cairo_pdf(filename = path,
-                          width = 11,
+                          width = 12,
                           height = 6)
                 print(pp)
                 dev.off()
             })
         }
     })
+
+    return(resource_env)
 }

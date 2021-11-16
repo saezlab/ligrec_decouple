@@ -20,9 +20,17 @@ source("analysis/resource_analysis/resource_descriptive.R")
 ## Resource descriptive analysis
 # Obtain list with CCC Resources
 ligrec <- compile_ligrec_descr()
+saveRDS(ligrec, "data/input/ligrec.RDS")
 
 # Run figure pipeline
-descriptive_plots(ligrec)
+ligrec <- readRDS("data/input/ligrec.RDS")
+descript <- descriptive_plots(ligrec)
+saveRDS(descript, "data/output/descript.RDS")
+
+
+# Assemble Main Figure
+
+
 
 
 
