@@ -6,74 +6,9 @@ source("analysis/resource_analysis/resource_descriptive.R")
 require(tidyverse)
 require(liana)
 
-r1 = ligrec_olap$OmniPath$receivers$uniprot
-r2 = ligrec_olap$Ramilowski2015$receivers$uniprot
-intersect(r1,r2) %>% length() / union(r1, r2) %>% length()
-
-ligrec_decomplex <- ligrec %>%
-    ligrec_decomplexify
-
-
-
-
 
 ligrec_olap <- ligrec %>%
-    ligrec_decomplexify %T>%
-    ligrec_overheats
-
-
-cats <- list(transmitters = "uniprot",
-             receivers = "uniprot",
-             interactions = c("source",
-                              "target")
-)
-
-
-# Works
-lig <- cats %>%
-    map2(names(.),
-         function(cols, entity){
-             ligrec %>%
-                 map(function(res) res[[entity]] %>% select(!!cols) %>%
-                         mutate(across(everything(), ~as.character(.x))) %>%
-                         distinct()
-                 )
-         })
-
-# Doesnt work
-dec1 <- cats %>%
-    map2(names(.),
-         function(cols, entity){
-             ligrec_decomplex %>%
-                 map(function(res) res[[entity]] %>% select(!!cols) %>%
-                         mutate(across(everything(), ~as.character(.x))) %>%
-                         distinct()
-                 )
-         })
-
-dec2 <- dec1$receivers %>% binarize_resources("uniprot") %>% as_tibble()
-lig2 <- lig$receivers %>% binarize_resources("uniprot") %>% as_tibble()
-
-
-jacc_pairwise(dec2)
-jacc_pairwise(lig2)
-
-
-xd %>% map2(names(.), function(bindata, entity){
-    jaccheat_save(jacc_pairwise(bindata),
-                  figure_path(str_glue("{entity}_jaccard_heat.pdf")),
-                  str_glue("{str_to_title(entity)} Jaccard Index"))
-
-
-    overheat_save(interactions_shared(bindata),
-                  figure_path(str_glue("{entity}_shared_heat.pdf")),
-                  str_glue("{str_to_title(entity)} % Present"))
-})
-
-
-jaccheat_save(jacc_pairwise(xd$receivers),
-              figure_path(str_glue("receivers_jaccard_heat.pdf")),
-              str_glue("receivers Jaccard Index"))
+    ligrec_decomplexify
 
 # Improve OmniPath ----
 omni <- select_resource("OmniPath")[[1]]

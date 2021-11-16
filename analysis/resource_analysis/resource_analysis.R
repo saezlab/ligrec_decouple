@@ -29,8 +29,17 @@ saveRDS(descript, "data/output/descript.RDS")
 
 
 # Assemble Main Figure
-
-
-
-
+descript$size_overlap_combined + theme_bw() +
+    theme(
+        axis.text.x = element_text(size = 22),
+        axis.text.y = element_text(size = 23),
+        axis.title.y = element_text(size = 34),
+        # panel.grid.major = element_blank(),
+        panel.background = element_blank(),
+        panel.spacing = unit(2, "lines"),
+        axis.ticks = element_blank(),
+        legend.text = element_text(size=21),
+        strip.text.x = element_text(size=19),
+        legend.key.size = unit(21, 'mm')
+    )
 

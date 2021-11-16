@@ -214,9 +214,11 @@ ligrec_decomplexify <- function(ligrec){
                          map2(cats, names(cats),
                               function(col, cat)
                                   if(resname %in% complex_resources){
-                                      decomplexify(res[[cat]], col)
+                                      decomplexify(res[[cat]], col) %>%
+                                          distinct_at(.vars=c(col))
                                   } else{
-                                          res[[cat]]
+                                          res[[cat]] %>%
+                                          distinct_at(.vars=c(col))
                                       }
                               )
         )
@@ -242,7 +244,6 @@ decomplexify <- function(resource, column){
                              values_to = col,
                              names_to = NULL) %>%
                 tidyr::drop_na(col) %>%
-                distinct() %>%
                 mutate_at(.vars = c(col),
                           ~str_replace(., "COMPLEX:", "")) %>%
                 mutate(across(!!col, ~as.character(.x)))
@@ -523,7 +524,9 @@ total_unique_bar <- function(ligrec_olap){
 
 
 
-    p <- ggplot(ligrec_olap, aes(y = resource, x = value, fill = name)) +
+    p <- ggplot(ligrec_olap, aes(y = resource,
+                                 x = value,
+                                 fill = name)) +
         geom_col() +
         scale_fill_manual(
             values = c('#B3C5E9', '#4268B3'),
@@ -543,7 +546,6 @@ total_unique_bar <- function(ligrec_olap){
             axis.text.x = element_text(size = 22),
             axis.text.y = element_text(size = 23),
             axis.title.y = element_text(size = 34),
-            panel.grid.major = element_blank(),
             panel.background = element_blank(),
             panel.spacing = unit(2, "lines"),
             axis.ticks = element_blank(),
@@ -1926,7 +1928,8 @@ patchwork_resources <- function(){
     # convert env to tibble
     resource_env <- as.list(.resource_env)
     resource_outs <- tibble(s_name = resource_env %>% names,
-                            plot = resource_env %>% unname)
+                            plot = resource_env %>% unname) %>%
+        arrange(s_name)
 
     # types of plots
     ptypes <- c("jaccard",
