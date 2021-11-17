@@ -3,6 +3,9 @@ require(tidyverse)
 require(magrittr)
 require(liana)
 
+#
+SeuratData::InstallData("cbmc")
+
 # Load from SeuratData
 cbmcdata <- SeuratData::LoadData("cbmc")
 
@@ -14,7 +17,7 @@ cbmcdata@meta.data %<>%
     mutate(rna_annotations = str_replace(rna_annotations, "/", ".")) %>%
     mutate(rna_annotations = if_else(rna_annotations=="B", "B cell", rna_annotations)) %>%
     # filter multiplets and mouse droplets
-    filter(!(rna_annotations %in% c("Mouse", "Multiplets", "T Mono doublets"))) %>%
+    filter(!(rna_annotations %in% c("Mouse", "Multiplets", "T.Mono.doublets"))) %>%
     mutate(rna_annotations = str_replace(rna_annotations, " ", ".")) %>%
     # name to seurat_cluster for consistency with other cmbc seurat objects
     mutate(seurat_clusters = as.factor(rna_annotations))
