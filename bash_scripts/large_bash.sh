@@ -6,7 +6,7 @@ sbatch <<EOT
 #SBATCH -N 1
 #SBATCH --time=71:00:00
 #SBATCH --mem=200000
-#SBATCH --job-name=$2"_brca_run"
+#SBATCH --job-name=$2
 #SBATCH --output="out/"$2".out"
 #SBATCH --error="out/"$2".err"
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
