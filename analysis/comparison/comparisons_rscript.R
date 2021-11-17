@@ -5,9 +5,12 @@ require(Seurat)
 # Get Args from std in
 args <- commandArgs(trailingOnly=TRUE)
 
+# Script name
+message(str_glue("Running: {args[[1]]}"))
+
 # Get Job name
-job_name <- args[[1]] # e.g. crc
-seurat_path <- args[[2]] # e.g. data/input/comparison/crc_data/crc_korean_form.rds
+job_name <- args[[2]] # e.g. crc
+seurat_path <- args[[3]] # e.g. data/input/comparison/crc_data/crc_korean_form.rds
 message(str_glue("Now Running: {job_name}"))
 
 # All resources - Default
