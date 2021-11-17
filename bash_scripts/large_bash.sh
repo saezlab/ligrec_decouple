@@ -4,7 +4,7 @@ sbatch <<EOT
 
 #SBATCH -p single
 #SBATCH -N 1
-#SBATCH --time=71:00:00
+#SBATCH --time=119:00:00
 #SBATCH --mem=200000
 #SBATCH --job-name=$2
 #SBATCH --output="out/"$2".out"
