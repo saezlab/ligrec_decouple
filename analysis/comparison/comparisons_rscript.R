@@ -5,8 +5,6 @@ require(Seurat)
 # Get Args from std in
 args <- commandArgs(trailingOnly=TRUE)
 
-
-
 # Get Job name
 job_name <- args[[2]] # e.g. crc
 seurat_path <- args[[3]] # e.g. data/input/comparison/crc_data/crc_korean_form.rds
