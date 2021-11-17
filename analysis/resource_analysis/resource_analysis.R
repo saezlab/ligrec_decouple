@@ -28,18 +28,14 @@ descript <- descriptive_plots(ligrec)
 saveRDS(descript, "data/output/descript.RDS")
 
 
-# Assemble Main Figure
-descript$size_overlap_combined + theme_bw() +
-    theme(
-        axis.text.x = element_text(size = 22),
-        axis.text.y = element_text(size = 23),
-        axis.title.y = element_text(size = 34),
-        # panel.grid.major = element_blank(),
-        panel.background = element_blank(),
-        panel.spacing = unit(2, "lines"),
-        axis.ticks = element_blank(),
-        legend.text = element_text(size=21),
-        strip.text.x = element_text(size=19),
-        legend.key.size = unit(21, 'mm')
-    )
+# Assemble Figure 2
+descript$size_overlap_combined
+descript$interactions_jaccard_heat
 
+
+# Assemble Figure 3
+descript$enrich_heatmap_interactions_SignaLink_pathway
+descript$classes_enrich_interactions_SignaLink_pathway
+
+descript$enrich_heatmap_interactions_HPA_tissue_organ
+descript$classes_enrich_interactions_HPA_tissue_organ

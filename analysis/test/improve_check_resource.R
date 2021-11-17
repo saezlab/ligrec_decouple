@@ -8,7 +8,12 @@ require(liana)
 
 
 ligrec_olap <- ligrec %>%
-    ligrec_decomplexify
+    ligrec_decomplexify %T>%
+    ligrec_overheats %>%
+    ligrec_overlap %T>%
+    uniq_per_res
+
+
 
 # Improve OmniPath ----
 omni <- select_resource("OmniPath")[[1]]

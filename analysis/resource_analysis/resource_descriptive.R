@@ -721,10 +721,15 @@ ligand_receptor_classes <- function(
     filter_annot <- enexprs(filter_annot)
 
     annot <-
-        import_omnipath_annotations(resource = resource, wide = TRUE) %T>%
-        print() %>%
+        import_omnipath_annotations(resource = resource, wide = TRUE) %>%
         filter(!!!filter_annot) %>%
         mutate(!!attr := label_annot(!!attr))
+
+    if(resource == "DisGeNet"){
+        # Keep only diseases and DGA score >= 0.3 (at least 1 curation)
+        # info at: https://www.disgenet.org/dbinfo#score
+        annot %<>% filter(score >= 0.3)
+    }
 
     ligrec$interactions %<>%
         annotated_network(annot = annot, !!attr) %>%
@@ -984,19 +989,25 @@ ligrec_classes_bar_enrich <- function(
     walk2(
         names(.),
         classes_bar,
-        ifelse(resource == "HPA_tissue", str_glue("{resource}_{as.character(as_label(attr)[1])}"), resource),
+        ifelse(resource == "HPA_tissue",
+               str_glue("{resource}_{as.character(as_label(attr)[1])}"),
+               resource),
         !!attr
     ) %>%
     walk2(
         names(.),
         classes_bar_perc,
-        ifelse(resource == "HPA_tissue", str_glue("{resource}_{as.character(as_label(attr)[1])}"), resource),
+        ifelse(resource == "HPA_tissue",
+               str_glue("{resource}_{as.character(as_label(attr)[1])}"),
+               resource),
         !!attr
     ) %>%
     walk2(
         names(.),
         classes_enrich,
-        ifelse(resource == "HPA_tissue", str_glue("{resource}_{as.character(as_label(attr)[1])}"), resource),
+        ifelse(resource == "HPA_tissue",
+               str_glue("{resource}_{as.character(as_label(attr)[1])}"),
+               resource),
         !!attr
     ) %>%
     invisible
@@ -1224,10 +1235,12 @@ classes_enrich <- function(data, entity, resource, var, ...){
             # star: '\u2605'
             mapping = aes(
                 label = ifelse(
-                    padj < 0.2,
+                    padj <= 0.1,
                     ifelse(
-                        padj < 0.1,
-                        ifelse(padj < 0.5, '\u274B', '\u273B'),
+                        padj <= 0.05,
+                        ifelse(padj <= 0.01,
+                               '\u274B',
+                               '\u273B'),
                         '\u2723'
                     ),
                     ''
@@ -1827,9 +1840,9 @@ jaccheat_save <- function(df, plotname, guide_title){
             strip.text.x = element_blank()
         ) +
         xlab("Resource") +
-        shadowtext::geom_shadowtext(aes(name, resource,
-                                        label = round(value, digits = 3)),
-                                    color = "white", size = 5, bg.colour='grey') +
+        geom_text(aes(name, resource,
+                      label = round(value, digits = 3)),
+                  color = "white", size = 5) +
         scale_y_discrete(limits=rev)
 
     cairo_pdf_enh(plotname,
