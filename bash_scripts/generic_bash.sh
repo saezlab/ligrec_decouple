@@ -14,8 +14,8 @@ sbatch <<EOT
 #SBATCH --requeue
 #SBATCH --chdir /net/data.isilon/ag-saez/bq_ddimitrov/Repos/ligrec_decouple
 
-echo "Submitted: $1 (Job ID: $SLURM_JOBID)"
-Rscript $1
+echo "Submitted: $3 (Job ID: $SLURM_JOBID)"
+Rscript $3
 
 hostname
 exit 0

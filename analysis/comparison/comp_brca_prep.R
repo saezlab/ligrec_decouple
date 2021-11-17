@@ -43,7 +43,7 @@ liana_res <- liana_wrap(seurat_object,
                             meta_file = str_glue("{brca_subtype}_metadata.csv"),
                             output_dir = str_glue("brca_{brca_subtype}_results"),
                             reso_name = str_glue("{brca_subtype}_placeholder"),
-                            .write_data = FALSE
+                            .overwrite_data = FALSE
                             ),
                         assay = "SCT") # by default as in CellChat
 
@@ -62,8 +62,7 @@ lr_omni <- liana_res %>%
                         pval_thresh = 1,
                         sca_thresh = 0,
                         .score_mode = liana:::.score_specs,
-                        resource = "OmniPath"
-                        )
+                        resource = "OmniPath")
 saveRDS(lr_omni,
         file.path("data/output/comparison_out/",
                   str_glue("BRCA_{brca_subtype}_liana_OmniPath.RDS")))
