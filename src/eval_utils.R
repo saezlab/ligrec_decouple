@@ -33,7 +33,8 @@ convert_to_murine <- function(op_resource){
         mutate(source_genesymbol = murine_symbol, .keep = "unused") %>%
         filter(!is.na(target_genesymbol) | !is.na(source_genesymbol)) %>%
         filter(!is.na(target_genesymbol)) %>%
-        filter(!is.na(source_genesymbol))
+        filter(!is.na(source_genesymbol)) %>%
+        distinct_at(c("source_genesymbol", "target_genesymbol"), .keep_all = TRUE)
 }
 
 
