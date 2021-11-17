@@ -7,7 +7,7 @@ bash bash_scripts/comp_brca_prep.sh TNBC
 bash bash_scripts/comp_brca_prep.sh HER2
 
 ### Run Mouse Brain
-bash bash_scripts/large_bash.sh "spatial/mouse_brain_prep_liana.R" brain
+bash bash_scripts/large_bash.sh "analysis/spatial/mouse_brain_prep_liana.R" brain
 
 ## Submit CITE-Seq pipe
 bash bash_scripts/large_bash.sh analysis/citeseq/citeseq_prep.R citeseq
