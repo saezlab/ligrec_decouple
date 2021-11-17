@@ -5,13 +5,23 @@ source("analysis/resource_analysis/resource_descriptive.R")
 
 require(tidyverse)
 require(liana)
-
+require(magrittr)
 
 ligrec_olap <- ligrec %>%
     ligrec_decomplexify %T>%
     ligrec_overheats %>%
     ligrec_overlap %T>%
     uniq_per_res
+
+op_uniques <- ligrec_olap$interactions %>%
+    filter(resource == "OmniPath") %>%
+    filter(unique)
+
+op <- ligrec %>% liana:::reform_omni() %>% pluck("OmniPath")
+op %>% filter(source %in% target) %>%
+    filter(target %in% op_uniques$source) %>%
+    print(n=100)
+
 
 
 

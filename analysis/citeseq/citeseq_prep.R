@@ -25,10 +25,12 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 ### I) Generate Generate Seurat Objects and run LIANA ----
 # Iterate over all citeseq directories (i.e. datasets)
 list.files(citeseq_dir) %T>%
-    # Load 10x .h5 mat and cluster each, and save the appropriate Seurat object
+    # Load 10x .h5 mat and cluster each, and save the appropriate Seurat objects
     map(function(subdir){
         if(subdir %in% c("10k_malt", "10k_pbmcs", "5k_pbmcs", "5k_pbmcs_nextgem")){
-            load_and_cluster(subdir = subdir, dir = citeseq_dir, pattern = ".h5")
+            load_and_cluster(subdir = subdir,
+                             dir = citeseq_dir,
+                             pattern = ".h5")
         } else(
             return()
         )
@@ -43,8 +45,7 @@ list.files(citeseq_dir) %T>%
                                        'call_connectome', 'logfc', 'cellchat',
                                        'call_sca', 'cellphonedb', "cytotalk"
                             ),
-                            squidpy.params=list(cluster_key = "seurat_clusters",
-                                                seed = as.integer(1004)),
+                            squidpy.params=list(seed = as.integer(1004)),
                             expr_prop = 0.1,
                             cellchat.params = list(nboot=1000,
                                                    expr_prop = 0,
@@ -67,8 +68,7 @@ list.files(citeseq_dir) %T>%
                                        'call_connectome', 'logfc', 'cellchat',
                                        'call_sca', 'cellphonedb', "cytotalk"
                             ),
-                            squidpy.params=list(cluster_key = "seurat_clusters",
-                                                seed = as.integer(1004)),
+                            squidpy.params=list(seed = as.integer(1004)),
                             expr_prop = 0.1,
                             cellchat.params = list(nboot=1000,
                                                    expr_prop = 0),
