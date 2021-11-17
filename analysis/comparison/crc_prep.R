@@ -29,9 +29,9 @@ sparsify_to_seurat <- function(counts_loc, meta_loc, save_loc){
 
 
 # Sparsify CRC data
-sparsify_to_seurat(counts_loc = "input/crc_data/GSE132465_GEO_processed_CRC_10X_raw_UMI_count_matrix.txt",
-                   meta_loc = "input/crc_data/GSE132465_GEO_processed_CRC_10X_cell_annotation.txt",
-                   save_loc = "input/crc_data/crc_korean.rds")
+sparsify_to_seurat(counts_loc = "data/input/crc_data/GSE132465_GEO_processed_CRC_10X_raw_UMI_count_matrix.txt",
+                   meta_loc = "data/input/crc_data/GSE132465_GEO_processed_CRC_10X_cell_annotation.txt",
+                   save_loc = "data/input/crc_data/crc_korean.rds")
 
 # Here we load and format the resulting Seurat object
 crc_korean <- readRDS("data/input/comparison/crc_data/crc_korean.rds")

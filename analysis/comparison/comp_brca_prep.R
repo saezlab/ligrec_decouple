@@ -12,6 +12,9 @@ args <- commandArgs(trailingOnly=TRUE)
 brca_subtype <- args[[1]] # "TNBC", "ER", "HER2"
 message(str_glue("Now Running: LIANA with {brca_subtype}"))
 
+# All resources - Default
+resources <- select_resource("all")[-1] %>% names()
+message(str_glue("Resources: {glue::glue_collapse(resources, sep = '_')}"))
 
 # Spatial Deconv Directory (i.e atlas directory)
 brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA" # should change to comparison
@@ -29,11 +32,7 @@ liana_res <- liana_wrap(seurat_object,
                                    'call_connectome', 'logfc', 'cellchat',
                                    'call_sca', 'cellphonedb', "cytotalk"
                                    ),
-                        resource = c("ICELLNET",
-                                    "OmniPath"#,
-                                    # "CellChatDB"#,
-                                    # "CellTalkDB"
-                                     ),
+                        resource = resources,
                         # this is passed only to squidpy, cellchat, cytotalk, and logfc
                         expr_prop=0.1,
                         cellchat.params = list(nboot=1000,
