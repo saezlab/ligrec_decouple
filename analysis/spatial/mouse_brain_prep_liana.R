@@ -27,10 +27,10 @@ liana_res <- liana_wrap(cortex_sc,
                             expr_file = str_glue("mouse_brain_em.csv"),
                             meta_file = str_glue("mouse_brain_metadata.csv"),
                             output_dir = str_glue("mouse_brain_results"),
-                            reso_name = str_glue("mouse_brain_placeholder")
+                            reso_name = str_glue("mouse_brain_placeholder"),
+                            .overwrite_data = FALSE
                         ),
-                        assay = "SCT",
-                        squidpy.params = list(cluster_key = "subclass"))
+                        assay = "SCT")
 
 
 # squidpy sets gene names to upper (in the processing), revert this to title (i.e. murine)
