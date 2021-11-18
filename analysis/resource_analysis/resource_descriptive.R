@@ -549,7 +549,7 @@ total_unique_bar <- function(ligrec_olap){
             panel.background = element_blank(),
             panel.spacing = unit(2, "lines"),
             axis.ticks = element_blank(),
-            legend.text = element_text(size=21),
+            legend.text = element_text(size=20),
             strip.text.x = element_text(size=19),
             legend.key.size = unit(21, 'mm')
         )
@@ -1841,7 +1841,7 @@ jaccheat_save <- function(df, plotname, guide_title){
         ) +
         xlab("Resource") +
         geom_text(aes(name, resource,
-                      label = round(value, digits = 3)),
+                      label = round(value, digits = 2)),
                   color = "white", size = 5) +
         scale_y_discrete(limits=rev)
 
@@ -1956,37 +1956,40 @@ patchwork_resources <- function(){
              "SIGNOR",
              "NetPath",
              "CancerSEA",
+             "HGNC",
              "MSigDB",
              "DisGeNet",
              "HPA_tissue_tissue",
              "HPA_tissue_organ",
-             "HGNC",
-             "OP-L")
+             "OP-L"
+             )
 
+    # Figure Numbering
     i <<- 0
+    # Letters for Subfigs
+    subi <- 0
+
     map(ptypes, function(plot_type){
         message(str_glue("Now compiling: {plot_type}"))
-
-        # iterate for SuppFig Names
-        i <<- i+1
 
         # filter by plot type
         resource_outs_filt <- resource_outs %>%
             filter(str_detect(s_name, plot_type))
 
         if(plot_type %in% c("jaccard", "shared")){
+            # iterate for SuppFig Names
+            i <<- i+1
 
-            path <- figure_path(
-                'SuppFig_%s_%s.pdf',
-                i, plot_type)
+            path <- figure_path('SuppFig_%s_%s.pdf',
+                                i, plot_type,
+                                outdir = "figures/assembled")
 
             pp <- patchwork::wrap_plots(resource_outs_filt %>% pluck("plot"),
                                         ncol=1,
                                         nrow(3)) +
                 plot_annotation(tag_levels = 'A',
                                 tag_suffix = ')') &
-                theme(plot.tag = element_text(face = 'bold',
-                                              size = 32))
+                theme(plot.tag = element_text(face = 'bold', size = 32))
 
             cairo_pdf(filename = path,
                       width = 16,
@@ -1998,11 +2001,21 @@ patchwork_resources <- function(){
         } else if(plot_type %in% c("enrich_heatmap",
                                    "classes_enrich",
                                    "classes_perc")){
+            # iterate letters
+            subi <<- subi + 1
+
+            # reset j
+            j <- i
 
             map(dbs, function(db){
+                # iterate for SuppFig Names
+                j <<- j + 1
+
                 path <- figure_path(
-                    'SuppFig_%s_%s_%s.pdf',
-                    i, plot_type, db)
+                    'SuppFig_%s_%s_%s_%s.pdf',
+                    j, LETTERS[[subi]], plot_type, db,
+                    outdir = "figures/assembled")
+
 
                 # additionally filter by db
                 resource_outs_filt_plots <- resource_outs_filt %>%
