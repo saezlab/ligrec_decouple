@@ -113,7 +113,7 @@ run_cytosig_eval <- function(seurat_object,
     # Prep for ROC
     cytosig_eval <- liana_cytosig %>%
         # correct p
-        mutate(adj_pvalue = p.adjust(p_value, "BH")) %>%
+        mutate(adj_pvalue = p.adjust(p_value, "fdr")) %>%
         mutate(response = if_else(NES > NES_thresh & adj_pvalue <=0.05,
                                   1,
                                   0)) %>%

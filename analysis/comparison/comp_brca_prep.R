@@ -51,17 +51,3 @@ message("Saving LIANA RESULTS")
 saveRDS(liana_res,
         file.path("data/output/comparison_out/",
                   str_glue("BRCA_{brca_subtype}_liana_res.RDS")))
-
-# Aggregate and Save OmniPath's out - to be used in Spatial and CytoSig evals
-source("src/eval_utils.R")
-lr_omni <- liana_res %>%
-    liana_aggregate_enh(filt_de_pvals = TRUE,
-                        de_thresh = 0.05, # we only filter Connectome DEs
-                        filt_outs = FALSE,
-                        pval_thresh = 1,
-                        sca_thresh = 0,
-                        .score_mode = liana:::.score_specs,
-                        resource = "OmniPath")
-saveRDS(lr_omni,
-        file.path("data/output/comparison_out/",
-                  str_glue("BRCA_{brca_subtype}_liana_OmniPath.RDS")))

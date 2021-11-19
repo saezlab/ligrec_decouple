@@ -296,12 +296,12 @@ ligrec_overheats <- function(ligrec){
              }) %>% map2(names(.), function(bindata, entity){
                  jaccheat_save(jacc_pairwise(bindata),
                                figure_path(str_glue("{entity}_jaccard_heat.pdf")),
-                               str_glue("{str_to_title(entity)} Jaccard Index"))
+                               str_glue("Jaccard Index of \n{str_to_title(entity)}"))
 
 
                  overheat_save(interactions_shared(bindata),
                                figure_path(str_glue("{entity}_shared_heat.pdf")),
-                               str_glue("{str_to_title(entity)} % Present"))
+                               str_glue("Contained % \n{str_to_title(entity)}"))
              })
 
     return(ligrec)
@@ -722,14 +722,15 @@ ligand_receptor_classes <- function(
 
     annot <-
         import_omnipath_annotations(resource = resource, wide = TRUE) %>%
+        decomplexify(column = "uniprot") %>% #!!!
         filter(!!!filter_annot) %>%
         mutate(!!attr := label_annot(!!attr))
 
-    if(resource == "DisGeNet"){
-        # Keep only diseases and DGA score >= 0.3 (at least 1 curation)
-        # info at: https://www.disgenet.org/dbinfo#score
-        annot %<>% filter(score >= 0.3)
-    }
+    # if(resource == "DisGeNet"){
+    #     # Keep only diseases and DGA score >= 0.3 (at least 1 curation)
+    #     # info at: https://www.disgenet.org/dbinfo#score
+    #     annot %<>% filter(score >= 0.3)
+    # }
 
     ligrec$interactions %<>%
         annotated_network(annot = annot, !!attr) %>%
@@ -909,7 +910,7 @@ ligrec_classes_all <- function(ligrec){
     ligrec %T>%
     {log_success('Stacked barplots of classifications.')} %T>%
     ligrec_classes_bar_enrich('SignaLink_pathway', pathway, NULL) %T>%
-    ligrec_classes_bar_enrich('SIGNOR', pathway, 15) %T>%
+    # ligrec_classes_bar_enrich('SIGNOR', pathway, 15) %T>%
     ligrec_classes_bar_enrich(
         'NetPath',
         pathway,
@@ -926,25 +927,26 @@ ligrec_classes_all <- function(ligrec){
     ligrec_classes_bar_enrich(
         'DisGeNet',
         disease,
-        15,
-        # filter_annot = label == 'disease',
+        15, # https://www.disgenet.org/dbinfo#score
+        #  (0.3 at least 1 curation/publication) and dpi specificity to group
+        filter_annot = (score >= 0.3), # & type!="group"
         label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
         ) %T>%
     ligrec_classes_bar_enrich(
         'HPA_tissue',
         tissue,
         15,
-        filter_annot = level == "High",
+        filter_annot = (level %in% c("Medium", "High") & pathology=="False" & !(status %in% c(NA, "Uncertain"))), # High vs Approved?
         label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
     ) %T>%
     ligrec_classes_bar_enrich(
         'HPA_tissue',
-        organ,
+        organ, # anything else?
         15,
-        filter_annot = level == "High",
+        filter_annot = (level %in% c("Medium", "High") & pathology=="False" & !(status %in% c(NA, "Uncertain"))),
         label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
     ) %T>%
-    ligrec_classes_bar_enrich('HGNC', category, 15) %T>%
+    # ligrec_classes_bar_enrich('HGNC', category, 15) %T>% # check
     ligrec_classes_bar_enrich('OP-L', location) %T>%
     {log_success('Finished stacked barplots of classifications.')} %>%
     invisible
@@ -1229,16 +1231,18 @@ classes_enrich <- function(data, entity, resource, var, ...){
 
     lim <- data %>% pull(enrichment) %>% abs %>% max
 
-    p <- ggplot(data, aes(x = resource, y = !!var, fill = enrichment)) +
+    p <- ggplot(data, aes(x = resource,
+                          y = !!var,
+                          fill = enrichment)) +
         geom_tile() +
         shadowtext::geom_shadowtext(
             # star: '\u2605'
             mapping = aes(
                 label = ifelse(
-                    padj <= 0.1,
+                    padj <= 0.05 & abs(enrichment) >= 1,
                     ifelse(
-                        padj <= 0.05,
-                        ifelse(padj <= 0.01,
+                        padj <= 0.01 & abs(enrichment) >= 1,
+                        ifelse(padj <= 0.001 & abs(enrichment) >= 1,
                                '\u274B',
                                '\u273B'),
                         '\u2723'
@@ -1248,16 +1252,26 @@ classes_enrich <- function(data, entity, resource, var, ...){
             ),
             color = 'white',
             bg.colour='black',
-            size = 2,
+            size = 1.75,
             family = 'DejaVu Sans'
         ) +
-        scale_fill_viridis(
-            option = 'cividis',
+        scale_fill_gradient2(
+            low = scales::muted("navy"),
+            mid = "white",
+            high = scales::muted("#D63D00"),
             limits = c(-lim, lim),
             guide = guide_colorbar(
-                title = sprintf('Enrichment\nof %s', entity)
-            )
-        ) +
+                title = sprintf('log2(Odds Ratios)\nof %s',
+                                entity)
+                )
+            ) +
+        # scale_fill_viridis(
+        #     option = 'cividis',
+        #     limits = c(-lim, lim),
+        #     guide = guide_colorbar(
+        #         title = sprintf('log2(Odds Ratios)\nof %s', entity)
+        #     )
+        # ) +
         xlab('Resources') +
         ylab(
             sprintf(
@@ -1362,11 +1376,12 @@ enrich2 <- function(
     ungroup() %>%
     mutate(
         padj = p.adjust(pval, method = p_adj_method),
-        enrichment = ifelse(
-            odds_ratio < 1,
-            -1 / odds_ratio,
-            odds_ratio
-        ) %>% unname
+        enrichment = #ifelse(
+        #     odds_ratio < 1,
+        #     -1 / odds_ratio,
+        #     odds_ratio
+        # ) %>% unname
+            log2(odds_ratio)
     )
 
 }
@@ -1947,20 +1962,21 @@ patchwork_resources <- function(){
     # types of plots
     ptypes <- c("jaccard",
                 "shared",
+                "enrich_heatmap",
                 "classes_enrich",
-                "classes_perc",
-                "enrich_heatmap")
+                "classes_perc"
+                )
 
     # external databases list
     dbs <- c("SignaLink",
-             "SIGNOR",
              "NetPath",
-             "CancerSEA",
-             "HGNC",
              "MSigDB",
              "DisGeNet",
-             "HPA_tissue_tissue",
+             "CancerSEA",
+             # "SIGNOR",
+             # "HGNC",
              "HPA_tissue_organ",
+             "HPA_tissue_tissue",
              "OP-L"
              )
 
