@@ -152,7 +152,7 @@ descriptive_plots <- function(
     {log_success('Finished descriptive visualizations.')} %>%
     invisible
 
-    patchwork_resources() # Compile all resources
+    patchwork_resources() # Compile all resources (uses .resource_env)
 }
 
 
@@ -929,7 +929,7 @@ ligrec_classes_all <- function(ligrec){
         disease,
         15, # https://www.disgenet.org/dbinfo#score
         #  (0.3 at least 1 curation/publication) and dpi specificity to group
-        filter_annot = (score >= 0.3), # & type!="group"
+        filter_annot = (score >= 0.3 & type=="group"),
         label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
         ) %T>%
     ligrec_classes_bar_enrich(
@@ -1970,9 +1970,9 @@ patchwork_resources <- function(){
     # external databases list
     dbs <- c("SignaLink",
              "NetPath",
-             "MSigDB",
-             "DisGeNet",
+             # "MSigDB",
              "CancerSEA",
+             "DisGeNet",
              # "SIGNOR",
              # "HGNC",
              "HPA_tissue_organ",

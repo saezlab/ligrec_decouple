@@ -189,13 +189,6 @@ plot_freq_pca <- function(freq_df){
 }
 
 
-
-
-
-
-
-
-
 #' Jaccard Similarities Heatmap Function
 #' @param sig_list list of top ranked hits for each method
 #' (i.e. top hits obtained via `get_top_hits`)
