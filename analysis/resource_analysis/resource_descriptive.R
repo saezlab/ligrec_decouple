@@ -837,10 +837,10 @@ localization_ligrec_classes <- function(ligrec){
     )
 
     location_groups <- list(
-        P_P = "Direct",
-        P_T = "Direct",
-        T_P = "Direct",
-        T_T = "Direct",
+        P_P = "Direct-contact",
+        P_T = "Direct-contact",
+        T_P = "Direct-contact",
+        T_T = "Direct-contact",
         S_P = "Secreted",
         S_T = "Secreted",
         T_S = "Other",
@@ -852,7 +852,7 @@ localization_ligrec_classes <- function(ligrec){
         import_omnipath_intercell(
             aspect = 'locational',
             parent = locations %>% names,
-            consensus_percentile = 50
+            consensus_percentile = 51
         ) %>%
         filter(source == 'composite') %>%
         select(uniprot, location = category) %>%
@@ -1252,7 +1252,7 @@ classes_enrich <- function(data, entity, resource, var, ...){
             ),
             color = 'white',
             bg.colour='black',
-            size = 1.75,
+            size = 2,
             family = 'DejaVu Sans'
         ) +
         scale_fill_gradient2(
@@ -1963,8 +1963,8 @@ patchwork_resources <- function(){
     ptypes <- c("jaccard",
                 "shared",
                 "enrich_heatmap",
-                "classes_enrich",
-                "classes_perc"
+                "classes_perc",
+                "classes_enrich"
                 )
 
     # external databases list
@@ -1972,12 +1972,12 @@ patchwork_resources <- function(){
              "NetPath",
              # "MSigDB",
              "CancerSEA",
-             "DisGeNet",
+             "OP-L",
              # "SIGNOR",
              # "HGNC",
              "HPA_tissue_organ",
              "HPA_tissue_tissue",
-             "OP-L"
+             "DisGeNet"
              )
 
     # Figure Numbering
@@ -2017,11 +2017,20 @@ patchwork_resources <- function(){
         } else if(plot_type %in% c("enrich_heatmap",
                                    "classes_enrich",
                                    "classes_perc")){
-            # iterate letters
-            subi <<- subi + 1
-
+            # iterate letters (for file name)
+            subi <<- subi + 1 %>% as.roman()
             # reset j
             j <- i
+
+            tag.levels <-
+                if(plot_type=="enrich_heatmap"){
+                    LETTERS[1:4]
+                    } else if(plot_type=="classes_perc"){
+                        LETTERS[5:8]
+                        } else if(plot_type=="classes_enrich"){
+                            LETTERS[9:12]
+                        }
+            print(tag.levels)
 
             map(dbs, function(db){
                 # iterate for SuppFig Names
@@ -2029,9 +2038,8 @@ patchwork_resources <- function(){
 
                 path <- figure_path(
                     'SuppFig_%s_%s_%s_%s.pdf',
-                    j, LETTERS[[subi]], plot_type, db,
+                    j, subi, plot_type, db,
                     outdir = "figures/assembled")
-
 
                 # additionally filter by db
                 resource_outs_filt_plots <- resource_outs_filt %>%
@@ -2042,7 +2050,7 @@ patchwork_resources <- function(){
                 pp <- patchwork::wrap_plots(resource_outs_filt_plots,
                                             ncol=2,
                                             nrow(3)) +
-                    plot_annotation(tag_levels = 'A',
+                    plot_annotation(tag_levels = list(tag.levels),
                                     tag_suffix = ')') &
                     theme(plot.tag = element_text(face = 'bold',
                                                   size = 12))
