@@ -17,7 +17,7 @@ bash bash_scripts/large_bash.sh analysis/citeseq/citeseq_prep.R citeseq
 compscript="analysis/comparison/comparisons_rscript.R"
 
 ### Run CRC
-bash bash_scripts/generic_bash.sh $compscript crc "data/input/comparison/crc_data/crc_korean_form.rds"
+bash bash_scripts/large_bash.sh $compscript crc "data/input/comparison/crc_data/crc_korean_form.rds"
 
 ### Run CBMC
 bash bash_scripts/generic_bash.sh $compscript cbmc "data/input/citeseq/cmbcs/cbmc_seurat.RDS"
