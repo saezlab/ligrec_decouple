@@ -26,6 +26,7 @@ output_filepath <- args[[2]]  # e.g. "panc8_specs_n" (+ job name)
 input_filepath <- args[[3]] # e.g. "data/output/comparison_out/panc8_liana_res.RDS"
 setting <- args[[4]]
 
+# load appropriate settings
 if(setting=="specs_frac"){
     .score_specs = liana:::.score_specs
     top_fun <- "top_frac"
@@ -41,7 +42,7 @@ if(setting=="specs_frac"){
 } else{
     stop("Setting is wrong!")
 }
-
+message(setting)
 
 # Summarize comparisons
 comparison_summary(input_filepath = input_filepath,
