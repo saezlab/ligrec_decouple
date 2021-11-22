@@ -1,6 +1,6 @@
-require(tidyverse)
-require(liana)
-require(Seurat)
+library(tidyverse)
+library(liana)
+library(Seurat)
 
 # Get Args from std in
 args <- commandArgs(trailingOnly=TRUE)
