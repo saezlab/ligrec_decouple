@@ -18,7 +18,7 @@ bash bash_scripts/large_bash.sh $summscript "panc8_"$setting "data/output/compar
 bash bash_scripts/large_bash.sh $summscript "er_"$setting "data/output/comparison_out/BRCA_ER_liana_res.RDS" $setting
 
 ### Run HER2 (BRCA)
-bash bash_scripts/large_bash.sh $summscript "her2"$setting "data/output/comparison_out/BRCA_HER2_liana_res.RDS" $setting
+bash bash_scripts/large_bash.sh $summscript "her2_"$setting "data/output/comparison_out/BRCA_HER2_liana_res.RDS" $setting
 
 ### Run TNBC (BRCA)
 bash bash_scripts/large_bash.sh $summscript "tnbc_"$setting "data/output/comparison_out/BRCA_TNBC_liana_res.RDS" $setting
