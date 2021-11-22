@@ -52,7 +52,7 @@ comparison_summary <- function(input_filepath,
     message("Interaction Relative Strength")
     ct_strength <- get_ct_strength(liana_all_spec, ...)
     strength_heat <- get_ct_heatmap(ct_strength, cap_value = cap_value_str)
-    saveRDS(across_resources_ji, str_glue("{outpath}/cp_strength.RDS"))
+    saveRDS(ct_strength, str_glue("{outpath}/cp_strength.RDS"))
     gc()
 
     # III) Interaction Frequencies per Cell Type (TOP) -----
@@ -60,7 +60,7 @@ comparison_summary <- function(input_filepath,
     ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]],
                                        cap_value = cap_value_freq)
     freq_heat <- get_ct_heatmap(ct_frequncies)
-    saveRDS(across_resources_ji, str_glue("{outpath}/cp_frequencies.RDS"))
+    saveRDS(ct_frequncies, str_glue("{outpath}/cp_frequencies.RDS"))
     gc()
 
     # IV) JI Heatmap (TOP) ----
