@@ -3,7 +3,7 @@
 summscript="analysis/comparison/comparison_summarise.R"
 
 ## Define Variables (setting = "specs_frac", "house_frac", "specs_n")
-setting="specs_frac"
+setting=$1
 
 ### Run CRC
 ## bash bash_scripts/large_bash.sh $summscript crc_out $setting
