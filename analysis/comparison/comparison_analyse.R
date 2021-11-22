@@ -25,9 +25,6 @@ args <- commandArgs(trailingOnly=TRUE)
 input_filepath <- args[[2]] # e.g. "data/output/comparison_out/panc8_liana_res.RDS"
 output_filepath <- args[[3]] # e.g. panc8_out
 
-input_filepath <- readRDS("data/input/citeseq/cmbcs/")
-
-
 # Summarize comparisons
 comparison_summary(input_filepath = input_filepath,
                    output_filepath = output_filepath,
