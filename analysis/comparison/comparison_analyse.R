@@ -13,6 +13,7 @@ require(grid)
 require(ComplexHeatmap)
 require(patchwork)
 require(ggplotify)
+require(ggplotify)
 
 source("analysis/comparison/comparison_utils.R")
 source("src/eval_utils.R")
