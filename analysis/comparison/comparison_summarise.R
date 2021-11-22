@@ -24,17 +24,33 @@ args <- commandArgs(trailingOnly=TRUE)
 # Get Job name
 output_filepath <- args[[2]]  # e.g. panc8_out (+ job name)
 input_filepath <- args[[3]] # e.g. "data/output/comparison_out/panc8_liana_res.RDS"
-top_fun <- args[[4]] # e.g. "top_frac"
-top_x <- as.numeric(args[[5]]) # e.g. 0.05 (or 1,000)
+
+
+if(setting=="specs_frac"){
+    .score_specs = liana:::.score_specs
+    top_fun <- "top_frac"
+    top_x <- 0.05
+} else if(setting=="house_frac"){
+    .score_specs = liana:::.score_housekeep
+    top_fun <- "top_frac"
+    top_x <- 0.05
+} else if(setting=="spec_n"){
+    .score_specs = liana:::.score_specs
+    top_fun <- "top_n"
+    top_x <- 1000
+} else{
+    stop("Setting is wrong!")
+}
+
+
 
 # Summarize comparisons
 comparison_summary(input_filepath = input_filepath,
                    output_filepath = output_filepath,
                    resource = "OmniPath",
-                   top_x = 0.05,
-                   top_fun = "top_frac",
-                   .score_specs = liana:::.score_specs,
-                   cap_value_str = 1,
+                   top_x = top_fun,
+                   top_fun = top_fun,
+                   .score_specs = .score_specs,
                    cap_value_freq = 1,
                    pval_thresh = 1,
                    sca_thresh = 0,

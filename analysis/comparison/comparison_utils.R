@@ -802,7 +802,7 @@ get_ct_frequncies <- function(sig_list,
                                            cap_value,
                                            cell_fraq)) %>%
                 distinct() %>%
-                unite(cell, cat, col = "cell_cat") %>%
+                unite(cell, cat, col = "cell_cat", sep = "^") %>%
                 pivot_wider(id_cols = resource,
                             names_from = cell_cat,
                             values_from = cell_fraq,
