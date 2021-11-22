@@ -20,7 +20,7 @@ compscript="analysis/comparison/comparisons_rscript.R"
 bash bash_scripts/large_bash.sh $compscript crc "data/input/comparison/crc_data/crc_korean_form.rds"
 
 ### Run CBMC
-bash bash_scripts/generic_bash.sh $compscript cbmc "data/input/citeseq/cmbcs/cbmc_seurat.RDS"
+bash bash_scripts/large_bash.sh $compscript cbmc "data/input/citeseq/cmbcs/cbmc_seurat.RDS"
 
 ### Run Pancreatic
 bash bash_scripts/generic_bash.sh $compscript panc8 "data/input/comparison/panc8.RDS"

@@ -37,41 +37,39 @@ xxx <- comparison_pipe(input_filepath = "data/output/temp/liana_all_resources.RD
 # e.g. > 2019 or something
 
 
+input_filepath = "data/output/comparison_out/panc8_liana_res.RDS"
+output_filepath = "panc8_comp"
+resource = "ICELLNET"
+top_x = 0.05
+top_fun = "top_frac"
+.score_specs = liana:::.score_specs
+cap_value_str = 1
+cap_value_freq = 1
+pval_thresh = 1
+sca_thresh = 0
+de_thresh = 0.05
 
 
-# Save Supp Fig
-output_filepath = "test123"
-plot_path = "test123.pdf"
-outpath <- as.character(str_glue("data/output/comparison_out/{output_filepath}/{plot_path}"))
 
 
-cairo_pdf(outpath,
-          width = 26,
-          height = 32,
-          family = 'DINPro')
-(as.ggplot(xxx$jacc_heat) /
-        (xxx$across_methods_jaccbox | xxx$across_resources_jaccbox)) +
-    plot_layout(guides = 'collect', heights = c(3.5, 2.3)) +
-    plot_annotation(tag_levels = 'A',
-                    tag_suffix = ')') &
-    theme(plot.tag = element_text(face = 'bold',
-                                  size = 32))
-dev.off()
+top_hits_key <- str_glue({"top_{top_x}"})
+outpath <- str_glue("data/output/comparison_out/{output_filepath}")
+message(str_glue("Creating and Saving in : {outpath}"))
+dir.create(outpath, showWarnings=FALSE)
+
+# Ranked Scores according to a set of criteria (here by specificity if available)
+liana_all_spec <- get_spec_list(input_filepath,
+                                .score_spec = .score_specs)
 
 
-cairo_pdf(outpath,
-          width = 36,
-          height = 50,
-          family = 'DINPro')
-(as.ggplot(xxx$freq_heat) /
-        as.ggplot(xxx$strength_heat) /
-        xxx$score_dist_plot) +
-    plot_layout(guides = 'keep', heights = c(4, 4, 2.5)) +
-    plot_annotation(tag_levels = 'A',
-                    tag_suffix = ')') &
-    theme(plot.tag = element_text(face = 'bold',
-                                  size = 48),
-          )
-dev.off()
 
+# Top X proportion of hits (according to the ranking specs above)
+top_lists <- get_top_hits(liana_all_spec,
+                          n_ints = top_x,
+                          top_fun = top_fun,
+                          de_thresh = 0.05)
 
+ct_strength <- get_ct_strength(liana_all_spec)
+
+strength_heat <- get_ct_heatmap(ct_strength,
+                                cap_value = cap_value_str)

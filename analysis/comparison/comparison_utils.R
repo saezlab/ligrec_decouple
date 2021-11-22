@@ -1,6 +1,6 @@
 #' Comparison pipe to be run on each individual dataset
 #'
-#' @param input_filepath input file path
+#' @param input_filepath input file path (liana raw output is taken as input)
 #' @param output_filepath outpufolder (in comparison_out)
 #' @param resource used for distributions plot (it's generated only for 1 resource)
 #' @param top_x proportion or top x
@@ -10,20 +10,22 @@
 #' @param cap_value_freq cap for strength per CT heatmap
 #' @param iter iterator for Supp Fig numberings
 #' @inheritDotParams top_enh and liana_aggregate_enh
-comparison_pipe <- function(input_filepath,
+#'
+comparison_summary <- function(input_filepath,
                             output_filepath,
                             resource = "OmniPath",
                             top_x = 0.05,
                             top_fun = "top_frac",
                             .score_specs = liana:::.score_specs,
-                            cap_value_str = 1,
+                            cap_value_str = 99999,
                             cap_value_freq = 1,
                             iter = 1,
                             ...){
 
     top_hits_key <- str_glue({"top_{top_x}"})
     outpath <- str_glue("data/output/comparison_out/{output_filepath}")
-    dir.create(outpath)
+    message(str_glue("Creating and Saving in : {outpath}"))
+    dir.create(outpath, showWarnings=FALSE)
 
     # Ranked Scores according to a set of criteria (here by specificy whenever available)
     liana_all_spec <- get_spec_list(input_filepath,
@@ -33,9 +35,7 @@ comparison_pipe <- function(input_filepath,
     top_lists <- get_top_hits(liana_all_spec,
                               n_ints = top_x,
                               top_fun = top_fun,
-                              ...
-    )
-
+                              ...)
 
     # I) Score Distributions -----
     # obtain Per method list
@@ -49,15 +49,22 @@ comparison_pipe <- function(input_filepath,
     print(score_dist_plot) # print to check at run time :)
 
     # II) Interaction Relative Strength per Cell Type -----
+    message("Interaction Relative Strength")
     ct_strength <- get_ct_strength(liana_all_spec, ...)
     strength_heat <- get_ct_heatmap(ct_strength, cap_value = cap_value_str)
+    saveRDS(across_resources_ji, str_glue("{outpath}/cp_strength.RDS"))
+    gc()
 
-    # III) Interaction Relative Strength per Cell Type (TOP) -----
-    ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]])
-    freq_heat <- get_ct_heatmap(ct_frequncies, cap_value = cap_value_freq)
-
+    # III) Interaction Frequencies per Cell Type (TOP) -----
+    message("Interaction Frequencies")
+    ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]],
+                                       cap_value = cap_value_freq)
+    freq_heat <- get_ct_heatmap(ct_frequncies)
+    saveRDS(across_resources_ji, str_glue("{outpath}/cp_frequencies.RDS"))
+    gc()
 
     # IV) JI Heatmap (TOP) ----
+    message("Interaction Jaccard Index Heat")
     jacc_heat <- get_simdist_heatmap(top_lists[[top_hits_key]],
                                      sim_dist = "simil",
                                      method = "Jaccard",
@@ -69,6 +76,7 @@ comparison_pipe <- function(input_filepath,
 
     # V) JI Stats/Boxplots ----
     # Get Jaccard Stats
+    message("Interaction Jaccard Index Stats")
     jaccard_per_mr <- simdist_resmet(top_lists[[top_hits_key]],
                                      sim_dist = "simil",
                                      method = "Jaccard")
@@ -91,10 +99,11 @@ comparison_pipe <- function(input_filepath,
         bind_rows() %>%
         unite(method_resource1, method_resource2, col = "combination") %>%
         mutate(method = recode_methods(method))
+    saveRDS(across_resources_ji, str_glue("{outpath}/across_resource_ji.RDS"))
+
     # JI Box
     across_resources_jaccbox <- jacc_1d_boxplot(across_resources_ji,
                                                 entity="method")
-
 
 
     # Same Resource across different methods jaccard index (between methods JI)
@@ -115,11 +124,14 @@ comparison_pipe <- function(input_filepath,
         bind_rows() %>%
         unite(resource_method1, resource_method2, col = "combination") %>%
         mutate(resource = recode_resources(resource))
+    saveRDS(across_methods_ji, str_glue("{outpath}/across_methods_ji.RDS"))
+
     # JI Box
     across_methods_jaccbox <- jacc_1d_boxplot(across_methods_ji,
                                               entity="resource")
 
     # Bind the plots
+    message("Patchwork at work!")
     pp <- list("jacc_heat" = jacc_heat, # 1
          "across_methods_jaccbox" = across_methods_jaccbox,
          "across_resources_jaccbox" = across_resources_jaccbox, # 2
@@ -159,7 +171,6 @@ comparison_pipe <- function(input_filepath,
                                       size = 48),
         ))
     dev.off()
-
 
     return(pp)
 }
@@ -716,12 +727,12 @@ get_ct_heatmap <- function(ct_tibble,
     # data frame with column annotations.
     # with a column for resources and a column for methods
     annotations_df <- data.frame(Resource = resource_groups,
-                                 Method = method_groups)  %>%
+                                 Method = method_groups) %>%
         mutate(rn = ct_tibble$mr) %>%
         column_to_rownames("rn")
 
     annotations_row <- data.frame(cell_cat = colnames(ct_tibble)[-1]) %>%
-        separate(cell_cat, sep="_", into = c("Cell", "Category"), remove = FALSE) %>%
+        separate(cell_cat, sep="\\^", into = c("Cell", "Category"), remove = FALSE) %>%
         column_to_rownames("cell_cat") %>%
         select(Category)
 
@@ -738,6 +749,7 @@ get_ct_heatmap <- function(ct_tibble,
         separate(cellname, into = c("cell", "cat"), sep = "_") %>%
         pull(cell)
 
+    names(ct_tibble)[-1] <- str_to_title(gsub("[\\^].*", "", names(ct_tibble)[-1]))
     cellfraq_heat <- pheatmap::pheatmap(ct_tibble %>%
                                             column_to_rownames("mr") %>%
                                             t(),
@@ -747,6 +759,7 @@ get_ct_heatmap <- function(ct_tibble,
                                         display_numbers = FALSE,
                                         silent = FALSE,
                                         show_colnames = FALSE,
+                                        show_rownames = TRUE,
                                         color = colorRampPalette(c("darkslategray2",
                                                                    "violetred2"))(20),
                                         fontsize = 30,
@@ -756,7 +769,8 @@ get_ct_heatmap <- function(ct_tibble,
                                         border_color = NA,
                                         treeheight_row = 0,
                                         treeheight_col = 100,
-                                        ...)
+                                        ...
+                                        )
 }
 
 #' Helper function to get Frequncies of Interactions per Cell Type
@@ -834,19 +848,8 @@ get_score_distributions <- function(liana_res_specced,
                 select(source, target, ligand, receptor, score)
         }) %>%
         enframe(name = "method", value = "results") %>%
-        unnest(results)
-
-
-    # liana aggregate rank
-    liana_ag_res <- liana_resmeth[[resource]] %>%
-        liana_aggregate_enh(...) %>%
-        mutate(method = "aggregate_rank") %>%
-        select(method, source, target, ligand, receptor, score=aggregate_rank)
-
-    # append aggragate
-    liana_scores <- bind_rows(liana_scores, liana_ag_res) %>%
+        unnest(results) %>%
         mutate(method = recode_methods(method))
-
 
     return(liana_scores)
 
@@ -897,7 +900,7 @@ get_ct_strength <- function(liana_all_spec,
             pivot_longer(cols = c(source, target),
                          names_to = "cat",
                          values_to = "cell") %>%
-            unite(cell, cat, col = "cell_cat") %>%
+            unite(cell, cat, col = "cell_cat", sep = "^") %>%
             group_by(method) %>%
             mutate(global_score = mean(score)) %>%
             group_by(method, cell_cat) %>%
@@ -969,7 +972,7 @@ recode_resources <- function(resources){
                   # "Guide2Pharma",
                   # "CellTalkDB",
                   # "OmniPath",
-                  "connectomeDB2020" = "ConnectomeDB"#,
+                  "connectomeDB2020" = "ConnDB2020"#,
                   # "talklr",
                   # "Reshuffled"
     )
