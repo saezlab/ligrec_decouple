@@ -9,7 +9,7 @@ summscript="analysis/comparison/comparison_analyse.R"
 # bash bash_scripts/large_bash.sh $summscript cbmc_out
 
 ### Run Pancreatic
-bash bash_scripts/generic.sh $summscript panc8_sum "data/output/comparison_out/panc8_liana_res.RDS"
+bash bash_scripts/generic_bash.sh $summscript panc8_sum "data/output/comparison_out/panc8_liana_res.RDS"
 
 ### Run ER (BRCA)
 bash bash_scripts/large_bash.sh $summscript brca_er_sum "data/output/comparison_out/BRCA_ER_liana_res.RDS"
