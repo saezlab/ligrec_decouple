@@ -16,7 +16,7 @@ sbatch <<EOT
 
 ## 1 Rscript 2 jobname 3 seurat_path
 echo "Submitted: $1 (Job ID: $SLURM_JOBID; Job Name: $2)"
-Rscript $1 $1 $2 $3
+Rscript $1 $1 $2 $3 $4 $5
 
 hostname
 exit 0
