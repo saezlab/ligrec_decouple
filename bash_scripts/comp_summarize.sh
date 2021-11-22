@@ -1,6 +1,6 @@
 #!/bin/bash
 ## Bash to run all script for all comparison summaries
-$summscript="analysis/comparison/comparison_analyse.R"
+summscript="analysis/comparison/comparison_analyse.R"
 
 ### Run CRC
 # bash bash_scripts/large_bash.sh $summscript crc_out
