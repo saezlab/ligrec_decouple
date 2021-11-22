@@ -24,7 +24,7 @@ args <- commandArgs(trailingOnly=TRUE)
 # Get Job name
 output_filepath <- args[[2]]  # e.g. panc8_out (+ job name)
 input_filepath <- args[[3]] # e.g. "data/output/comparison_out/panc8_liana_res.RDS"
-
+setting <- args[[4]]
 
 if(setting=="specs_frac"){
     .score_specs = liana:::.score_specs
