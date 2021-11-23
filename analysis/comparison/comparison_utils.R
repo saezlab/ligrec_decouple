@@ -927,7 +927,7 @@ get_ct_strength <- function(liana_all_spec,
 jacc_1d_boxplot <- function(jacc_tibb,
                             entity){
 
-    # Get average
+    # Get Median
     avg_jacc <- median(jacc_tibb$jacc)
 
     ggplot(jacc_tibb,
@@ -950,9 +950,48 @@ jacc_1d_boxplot <- function(jacc_tibb,
                shape = "none") +
         ylab("Jaccard Index") +
         xlab(str_to_title(str_glue("{entity}s"))) +
-        ylim(0,1)
+        ylim(0,1) # set to -.00001, as otherwise it discards 0s
+}
+
+
+#' Function to generate Jaccard Index Boxplots for 1 dataset at a time
+#' @param jacc_tibb resource or method jaccard index tibble, obtained from
+#' @param entity resource or method
+#'
+#' @return a ggplot object
+jacc_all_boxplot  <- function(jacc_tibb,
+                              entity){
+
+    x_median <- jacc_tibb %>%
+        group_by(dataset_setting) %>%
+        summarise(med_jacc = median(jacc))
+
+    ggplot(jacc_tibb,
+           aes(x = .data[[entity]],
+               y = jacc,
+               color = .data[[entity]])) +
+        geom_boxplot(alpha = 0.2,
+                     outlier.size = 1.3,
+                     width = 0.8)  +
+        geom_jitter(aes(shape=combination), size = 4, alpha = 0.3, width = 0.15) +
+        scale_shape_manual(values = rep(1:20, len = length(unique(jacc_tibb$combination)))) +
+        theme_bw(base_size = 24) +
+        theme(axis.text.x = element_text(angle = 90, hjust=1)) +
+        guides(fill = "none",
+               color = "none",
+               shape = "none") +
+        ylab("Jaccard Index") +
+        xlab(str_to_title(str_glue("{entity}s"))) +
+        ylim(0,1) +
+        geom_hline(aes(yintercept=med_jacc),
+                   data = x_median, color = "black",
+                   size=1.3, linetype="dashed") +
+        facet_grid(rows=~dataset_setting, scales='free_x', space='free',
+                   labeller = as_labeller(.dataset_keys))
 
 }
+
+
 
 #' @title Recode method names
 #' @param resources - vector /w resource names
@@ -977,4 +1016,29 @@ recode_resources <- function(resources){
                   # "Reshuffled"
     )
 }
+
+
+#' @title Recode method names
+#' @param dataset - vector /w dataset names
+recode_datasets <- function(datasets){
+    dplyr::recode(datasets,
+                  !!!.dataset_keys
+    )
+}
+
+.dataset_keys = c("er_specs_n" = "ER+ BRCA",
+                  "her2_specs_n" = "HER2+ BRCA",
+                  "tnbc_specs_n" = "TNBC BRCA",
+                  "cbmc_specs_n" = "CBMCs",
+                  "crc_specs_n" = "Colorectal Cancer",
+                  "panc8_specs_n" = "Pancreatic Islets",
+
+                  "er_specs_frac" = "ER+ BRCA",
+                  "her2_specs_frac" = "HER2+ BRCA",
+                  "tnbc_specs_frac" = "TNBC BRCA",
+                  "cbmc_specs_frac" = "CBMCs",
+                  "crc_specs_frac" = "Colorectal Cancer",
+                  "panc8_specs_frac" = "Pancreatic Islets"
+)
+
 

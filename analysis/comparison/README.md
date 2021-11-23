@@ -4,7 +4,7 @@
 
 2. Run `main_bash.sh` from bash_scripts folder to generate liana output with all resource and method combinations.  
 
-3. Submit `comparison_analyse.R` via `comp_summarize.sh` to generate data for the manuscript
+3. Submit `comparison_summarise.R` via `comp_summarise.sh` to generate the data for the manuscript.
 
 4. Run `comparison_plot.R` to generate the plots for the manuscript.  
 

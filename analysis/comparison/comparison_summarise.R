@@ -1,4 +1,4 @@
-## Script to generate the comparison data presented in the Manuscript
+## Script to generate the comparison summary data presented in the Manuscript
 # Arg 1: Path to LIANA results (resource-method) as Input
 # Arg 2: Name of output folder
 

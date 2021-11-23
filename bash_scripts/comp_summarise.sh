@@ -9,7 +9,7 @@ setting=$1
 ## bash bash_scripts/large_bash.sh $summscript crc_out $setting
 
 ### Run CBMC
-## bash bash_scripts/large_bash.sh $summscript cbmc_out $setting
+bash bash_scripts/large_bash.sh $summscript "cbmc_"$setting "data/output/comparison_out/cbmc_liana_res.RDS" $setting
 
 ### Run Pancreatic
 bash bash_scripts/large_bash.sh $summscript "panc8_"$setting "data/output/comparison_out/panc8_liana_res.RDS" $setting

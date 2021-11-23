@@ -93,8 +93,7 @@ coloc <- brca_lr_coloc %>%
                                   "not_colocalized")) %>%
     mutate(localisation = if_else(subtype == "ER" & loc_consensus==2,
                                   "colocalized",
-                                  localisation
-    ))
+                                  localisation))
 brca_lr_cons <- brca_lr_coloc %>%
     select(-localisation) %>%
     left_join(coloc)

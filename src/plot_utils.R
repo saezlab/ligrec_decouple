@@ -297,7 +297,7 @@ get_simil_dist <- function(sim_dist = "simil", ...){
 
 
 #' @title Recode method names
-#' @param dataset - vector /w method names
+#' @param methods - vector /w method names
 recode_methods <- function(methods){
   dplyr::recode(methods,
                 "squidpy" = "CellPhoneDB",
