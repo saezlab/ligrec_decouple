@@ -453,10 +453,6 @@ reform_rank_frequencies <- function(frequencies_list){
 }
 
 
-
-
-
-
 #' Helper Function to get a binary top hits DF (for all method-resource combos)
 #' @param sig_list list of significant hits per method-resource combo
 #' @export
@@ -474,8 +470,8 @@ get_binary_df <- function(sig_list){
         purrr::flatten() %>%
         setNames(lnames) %>%
         prepForUpset() %>%
-        as_tibble() %>%
         distinct() %>%
+        as_tibble() %>%
         column_to_rownames("interaction")
 }
 

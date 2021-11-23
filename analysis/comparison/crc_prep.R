@@ -48,14 +48,14 @@ crc_korean@meta.data %<>%
     rownames_to_column("barcode") %>%
     filter(!(str_detect("Unknown", Cell_subtype))) %>%
     mutate(cell_clusters = str_replace_all(cell_clusters, " ", ".")) %>%
-    mutate(cell_clusters = str_replace_all(cell_clusters, "[+]", "")) %>%
+    mutate(cell_clusters = gsub("\\+", "", cell_clusters)) %>%
     filter(!(str_starts("Unspecified Plasma", cell_clusters))) %>%
     mutate(cell_clusters = if_else(str_detect(cell_clusters, "SPP1"),
                                    "Myoloids.SPP1+",
                                    cell_clusters)) %>%
     group_by(cell_clusters) %>%
     mutate(cell_num = n()) %>%
-    filter(cell_num >= 10) %>%
+    filter(cell_num >= 25) %>%
     ungroup() %>%
     mutate(cell_clusters = as.factor(cell_clusters))  %>%
     as.data.frame(row.names) %>%

@@ -31,7 +31,7 @@ if(setting=="specs_frac"){
     .score_specs = liana:::.score_specs
     top_fun <- "top_frac"
     top_x <- 0.01
-} else if(setting=="house_frac"){ # RENAME
+} else if(setting=="house_n"){ # RENAME
     .score_specs = liana:::.score_housekeep
     top_fun <- "top_n"
     top_x <- 1000

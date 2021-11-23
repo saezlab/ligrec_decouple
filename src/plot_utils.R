@@ -1,5 +1,5 @@
 #' Helper function to prepare list for UpsetPlot
-#' @param named_list a named list with sugnificant LR results
+#' @param named_list a named list with significant LR results
 #' @return Matrix/DF of 0 and 1 where 1 means that the interaction
 #' is present and 0 means that it is not
 #' @importFrom tibble tibble
@@ -15,10 +15,11 @@ prepForUpset <- function(named_list){
     }
 
       named_list[[l_name]] %>%
-      select(source, target, ligand, receptor) %>%
-      unite("interaction", source, target,
-            ligand, receptor, sep="_") %>%
-      mutate(!!l_name := 1)
+        select(source, target, ligand, receptor) %>%
+        unite("interaction", source, target,
+              ligand, receptor, sep="_") %>%
+        mutate(!!l_name := 1) %>%
+        distinct()
   }) %>% reduce(., full_join, by = "interaction") %>%
     mutate_at(vars(1:ncol(.)), ~ replace(., is.na(.), 0)) %>%
     mutate_at(vars(2:ncol(.)), ~ replace(., . != 0, 1)) %>%
