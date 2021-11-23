@@ -33,8 +33,8 @@ if(setting=="specs_frac"){
     top_x <- 0.05
 } else if(setting=="house_frac"){
     .score_specs = liana:::.score_housekeep
-    top_fun <- "top_frac"
-    top_x <- 0.05
+    top_fun <- "top_n"
+    top_x <- 1000
 } else if(setting=="specs_n"){
     .score_specs = liana:::.score_specs
     top_fun <- "top_n"
