@@ -12,15 +12,15 @@
 #' @inheritDotParams top_enh and liana_aggregate_enh
 #'
 comparison_summary <- function(input_filepath,
-                            output_filepath,
-                            resource = "OmniPath",
-                            top_x = 0.05,
-                            top_fun = "top_frac",
-                            .score_specs = liana:::.score_specs,
-                            cap_value_str = 99999,
-                            cap_value_freq = 1,
-                            iter = 1,
-                            ...){
+                               output_filepath,
+                               resource = "OmniPath",
+                               top_x = 0.05,
+                               top_fun = "top_frac",
+                               .score_specs = liana:::.score_specs,
+                               cap_value_str = 99999,
+                               cap_value_freq = 1,
+                               iter = 1,
+                               ...){
 
     top_hits_key <- str_glue({"top_{top_x}"})
     outpath <- str_glue("data/output/comparison_out/{output_filepath}")
@@ -156,8 +156,8 @@ comparison_summary <- function(input_filepath,
 
 
     # Frequency/Strength/Densities with patchwork
-    print(str_glue("{outpath}/SuppFig_{iter}_distributions.pdf"))
-    cairo_pdf(str_glue("{outpath}/SuppFig_{iter}_distributions.pdf"),
+    print(str_glue("{outpath}/SuppFig_{iter + 1}_distributions.pdf"))
+    cairo_pdf(str_glue("{outpath}/SuppFig_{iter + 1}_distributions.pdf"),
               width = 36,
               height = 50,
               family = 'DINPro')
@@ -957,34 +957,48 @@ jacc_1d_boxplot <- function(jacc_tibb,
 #' Function to generate Jaccard Index Boxplots for 1 dataset at a time
 #' @param jacc_tibb resource or method jaccard index tibble, obtained from
 #' @param entity resource or method
+#' @param median_across_resource across methods (Same Resource, Different Methods)
+#' @param median_across_method across resources (Same Method, Different Resources)
 #'
 #' @return a ggplot object
 jacc_all_boxplot  <- function(jacc_tibb,
-                              entity){
+                              entity,
+                              median_across_method,
+                              median_across_resource){
 
-    x_median <- jacc_tibb %>%
-        group_by(dataset_setting) %>%
-        summarise(med_jacc = median(jacc))
+    if(entity=="resource"){
+        facet_col <- "#3182bd"
+    } else if(entity=="method"){
+        facet_col <- "#de2d26"
+    }
 
     ggplot(jacc_tibb,
            aes(x = .data[[entity]],
                y = jacc,
                color = .data[[entity]])) +
-        geom_boxplot(alpha = 0.2,
+        geom_boxplot(alpha = 0.3,
                      outlier.size = 1.3,
-                     width = 0.8)  +
-        geom_jitter(aes(shape=combination), size = 4, alpha = 0.3, width = 0.15) +
-        scale_shape_manual(values = rep(1:20, len = length(unique(jacc_tibb$combination)))) +
+                     width = 0.7,
+                     colour = "grey")  +
+        # geom_jitter(aes(shape=combination), size = 4, alpha = 0.3, width = 0.15) +
+        # scale_shape_manual(values = rep(1:20, len = length(unique(jacc_tibb$combination)))) +
         theme_bw(base_size = 24) +
-        theme(axis.text.x = element_text(angle = 90, hjust=1)) +
+        theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5),
+              strip.background = element_rect(fill=facet_col),
+              strip.text = element_text(colour = 'white')) +
         guides(fill = "none",
                color = "none",
                shape = "none") +
         ylab("Jaccard Index") +
         xlab(str_to_title(str_glue("{entity}s"))) +
-        ylim(0,1) +
+        ylim(0, 1) +
+        # Same Method, Different Resources (X axis entity=resource)
         geom_hline(aes(yintercept=med_jacc),
-                   data = x_median, color = "black",
+                   data = median_across_resource, color = "#de2d26",
+                   size=1.3, linetype="dashed") +
+        # Same Resource, Different Methods (X axis entity=method)
+        geom_hline(aes(yintercept=med_jacc),
+                   data = median_across_method, color = "#3182bd",
                    size=1.3, linetype="dashed") +
         facet_grid(rows=~dataset_setting, scales='free_x', space='free',
                    labeller = as_labeller(.dataset_keys))
@@ -1000,7 +1014,7 @@ recode_resources <- function(resources){
                   # "Default",
                   # "CellChatDB",
                   # "CellPhoneDB",
-                  # "Ramilowski2015",
+                  "Ramilowski2015" = "Ramilowski",
                   # "Baccin2019",
                   # "LRdb",
                   # "Kirouac2010",
