@@ -6,7 +6,7 @@ summscript="analysis/comparison/comparison_summarise.R"
 setting=$1
 
 ### Run CRC
-bash bash_scripts/large_bash.sh $summscript "crc_"$setting "data/output/comparison_out/crc_liana_res.RDS" $setting
+bash bash_scripts/huge_bash.sh $summscript "crc_"$setting "data/output/comparison_out/crc_liana_res.RDS" $setting
 
 ### Run CBMC
 bash bash_scripts/large_bash.sh $summscript "cbmc_"$setting "data/output/comparison_out/cbmc_liana_res.RDS" $setting

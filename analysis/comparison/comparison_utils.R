@@ -985,7 +985,8 @@ jacc_all_boxplot  <- function(jacc_tibb,
         theme_bw(base_size = 24) +
         theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5),
               strip.background = element_rect(fill=facet_col),
-              strip.text = element_text(colour = 'white')) +
+              strip.text = element_text(colour = 'white'),
+              panel.grid.major.x = element_blank()) +
         guides(fill = "none",
                color = "none",
                shape = "none") +
@@ -1003,6 +1004,135 @@ jacc_all_boxplot  <- function(jacc_tibb,
         facet_grid(rows=~dataset_setting, scales='free_x', space='free',
                    labeller = as_labeller(.dataset_keys))
 
+}
+
+
+#' Generate Summarized Plots from Comparison Summaries
+#'
+#' @param pattern for files (e.g. specs_frac)
+#' @param comparison_out output folder
+#' @param complexbox_name name of the complex boxplot
+#' @param simplebox name of the simple boxplot
+comp_summ_plot <- function(pattern,
+                           comparison_out,
+                           box_name){
+    # Load Jaccard Index Across Resources using the same Method
+    dirs <- list.files(comparison_out,
+                       pattern=pattern)
+
+    levels <- map_chr(c("cbmc", "panc8", "crc",
+                        "er", "tnbc", "her2"),
+                      function(ds){
+                          paste(ds, pattern, sep = "_")
+                      })
+
+    across_resource <- map(dirs, function(d){
+        readRDS(file.path(comparison_out, d, "across_resource_ji.RDS"))
+    }) %>%
+        setNames(dirs) %>%
+        enframe(name = "dataset_setting",
+                value = "ji_stats") %>%
+        unnest(ji_stats) %>%
+        mutate(dataset_setting =
+                   factor(dataset_setting,
+                          levels = levels))
+
+
+    # Load Jaccard Index Across Methods using the same Resource
+    across_method <- map(dirs, function(d){
+        readRDS(file.path(comparison_out, d, "across_methods_ji.RDS"))
+    }) %>%
+        setNames(dirs) %>%
+        enframe(name = "dataset_setting",
+                value = "ji_stats") %>%
+        unnest(ji_stats) %>%
+        mutate(dataset_setting =
+                   factor(dataset_setting,
+                          levels = levels)
+        ) %>%
+        mutate(resource = recode_resources(resource))
+
+    # Calculate Median across Methods (Same Method, Different Resources)
+    across_resource
+    median_across_resource <- across_resource %>%
+        group_by(dataset_setting) %>%
+        summarise(med_jacc = median(jacc))
+    median_across_resource
+
+    # Calculate Median Across Resources (Same Resource, Different Methods)
+    across_method
+    median_across_method <- across_method %>%
+        group_by(dataset_setting) %>%
+        summarise(med_jacc = median(jacc))
+    median_across_method
+
+    # Plot Jaccard Boxplots
+    method_jacc_box <- jacc_all_boxplot(across_resource,
+                                        entity="method",
+                                        median_across_resource = median_across_resource,
+                                        median_across_method = median_across_method
+    )
+
+    resource_jacc_box <- jacc_all_boxplot(across_method,
+                                          entity="resource",
+                                          median_across_resource = median_across_resource,
+                                          median_across_method = median_across_method)
+
+    # Simple boxplot
+    # Same Method, Different Resources
+    simple_across_resource <- median_across_resource %>%
+        mutate(dataset_setting = recode_datasets(dataset_setting)) %>%
+        mutate(entity="Different\nResources")
+
+    # Same Resource, Different Methods
+    simple_across_method <- median_across_method %>%
+        mutate(dataset_setting = recode_datasets(as.character(dataset_setting))) %>%
+        mutate(entity="Different\nMethods")
+
+    simple_box_data <- bind_rows(simple_across_method,
+                                 simple_across_resource) %>%
+        mutate(entity = factor(entity, levels = c("Different\nMethods",
+                                                  "Different\nResources"
+                                                  )))
+
+    # Simpler Boxplot (A)
+    simple_box <- ggplot(simple_box_data,
+                         aes(x = entity,
+                             y = med_jacc,
+                             fill = entity,
+                             colour = entity
+                             )) +
+        geom_boxplot(alpha = 0.175,
+                     outlier.size = 1.2,
+                     width = 1.3) +
+        scale_fill_manual(values=c("#3182bd", "#de2d26")) +
+        geom_jitter(aes(shape=dataset_setting), size = 7, alpha = 0.9, width = 0.05) +
+        scale_colour_manual(values=c("#3182bd", "#de2d26")) +
+        scale_shape_manual(values = rep(15:25, len = length(unique(simple_box_data$dataset_setting)))) +
+        theme_bw(base_size = 32) +
+        theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5),
+              panel.grid.major.x = element_blank()) +
+        guides(fill = "none",
+               color = "none") +
+        ylab("Jaccard Index") +
+        xlab("") +
+        ylim(0, 1) +
+        labs(shape="Dataset")
+
+    # Jaccard plots assembled with patchwork (complexbox_name)
+    cairo_pdf(file.path(comparison_out, box_name),
+              height = 24,
+              width = 32,
+              family = 'DINPro')
+    print((simple_box |
+               (resource_jacc_box/ method_jacc_box)) +
+            plot_layout(guides = 'collect', widths = c(1, 6)) +
+            plot_annotation(tag_levels = 'A',
+                            tag_suffix = ')') &
+            theme(plot.tag = element_text(face = 'bold',
+                                          size = 48),
+                  legend.position = 'bottom', legend.box = "horizontal"))
+    dev.off()
 }
 
 
@@ -1028,15 +1158,6 @@ recode_resources <- function(resources){
                   "connectomeDB2020" = "ConnDB2020"#,
                   # "talklr",
                   # "Reshuffled"
-    )
-}
-
-
-#' @title Recode method names
-#' @param dataset - vector /w dataset names
-recode_datasets <- function(datasets){
-    dplyr::recode(datasets,
-                  !!!.dataset_keys
     )
 }
 
