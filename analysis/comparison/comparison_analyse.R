@@ -37,7 +37,7 @@ comp_summ_plot(pattern = "specs_frac",
                box_name = "SuppFig_10_Specificity_frac_complex.pdf")
 
 ## III. House_FRAC ----
-comp_summ_plot(pattern = "house_frac",
+comp_summ_plot(pattern = "house_frac", # RENAME
                comparison_out = comparison_out,
                box_name = "SuppFig_10_Specificity_housekeeping_frac_complex.pdf")
 
