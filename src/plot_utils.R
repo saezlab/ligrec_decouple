@@ -19,11 +19,15 @@ prepForUpset <- function(named_list){
         unite("interaction", source, target,
               ligand, receptor, sep="_") %>%
         mutate(!!l_name := 1) %>%
-        distinct()
-  }) %>% reduce(., full_join, by = "interaction") %>%
+        distinct() %>%
+        # Convert to DT
+        data.table::setDT() %>%
+        data.table::setkey(., interaction)
+  }) %>%
+    Reduce(function(...) merge(..., all = TRUE), .) %>%
+    as.data.frame() %>%
     mutate_at(vars(1:ncol(.)), ~ replace(., is.na(.), 0)) %>%
-    mutate_at(vars(2:ncol(.)), ~ replace(., . != 0, 1)) %>%
-    as.data.frame()
+    mutate_at(vars(2:ncol(.)), ~ replace(., . != 0, 1))
 }
 
 
