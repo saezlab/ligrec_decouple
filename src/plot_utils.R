@@ -126,6 +126,7 @@ plot_freq_pca <- function(freq_df){
 }
 
 
+
 #' Jaccard Similarities Heatmap Function
 #' @param sig_list list of top ranked hits for each method
 #' (i.e. top hits obtained via `get_top_hits`)
@@ -133,31 +134,25 @@ plot_freq_pca <- function(freq_df){
 #' @export
 get_simdist_heatmap <- function(sig_list,
                                 binary_df = NULL,
+                                simdif_df = NULL,
                                 cluster_rows = FALSE,
                                 cluster_columns = FALSE,
                                 ...){
 
+
+  # This allows binary_df to be passed, if already calculated
   if(is.null(binary_df)){
     heatmap_binary_df <- get_binary_df(sig_list)
   } else{
     heatmap_binary_df <- binary_df
   }
 
-  args <- list(sim_dist = "simil",
-               ...)
-
-  simdif_df <- heatmap_binary_df %>%
-    t() %>%
-    get_simil_dist(.,
-                   ...) %>%
-    as.matrix()
-
-  # Assign 1 to diagonal
-  # Any other distance and similarity works just fine
-  # but Jaccard results in NAs in the diagonal,
-  # and as.matrix replaces them with 0s..., while class(dist) is immutable
-  if(args$method == "Jaccard" && args$sim_dist == "simil"){
-    diag(simdif_df) <- 1
+  # This if is used to skip the calculations below
+  # I use it for the mean JI Heatmap across datasets
+  if(is.null(simdif_df)){
+    # Calculate data from binary df
+    simdif_df <- get_heatmap_data(heatmap_binary_df,
+                                  ...)
   }
 
   method_groups <- colnames(heatmap_binary_df) %>%
@@ -184,7 +179,7 @@ get_simdist_heatmap <- function(sig_list,
   names(mycolors$Method) <- unique(method_groups)
 
   # define legend params
-  legend_arg_list <- list(title = "Jaccard Index",
+  legend_arg_list <- list(title = "Jaccard\nIndex",
                           title_gp = gpar(fontsize = 24, fontface = "bold"),
                           grid_height = unit(60, "mm"),
                           grid_width = unit(16, "mm"),
@@ -200,7 +195,8 @@ get_simdist_heatmap <- function(sig_list,
                                simple_anno_size = unit(1.4, "cm"),
                                annotation_name_gp = gpar(fontsize = 24),
                                show_legend = TRUE,
-                               annotation_legend_param = list(title_gp = gpar(fontsize = 24, fontface = "bold"),
+                               annotation_legend_param = list(title_gp = gpar(fontsize = 24,
+                                                                              fontface = "bold"),
                                                               labels_gp = gpar(fontsize = 23),
                                                               pch=20))
 
@@ -226,6 +222,29 @@ get_simdist_heatmap <- function(sig_list,
   return(ht)
 }
 
+
+
+#' Helper function to estimate and format JI heatmap data
+get_heatmap_data <- function(heatmap_binary_df,
+                             ...){
+  simdif_df <- heatmap_binary_df %>%
+    t() %>%
+    get_simil_dist(.,
+                   ...) %>%
+    as.matrix()
+
+  # Assign 1 to diagonal
+  # Any other distance and similarity works just fine
+  # but Jaccard results in NAs in the diagonal,
+  # and as.matrix replaces them with 0s..., while class(dist) is immutable
+  args <- list(sim_dist = "simil",
+               ...)
+  if(args$method == "Jaccard" && args$sim_dist == "simil"){
+    diag(simdif_df) <- 1
+  }
+
+  return(simdif_df)
+}
 
 
 #' Helper Function to get Similarties and Distances from binary dfs

@@ -27,14 +27,18 @@ recode_datasets <- function(datasets){
 comparison_out <- "data/output/comparison_out/"
 
 ## I. Specs_n ----
-comp_summ_plot(pattern = "specs_n",
-               comparison_out = comparison_out,
-               box_name = "Figure4.pdf")
+n_tibble <- comp_summ_plot(pattern = "specs_n",
+                           comparison_out = comparison_out,
+                           box_name = "Figure4.pdf",
+                           heat_name = "SuppFig11_JI_heat.pdf")
+n_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
 
 
 ## PURGATORY ----
-
-# Load Jaccard Index Across Resources using the same Method
 pattern="specs_n"
 dirs <- list.files(comparison_out,
                    pattern=pattern)
@@ -45,26 +49,54 @@ levels <- map_chr(c("cbmc", "panc8", "crc",
                       paste(ds, pattern, sep = "_")
                   })
 
-across_resource <- map(dirs, function(d){
-    readRDS(file.path(comparison_out, d, ""))
+# Merge all Binary DFs and Calculate Jaccard Index for each
+# * binary DFs are top X hits, full joined across method-resources
+all_binary_dfs <- map(dirs, function(d){
+    readRDS(file.path(comparison_out, d, "binary_df.RDS"))
 }) %>%
     setNames(dirs) %>%
     enframe(name = "dataset_setting",
-            value = "ji_stats") %>%
-    unnest(ji_stats) %>%
-    mutate(dataset_setting =
-               factor(dataset_setting,
-                      levels = levels))
+            value = "binary") %>%
+    mutate(jaccard_mat = binary %>% map(function(b){
+        get_heatmap_data(b,
+                         sim_dist = "simil",
+                         method = "Jaccard",
+                         diag = TRUE,
+                         upper = TRUE)
+    }))
 
+# Calculate jaccard index median across datasets
+jaccard_mat_mean <- apply(simplify2array(all_binary_dfs$jaccard_mat),
+                          1:2,
+                          median)
+
+# Plot Merged JI Heat
+merged_ji_heat <- get_simdist_heatmap(binary_df = all_binary_dfs$binary[[1]],
+                                      simdif_df = jaccard_mat_mean,
+                                      sim_dist = "simil",
+                                      method = "Jaccard",
+                                      diag = TRUE,
+                                      upper = TRUE,
+                                      cluster_rows = TRUE,
+                                      cluster_columns = TRUE)
 
 
 ## II. Specs_FRAC ----
-comp_summ_plot(pattern = "specs_frac",
-               comparison_out = comparison_out,
-               box_name = "SuppFig_10_Specificity_frac_complex.pdf")
+frac_tibble <- comp_summ_plot(pattern = "specs_frac",
+                              comparison_out = comparison_out,
+                              box_name = "SuppFig_10_Specificity_frac.pdf")
+frac_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
 
-## III. House_FRAC ----
-comp_summ_plot(pattern = "house_n", # RENAME
-               comparison_out = comparison_out,
-               box_name = "SuppFig_10_Specificity_housekeeping_frac_complex.pdf")
-
+## III. House_n ----
+house_tibble <- comp_summ_plot(pattern = "house_n",
+                               comparison_out = comparison_out,
+                               box_name = "SuppFig_12_housekeeping_n.pdf")
+house_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))

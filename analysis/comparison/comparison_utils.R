@@ -46,7 +46,6 @@ comparison_summary <- function(input_filepath,
     saveRDS(liana_scores, str_glue("{outpath}/liana_scores.RDS"))
 
     score_dist_plot <- plot_score_distributions(liana_scores)
-    print(score_dist_plot) # print to check at run time :)
 
     # II) Interaction Relative Strength per Cell Type -----
     message("Interaction Relative Strength")
@@ -75,8 +74,8 @@ comparison_summary <- function(input_filepath,
                                      method = "Jaccard",
                                      diag = TRUE,
                                      upper = TRUE,
-                                     cluster_rows = FALSE,
-                                     cluster_columns = FALSE)
+                                     cluster_rows = TRUE,
+                                     cluster_columns = TRUE)
 
 
     # V) JI Stats/Boxplots ----
@@ -1015,7 +1014,7 @@ jacc_all_boxplot  <- function(jacc_tibb,
 }
 
 
-#' Generate Summarized Plots from Comparison Summaries
+#' Generate Summarized Plots from all Comparison Summaries (i.e. across datasets)
 #'
 #' @param pattern for files (e.g. specs_frac)
 #' @param comparison_out output folder
@@ -1023,7 +1022,8 @@ jacc_all_boxplot  <- function(jacc_tibb,
 #' @param simplebox name of the simple boxplot
 comp_summ_plot <- function(pattern,
                            comparison_out,
-                           box_name){
+                           box_name,
+                           heat_name){
     # Load Jaccard Index Across Resources using the same Method
     dirs <- list.files(comparison_out,
                        pattern=pattern)
@@ -1116,7 +1116,7 @@ comp_summ_plot <- function(pattern,
         scale_fill_manual(values=c("#3182bd", "#de2d26")) +
         geom_jitter(aes(shape=dataset_setting), size = 7, alpha = 0.9, width = 0.05) +
         scale_colour_manual(values=c("#3182bd", "#de2d26")) +
-        scale_shape_manual(values = rep(15:25, len = length(unique(simple_box_data$dataset_setting)))) +
+        scale_shape_manual(values = rep(12:25, len = length(unique(simple_box_data$dataset_setting)))) +
         theme_bw(base_size = 32) +
         theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5),
               panel.grid.major.x = element_blank()) +
@@ -1127,20 +1127,63 @@ comp_summ_plot <- function(pattern,
         ylim(0, 1) +
         labs(shape="Dataset")
 
-    # Jaccard plots assembled with patchwork (complexbox_name)
+    # Plots assembled with patchwork (box_name)
     cairo_pdf(file.path(comparison_out, box_name),
               height = 24,
               width = 32,
               family = 'DINPro')
     print((simple_box |
-               (resource_jacc_box/ method_jacc_box)) +
-            plot_layout(guides = 'collect', widths = c(1, 6)) +
-            plot_annotation(tag_levels = 'A',
-                            tag_suffix = ')') &
-            theme(plot.tag = element_text(face = 'bold',
-                                          size = 48),
-                  legend.position = 'bottom', legend.box = "horizontal"))
+                (resource_jacc_box/ method_jacc_box)) +
+              plot_layout(guides = 'collect', widths = c(1, 6)) +
+              plot_annotation(tag_levels = 'A',
+                              tag_suffix = ')') &
+              theme(plot.tag = element_text(face = 'bold',
+                                            size = 48),
+                    legend.position = 'bottom', legend.box = "horizontal"))
     dev.off()
+
+    # Merged Heat
+    # Merge all Binary DFs and Calculate Jaccard Index for each
+    # * binary DFs are top X hits, full joined across method-resources
+    all_binary_dfs <- map(dirs, function(d){
+        readRDS(file.path(comparison_out, d, "binary_df.RDS"))
+    }) %>%
+        setNames(dirs) %>%
+        enframe(name = "dataset_setting",
+                value = "binary") %>%
+        mutate(jaccard_mat = binary %>% map(function(b){
+            get_heatmap_data(b,
+                             sim_dist = "simil",
+                             method = "Jaccard",
+                             diag = TRUE,
+                             upper = TRUE)
+        }))
+
+    # Calculate jaccard index median across datasets
+    jaccard_mat_mean <- apply(simplify2array(all_binary_dfs$jaccard_mat),
+                              1:2,
+                              median)
+
+    # Plot Merged JI Heat
+    merged_ji_heat <- get_simdist_heatmap(binary_df = all_binary_dfs$binary[[1]],
+                                          simdif_df = jaccard_mat_mean,
+                                          sim_dist = "simil",
+                                          method = "Jaccard",
+                                          diag = TRUE,
+                                          upper = TRUE,
+                                          cluster_rows = TRUE,
+                                          cluster_columns = TRUE)
+
+    # Plots assembled with patchwork (box_name)
+    cairo_pdf(file.path(comparison_out, heat_name),
+              height = 16,
+              width = 20,
+              family = 'DINPro')
+    print(merged_ji_heat)
+    dev.off()
+
+    # Return Median Jaccard indeces across datasets
+    return(simple_box_data)
 }
 
 
@@ -1181,7 +1224,14 @@ recode_resources <- function(resources){
                   "tnbc_specs_frac" = "TNBC BRCA",
                   "cbmc_specs_frac" = "CBMCs",
                   "crc_specs_frac" = "Colorectal Cancer",
-                  "panc8_specs_frac" = "Pancreatic Islets"
+                  "panc8_specs_frac" = "Pancreatic Islets",
+
+                  "er_house_n" = "ER+ BRCA",
+                  "her2_house_n" = "HER2+ BRCA",
+                  "tnbc_house_n" = "TNBC BRCA",
+                  "cbmc_house_n" = "CBMCs",
+                  "crc_house_n" = "Colorectal Cancer",
+                  "panc8_house_n" = "Pancreatic Islets"
 )
 
 

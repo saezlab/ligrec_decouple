@@ -2,6 +2,7 @@
 require(tidyverse)
 require(magrittr)
 require(liana)
+require(Seurat)
 
 #' Helper function to convert CRC data to sparse Seurat
 #' @param counts_loc counts location
@@ -55,7 +56,7 @@ crc_korean@meta.data %<>%
                                    cell_clusters)) %>%
     group_by(cell_clusters) %>%
     mutate(cell_num = n()) %>%
-    filter(cell_num >= 25) %>%
+    filter(cell_num >= 10) %>%
     ungroup() %>%
     mutate(cell_clusters = as.factor(cell_clusters))  %>%
     as.data.frame(row.names) %>%
