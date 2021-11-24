@@ -50,74 +50,6 @@ plotSaveUset <- function(upset_df, file_name, entity_name){
 }
 
 
-#' Heatmap looking at binarized top in per method-resource combinations
-#'
-#' @param sig_list named list of significant hits. Named list of methods with
-#'     each element being a named list of resources
-#' @inheritDotParams pheatmap::pheatmap
-#'
-#' @return A pheatmap showing binary overlap between methods and resources
-#'
-#' @importFrom pheatmap pheatmap
-#' @importFrom RColorBrewer brewer.pal
-#' @importFrom grDevices colorRampPalette
-#' @importFrom purrr map flatten
-#' @importFrom magrittr %>%
-#' @importFrom stringr str_glue
-#' @export
-get_BinaryHeat <- function(sig_list,
-                        ...){
-
-  heatmap_binary_df <- get_binary_df(sig_list)
-
-  # annotation groups (sequential vectors as in heatmap_binary_df)
-  method_groups <- colnames(heatmap_binary_df) %>%
-    enframe() %>%
-    separate(value, into = c("method", "resource"), sep = "⊎") %>%
-    pull(method)
-  resource_groups <- colnames(heatmap_binary_df) %>%
-    enframe() %>%
-    separate(value, into = c("method", "resource"), sep = "⊎") %>%
-    pull(resource)
-
-  # data frame with column annotations.
-  # with a column for resources and a column for methods
-  annotations_df <- data.frame(Resource = resource_groups,
-                               Method = method_groups)  %>%
-    mutate(rn = colnames(heatmap_binary_df)) %>%
-    column_to_rownames("rn")
-
-  # List with colors for each annotation.
-  mycolors <- list(Method = colorRampPalette(brewer.pal(8, "Dark2"))(length(unique(method_groups))),
-                   Resource = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(resource_groups))))
-  names(mycolors$Resource) <- unique(resource_groups)
-  names(mycolors$Method) <- unique(method_groups)
-
-  binary_heatmap <- pheatmap::pheatmap(heatmap_binary_df,
-                                       annotation_col = annotations_df,
-                                       annotation_colors = mycolors,
-                                       display_numbers = FALSE,
-                                       silent = FALSE,
-                                       show_rownames = FALSE,
-                                       show_colnames = FALSE,
-                                       legend_breaks = 0:1,
-                                       fontsize = 34,
-                                       drop_levels = TRUE,
-                                       cluster_rows = FALSE,
-                                       cluster_cols = TRUE,
-                                       color = c("gray15", "darkslategray2"),
-                                       border_color = NA,
-                                       clustering_distance_rows = "binary",
-                                       clustering_distance_cols = "binary",
-                                       treeheight_row = 0,
-                                       treeheight_col = 100,
-                                       ...
-                                       )
-
-  return(binary_heatmap)
-}
-
-
 #' Helper function to Swap Nested Lists
 #' @param sig_list named list of significant hits. Named list of methods with
 #' each element being a named list of resources
@@ -200,11 +132,17 @@ plot_freq_pca <- function(freq_df){
 #' @inheritDotParams get_simil_dist
 #' @export
 get_simdist_heatmap <- function(sig_list,
+                                binary_df = NULL,
                                 cluster_rows = FALSE,
                                 cluster_columns = FALSE,
                                 ...){
 
-  heatmap_binary_df <- get_binary_df(sig_list)
+  if(is.null(binary_df)){
+    heatmap_binary_df <- get_binary_df(sig_list)
+  } else{
+    heatmap_binary_df <- binary_df
+  }
+
   args <- list(sim_dist = "simil",
                ...)
 
@@ -221,7 +159,6 @@ get_simdist_heatmap <- function(sig_list,
   if(args$method == "Jaccard" && args$sim_dist == "simil"){
     diag(simdif_df) <- 1
   }
-
 
   method_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%

@@ -31,6 +31,33 @@ comp_summ_plot(pattern = "specs_n",
                comparison_out = comparison_out,
                box_name = "Figure4.pdf")
 
+
+## PURGATORY ----
+
+# Load Jaccard Index Across Resources using the same Method
+pattern="specs_n"
+dirs <- list.files(comparison_out,
+                   pattern=pattern)
+
+levels <- map_chr(c("cbmc", "panc8", "crc",
+                    "er", "tnbc", "her2"),
+                  function(ds){
+                      paste(ds, pattern, sep = "_")
+                  })
+
+across_resource <- map(dirs, function(d){
+    readRDS(file.path(comparison_out, d, ""))
+}) %>%
+    setNames(dirs) %>%
+    enframe(name = "dataset_setting",
+            value = "ji_stats") %>%
+    unnest(ji_stats) %>%
+    mutate(dataset_setting =
+               factor(dataset_setting,
+                      levels = levels))
+
+
+
 ## II. Specs_FRAC ----
 comp_summ_plot(pattern = "specs_frac",
                comparison_out = comparison_out,

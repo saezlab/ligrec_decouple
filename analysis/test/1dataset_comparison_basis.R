@@ -149,43 +149,53 @@ p
 
 # V) Obtain JI Stats ----
 # Get Jaccard Stats
-jaccard_per_mr <- simdist_resmet(top_lists[[top_hits_key]],
+binary_df <- get_binary_df(top_lists[[top_hits_key]])
+jaccard_per_mr <- simdist_resmet(sig_list = top_lists[[top_hits_key]],
+                                 binary_df = binary_df,
                                  sim_dist = "simil",
                                  method = "Jaccard")
 
 
 
+across_methods_ji <- jaccard_per_mr$reso %>%
+    compact() %>%
+    map2(names(.), function(reso_ji, reso_name){
+        reso_ji %>%
+            as.matrix() %>%
+            as.data.frame() %>%
+            as_tibble(rownames="resource_method1") %>%
+            pivot_longer(-resource_method1,
+                         names_to = "resource_method2",
+                         values_to = "jacc") %>%
+            distinct() %>%
+            filter(resource_method1!=resource_method2) %>%
+            mutate(resource = reso_name)
+    }) %>%
+    bind_rows() %>%
+    unite(resource_method1, resource_method2, col = "combination") %>%
+    mutate(resource = recode_resources(resource))
+methods_jaccbox <- jacc_1d_boxplot(across_methods_ji, entity="resource")
 
+across_resources_ji <- jaccard_per_mr$meth %>%
+    compact() %>%
+    map2(names(.), function(met_ji, met_name){
+        met_ji %>%
+            as.matrix() %>%
+            as.data.frame() %>%
+            as_tibble(rownames="method_resource1") %>%
+            pivot_longer(-method_resource1,
+                         names_to = "method_resource2",
+                         values_to = "jacc") %>%
+            distinct() %>%
+            filter(method_resource1!=method_resource2) %>%
+            mutate(method = met_name)
+    }) %>%
+    bind_rows() %>%
+    unite(method_resource1, method_resource2, col = "combination") %>%
+    mutate(method = recode_methods(method))
 
+resources_jaccbox <- jacc_1d_boxplot(across_resources_ji, entity="method")
 
-
-
-methods_jaccbox <- jacc_1d_boxplot(resource_ji, entity="resource")
-resources_jaccbox <- jacc_1d_boxplot(methods_ji, entity="method")
-
-
-ggplot(resource_ji,
-       aes(x = resource,
-           y = jacc,
-           color = resource
-       )) +
-    geom_boxplot(alpha = 0.2,
-                 outlier.size = 1.5,
-                 width = 0.8)  +
-    geom_jitter(aes(shape=combination), size = 5, alpha = 0.3, width = 0.15) +
-    scale_shape_manual(values = rep(1:20, len = length(unique(resource_ji$combination)))) +
-    # facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-    theme_bw(base_size = 24) +
-    theme(strip.text.x = element_text(angle = 90),
-          axis.text.x = element_text(angle = 45, hjust=1)
-    ) +
-    # guides(color = "none") +
-    guides(fill = "none",
-           color = "none",
-           shape = "none") +
-    ylab("Jaccard index") +
-    xlab("Resource")
-# these become two figures, by method and by resource
 
 
 # Get Mean of Means of method across resources, and

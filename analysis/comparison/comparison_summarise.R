@@ -31,14 +31,23 @@ if(setting=="specs_frac"){
     .score_specs = liana:::.score_specs
     top_fun <- "top_frac"
     top_x <- 0.01
+    pval_thresh = 1
+    sca_thresh = 0
+    de_thresh = 0.05
 } else if(setting=="house_n"){ # RENAME
     .score_specs = liana:::.score_housekeep
     top_fun <- "top_n"
     top_x <- 1000
+    pval_thresh = 0.05 #!!!
+    sca_thresh = 0
+    de_thresh = 0.05
 } else if(setting=="specs_n"){
     .score_specs = liana:::.score_specs
     top_fun <- "top_n"
     top_x <- 1000
+    pval_thresh = 1
+    sca_thresh = 0
+    de_thresh = 0.05
 } else{
     stop("Setting is wrong!")
 }
@@ -52,7 +61,7 @@ comparison_summary(input_filepath = input_filepath,
                    top_fun = top_fun,
                    .score_specs = .score_specs,
                    cap_value_freq = 1,
-                   pval_thresh = 1,
-                   sca_thresh = 0,
-                   de_thresh = 0.05
+                   pval_thresh = pval_thresh,
+                   sca_thresh = sca_thresh,
+                   de_thresh = de_thresh
                    )

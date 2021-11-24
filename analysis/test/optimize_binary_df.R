@@ -52,7 +52,6 @@ jaccard_per_mr$reso
 # ^ Works as expected
 
 
-
 # Re-work get_binary
 sig_list <- top_lists$top_500
 binary_df <- get_binary_df(sig_list)

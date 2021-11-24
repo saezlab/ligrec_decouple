@@ -64,20 +64,26 @@ comparison_summary <- function(input_filepath,
     gc()
 
     # IV) JI Heatmap (TOP) ----
+    ## GENERATE Binary df
+    binary_df <- get_binary_df(top_lists[[top_hits_key]])
+    saveRDS(binary_df, str_glue("{outpath}/binary_df.RDS"))
+
     message("Interaction Jaccard Index Heat")
-    jacc_heat <- get_simdist_heatmap(top_lists[[top_hits_key]],
+    jacc_heat <- get_simdist_heatmap(sig_list = top_lists[[top_hits_key]],
+                                     binary_df = binary_df,
                                      sim_dist = "simil",
                                      method = "Jaccard",
                                      diag = TRUE,
                                      upper = TRUE,
-                                     cluster_rows = TRUE,
-                                     cluster_columns = TRUE)
+                                     cluster_rows = FALSE,
+                                     cluster_columns = FALSE)
 
 
     # V) JI Stats/Boxplots ----
     # Get Jaccard Stats
     message("Interaction Jaccard Index Stats")
-    jaccard_per_mr <- simdist_resmet(top_lists[[top_hits_key]],
+    jaccard_per_mr <- simdist_resmet(sig_list = top_lists[[top_hits_key]],
+                                     binary_df = binary_df,
                                      sim_dist = "simil",
                                      method = "Jaccard")
 
@@ -484,8 +490,14 @@ get_binary_df <- function(sig_list){
 #' @import purrr
 #' @export
 simdist_resmet <- function(sig_list,
+                           binary_df = NULL,
                            ...){
-    binary_df <- get_binary_df(sig_list)
+    if(is.null(binary_df)){
+        heatmap_binary_df <- get_binary_df(sig_list)
+    } else{
+        heatmap_binary_df <- binary_df
+    }
+
     excl_res <- c(
         "Reshuffled",
         "Default"
@@ -498,8 +510,8 @@ simdist_resmet <- function(sig_list,
     # Get Sim/Diss between Methods
     method_sim <- methods %>% map(function(met){
         binary_df %>%
-            select(starts_with(met)) %>%
-            select(!ends_with(excl_res))
+            dplyr::select(starts_with(met)) %>%
+            dplyr::select(!ends_with(excl_res))
     }) %>% map(function(met_binary)
         get_simil_dist(
             x = t(met_binary),
@@ -509,7 +521,7 @@ simdist_resmet <- function(sig_list,
     # Get Sim/Diss between Resources
     resource_sim <- resources %>% map(function(resource){
         binary_df %>%
-            select(ends_with(resource))
+            dplyr::select(ends_with(resource))
     }) %>% map(function(res_binary)
         get_simil_dist(
             x = t(res_binary),
