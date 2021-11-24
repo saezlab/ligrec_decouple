@@ -17,7 +17,7 @@ The code to reproduce the co-localization analysis can be found at:
 [analysis/spatial](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/spatial)
 
 ### III) Cytokine Signalling Agreement
-The code to reproduce the cytokine activity (/w [CytoSig]()) agreement analysis can be found at:
+The code to reproduce the cytokine activity (/w [CytoSig](https://www.nature.com/articles/s41592-021-01274-5)) agreement analysis can be found at:
 [analysis/cytosig](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/cytosig)
 
 ### IV) CITE-Seq Correlation/Specificity
