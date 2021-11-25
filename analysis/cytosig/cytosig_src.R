@@ -66,7 +66,7 @@ cytosig_eval_wrap <- function(eval,
                             gc()
                             return(cyto_res)
                         }))
-    saveRDS(cytosig_eval, "data/output/cytosig_out/cytosig_res_{eval}_{score_mode}.RDS")
+    saveRDS(cytosig_eval, str_glue("data/output/cytosig_out/cytosig_res_{eval}_{score_mode}.RDS"))
 
 
 }
