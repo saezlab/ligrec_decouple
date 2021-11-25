@@ -43,7 +43,7 @@ liana_house_agg <- liana_res %>%
         .score_mode = liana:::.score_housekeep,
         .eval = eval
 )
-saveRDS(liana_house_agg, file.path("data/output", str_glue("{dataset}_{eval}_specs_liana_res.RDS")))
+saveRDS(liana_house_agg, file.path("data/output", str_glue("{dataset}_{eval}_house_liana_res.RDS")))
 rm(liana_house_agg)
 gc()
 
@@ -57,7 +57,7 @@ liana_mixed_agg <- liana_res %>%
         .score_mode = .score_comp,
         .eval = eval
 )
-saveRDS(liana_mixed_agg, file.path("data/output", str_glue("{dataset}_{eval}_specs_liana_res.RDS")))
+saveRDS(liana_mixed_agg, file.path("data/output", str_glue("{dataset}_{eval}_mixed_liana_res.RDS")))
 rm(liana_mixed_agg)
 gc()
 

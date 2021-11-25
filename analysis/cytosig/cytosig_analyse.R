@@ -19,9 +19,9 @@ path_tibble <- tibble(dataset = c("ER",
                                       "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
                                       "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
                                       ),
-                      liana_path = c(file.path("data/output/comparison_out/", str_glue("BRCA_TNBC_liana_OmniPath.RDS")),
-                                     file.path("data/output/comparison_out/", str_glue("BRCA_HER2_liana_OmniPath.RDS")),
-                                     file.path("data/output/comparison_out/", str_glue("BRCA_TNBC_liana_OmniPath.RDS"))
+                      liana_path = c(file.path("data/output/", str_glue("ER_{eval}_{}_liana_res.RDS")),
+                                     file.path("data/output/comparison_out/", str_glue("HER2_{eval}_{}_liana_res.RDS")),
+                                     file.path("data/output/comparison_out/", str_glue("TNBC_{eval}_{}_liana_res.RDS"))
                                      ))
 
 # get cytosig
