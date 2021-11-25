@@ -21,6 +21,7 @@ liana_res <- readRDS(liana_path) %>%
     pluck("OmniPath")
 gc()
 
+
 # I) Specifics
 liana_specs_agg <- liana_res %>%
     liana_aggregate_enh(
@@ -30,9 +31,10 @@ liana_specs_agg <- liana_res %>%
         .score_mode = liana:::.score_specs,
         .eval = eval
         )
-saveRDS(liana_specs_agg, file.path("data/output", str_glue("{dataset}_{eval}_specs_liana_res.RDS")))
+saveRDS(liana_specs_agg, file.path("data/output/brca_extracts", str_glue("{dataset}_{eval}_specs_liana_res.RDS")))
 rm(liana_specs_agg)
 gc()
+
 
 # II) Housekeeping
 liana_house_agg <- liana_res %>%
@@ -43,7 +45,7 @@ liana_house_agg <- liana_res %>%
         .score_mode = liana:::.score_housekeep,
         .eval = eval
 )
-saveRDS(liana_house_agg, file.path("data/output", str_glue("{dataset}_{eval}_house_liana_res.RDS")))
+saveRDS(liana_house_agg, file.path("data/output/brca_extracts", str_glue("{dataset}_{eval}_house_liana_res.RDS")))
 rm(liana_house_agg)
 gc()
 
@@ -57,9 +59,7 @@ liana_mixed_agg <- liana_res %>%
         .score_mode = .score_comp,
         .eval = eval
 )
-saveRDS(liana_mixed_agg, file.path("data/output", str_glue("{dataset}_{eval}_mixed_liana_res.RDS")))
+saveRDS(liana_mixed_agg, file.path("data/output/brca_extracts", str_glue("{dataset}_{eval}_mixed_liana_res.RDS")))
 rm(liana_mixed_agg)
 gc()
-
-
 

@@ -1,3 +1,79 @@
+#' Function to run the Cytosig-Agreement Evaluation
+#'
+#' @param eval how we deal with evaluation
+#' @param score_mode type of scores
+#' @param generate whether to generate the pseudobulk cytosig results (this is done
+#' per seurat object -> no need to generate for each run)
+#'
+#' @details
+#' how we deal with evaluation
+#' `max` - missing interactions imputed as the max rank
+#' `independent` - missing interactions imputed as NAs
+#' (i.e. each method is independent - not the same ground truth universe)
+#' `intersect` - we only consider the intersect (same univerve, i.e. all have the same ground truth)
+#'
+#' types of scoring functions:
+#' `house` = liana:::.score_housekeep
+#' `specs` = liana:::.score_specs
+#' `.score_comp` = specs /w cellchat and cpdb means, filtered by p-val
+cytosig_eval_wrap <- function(eval,
+                         score_mode,
+                         generate){
+
+    # path_tibble (relative paths to the relevant objects)
+    path_tibble <- tibble(dataset = c("ER",
+                                      "HER2",
+                                      "TNBC"),
+                          # BRCA seurat objects used throughout the manuscript
+                          seurat_path = c("data/input/spatial/Wu_etal_2021_BRCA/deconv/ER_celltype_minor/ER_celltype_minor_seurat.RDS",
+                                          "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
+                                          "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
+                          ),
+                          # liana results generated from extract_evals.sh
+                          liana_path = c(file.path("data/output/brca_extracts", str_glue("ER_{eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/brca_extracts/", str_glue("HER2_{eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/brca_extracts", str_glue("TNBC_{eval}_{score_mode}_liana_res.RDS"))
+                          ))
+
+    # get cytosig
+    cytosig_net <- load_cytosig()
+
+    # Run Cytosig Evaluation
+    cytosig_eval <- path_tibble %>%
+        mutate(cytosig_res =
+                   pmap(path_tibble,
+                        function(dataset, seurat_path, liana_path){
+                            # Load Seurat Object
+                            message(str_glue("Now running: {dataset}"))
+
+                            seurat_object <- readRDS(seurat_path)
+                            print(seurat_object)
+
+                            # read liana
+                            liana_res <- readRDS(liana_path)
+
+                            # Run Cytosig Evaluation
+                            cyto_res <- run_cytosig_eval(seurat_object = seurat_object,
+                                                         liana_res = liana_res,
+                                                         cytosig_net = cytosig_net,
+                                                         z_scale = FALSE,
+                                                         expr_prop = 0.1,
+                                                         assay = "RNA",
+                                                         sum_count_thresh = 5,
+                                                         NES_thresh = 1.645,
+                                                         subtype = dataset,
+                                                         generate = generate) #!
+                            gc()
+                            return(cyto_res)
+                        }))
+    saveRDS(cytosig_eval, "data/output/cytosig_out/cytosig_res_{eval}_{score_mode}.RDS")
+
+
+}
+
+
+
+
 #' Pipeline Function to build eval curves on cytokine activity as ground truth
 #'
 #' @param seurat_object Seurat object with celltypes
@@ -8,7 +84,7 @@
 #' @param assay Assay to consider
 #' @param sum_count_thresh minimum (summed) counts per gene
 #' @param NES_thresh NES threshold to be considered as ground truth
-#'
+#' @param generate whether to generate the pseudobulk cytosig results
 #'
 #'  @return a tibble with nested roc, prc, and corr for each method
 run_cytosig_eval <- function(seurat_object,
@@ -37,7 +113,7 @@ run_cytosig_eval <- function(seurat_object,
         pseudo_cytosig <- pseudo %>%
             mutate(cytosig_res = logcounts %>%
                        map(function(logc){
-                           run_viper(
+                           run_wmean(
                                logc,
                                cytosig_net,
                                .source = "cytokine",
@@ -56,10 +132,14 @@ run_cytosig_eval <- function(seurat_object,
                                       NES=score,
                                       p_value)
                        }))
-        saveRDS(pseudo_cytosig, str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
+
+        pseudo_cytosig %>%
+            select(celltype, cytosig_res) %>%
+            saveRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
 
     } else{
-        pseudo_cytosig <- readRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
+        pseudo_cytosig <-
+            readRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
 
     }
 
@@ -84,7 +164,6 @@ run_cytosig_eval <- function(seurat_object,
 
     # cytosig results format
     cytosig_res <- pseudo_cytosig %>%
-        select(celltype, cytosig_res) %>%
         unnest(cytosig_res) %>%
         left_join(alias_tib, by = "cytokine") %>%
         mutate(aliases = if_else(is.na(aliases),
@@ -118,6 +197,7 @@ run_cytosig_eval <- function(seurat_object,
                                   1,
                                   0)) %>%
         mutate(response = factor(response, levels = c(1, 0))) # first level is the truth
+    print(cytosig_eval %>% arrange(NES))
 
     message("Calculating AUCs")
     # ROC and Correlations
@@ -135,7 +215,7 @@ run_cytosig_eval <- function(seurat_object,
                          function(df) calc_curve(df,
                                                  curve="PR",
                                                  downsampling = TRUE,
-                                                 times = 100,
+                                                 times = 1000,
                                                  source_name = "cytokine_in_target",
                                                  auc_only = TRUE))) %>%
         mutate(corr = cyto_liana %>%
