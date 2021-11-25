@@ -82,7 +82,9 @@ tibble_dict <- tibble(slide_name = names(visium_dict),
                       slide_subtype = visium_dict) %>%
     unnest(slide_subtype) %>%
     mutate(cluster_key = "celltype_major")
-tibble_dict %<>% bind_rows(tibble_dict %>% mutate(cluster_key = "celltype_minor"))
+tibble_dict %<>%
+    bind_rows(tibble_dict %>%
+                  mutate(cluster_key = "celltype_minor"))
 
 
 # NOTE WE KEEP ONLY celltype minor (major are also random) :D

@@ -326,6 +326,12 @@ liana_aggregate_enh <- function(liana_res,
             filter(p_val_adj.rec <= de_thresh)
     }
 
+    # Remove redudant 0s from Cytotalk's crosstalk score !!!
+    if(!is.null(liana_res$call_connectome)){
+        liana_res$cytotalk %<>%
+            filter(crosstalk_score>0)
+    }
+
     # Filter according to end threshold
     if(filt_outs){
         ## CellChat
@@ -338,8 +344,6 @@ liana_aggregate_enh <- function(liana_res,
 
     # aggregate liana results
     liana_res %<>% liana_aggregate(...)
-
-    message(str_glue("Eval: {.eval} still capped!"))
 
     if(!(.eval %in% c("intersect", "independent", "max"))){
         stop("Evaluation Measure incorrect")
@@ -356,9 +360,13 @@ liana_aggregate_enh <- function(liana_res,
             mutate(
                 across(
                     ends_with("rank"),
+                    # max is imputed by liana_aggregate by default
+                    # thus, we simply set it as NA if we don't want to consider it
                     ~ifelse(.x==nrow(liana_res), NA, .x)
                 ))
     }
+
+
 
     return(liana_res)
 }
