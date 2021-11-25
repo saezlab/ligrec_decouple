@@ -31,7 +31,7 @@ cytosig_eval_wrap <- function(eval,
                           ),
                           # liana results generated from extract_evals.sh
                           liana_path = c(file.path("data/output/brca_extracts", str_glue("ER_{eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/brca_extracts/", str_glue("HER2_{eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/brca_extracts", str_glue("HER2_{eval}_{score_mode}_liana_res.RDS")),
                                          file.path("data/output/brca_extracts", str_glue("TNBC_{eval}_{score_mode}_liana_res.RDS"))
                           ))
 
