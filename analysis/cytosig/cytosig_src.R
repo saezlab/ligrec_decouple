@@ -1,6 +1,6 @@
 #' Function to run the Cytosig-Agreement Evaluation
 #'
-#' @param eval how we deal with evaluation
+#' @param .eval how we deal with evaluation
 #' @param score_mode type of scores
 #' @param generate whether to generate the pseudobulk cytosig results (this is done
 #' per seurat object -> no need to generate for each run)
@@ -16,9 +16,9 @@
 #' `house` = liana:::.score_housekeep
 #' `specs` = liana:::.score_specs
 #' `.score_comp` = specs /w cellchat and cpdb means, filtered by p-val
-cytosig_eval_wrap <- function(eval,
-                         score_mode,
-                         generate){
+cytosig_eval_wrap <- function(.eval,
+                              score_mode,
+                              generate){
 
     # path_tibble (relative paths to the relevant objects)
     path_tibble <- tibble(dataset = c("ER",
@@ -30,9 +30,9 @@ cytosig_eval_wrap <- function(eval,
                                           "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
                           ),
                           # liana results generated from extract_evals.sh
-                          liana_path = c(file.path("data/output/brca_extracts", str_glue("ER_{eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/brca_extracts", str_glue("HER2_{eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/brca_extracts", str_glue("TNBC_{eval}_{score_mode}_liana_res.RDS"))
+                          liana_path = c(file.path("data/output/brca_extracts", str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/brca_extracts", str_glue("HER2_{.eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/brca_extracts", str_glue("TNBC_{.eval}_{score_mode}_liana_res.RDS"))
                           ))
 
     # get cytosig
@@ -66,7 +66,7 @@ cytosig_eval_wrap <- function(eval,
                             gc()
                             return(cyto_res)
                         }))
-    saveRDS(cytosig_eval, str_glue("data/output/cytosig_out/cytosig_res_{eval}_{score_mode}.RDS"))
+    saveRDS(cytosig_eval, str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS"))
 
 
 }
@@ -215,7 +215,7 @@ run_cytosig_eval <- function(seurat_object,
                          function(df) calc_curve(df,
                                                  curve="PR",
                                                  downsampling = TRUE,
-                                                 times = 1000,
+                                                 times = 100,
                                                  source_name = "cytokine_in_target",
                                                  auc_only = TRUE))) %>%
         mutate(corr = cyto_liana %>%
