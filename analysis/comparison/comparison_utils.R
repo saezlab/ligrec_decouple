@@ -217,25 +217,6 @@ get_spec_list <- function(liana_all_path,
         }) %>% compact()
 }
 
-#' Helper function to obtain scores used in the comparison
-#'
-#' @details same as liana:::.score_specs(), but returns uses the alternative
-#' metrics to cellchat and squidpy due to ties
-.score_comp <- function(){
-    sp <- liana:::.score_specs()
-    hs <- liana:::.score_housekeep()
-
-    # Squidpy
-    sp$squidpy@method_score <- hs$squidpy@method_score
-    sp$squidpy@descending_order <- hs$squidpy@descending_order
-
-    # CellChat
-    sp$cellchat@method_score <- hs$cellchat@method_score
-    sp$cellchat@descending_order <- hs$cellchat@descending_order
-
-    return(sp)
-}
-
 
 #' Get top hits list
 #'

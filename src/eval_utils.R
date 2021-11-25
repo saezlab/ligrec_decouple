@@ -209,6 +209,7 @@ recode_datasets <- function(datasets){
 
 
 #' Helper function to produce AUROC heatmap
+#'
 #' @param roc_tibble Tibble with calculated AUROC/PRROC
 #' @param curve type of curve `roc` or `prc`
 #' @param mat_only whether to return only the auc_mat used to build the heatmap
@@ -275,15 +276,39 @@ get_auroc_heat <- function(roc_tibble,
     )
 }
 
+#' Helper function to obtain scores used in the comparison
+#'
+#' @details same as liana:::.score_specs(), but returns uses the alternative
+#' metrics to cellchat and squidpy due to ties
+.score_comp <- function(){
+    sp <- liana:::.score_specs()
+    hs <- liana:::.score_housekeep()
 
+    # Squidpy
+    sp$squidpy@method_score <- hs$squidpy@method_score
+    sp$squidpy@descending_order <- hs$squidpy@descending_order
+
+    # CellPhoneDB
+    sp$cellphonedb@method_score <- hs$cellphonedb@method_score
+    sp$cellphonedb@descending_order <- hs$cellphonedb@descending_order
+
+    # CellChat
+    sp$cellchat@method_score <- hs$cellchat@method_score
+    sp$cellchat@descending_order <- hs$cellchat@descending_order
+
+    return(sp)
+}
 
 #' Helper function to extend liana aggragate to e.g. filters of certain methods
+#'
 #' @param liana_res in list form (not aggragated)
 #' @param filt_de_pvals whether to filter differential expression p-values (e.g. Connectome)
 #' @param de_thresh differential gene expression threshold
 #' @param filt_outs whether to filter end output (CellChat, CellPhoneDB, SCA)
 #' @param pval_thresh permutation methods output p-value threshold
 #' @param sca_thresh SingleCellSignalR threshold
+#' @param .eval the way that we consider the rankings: "intersect", "independent", "max"
+#'
 #' @inheritDotParams liana_aggregate
 liana_aggregate_enh <- function(liana_res,
                                 filt_de_pvals = TRUE,
@@ -299,7 +324,6 @@ liana_aggregate_enh <- function(liana_res,
         liana_res$call_connectome %<>%
             filter(p_val_adj.lig <= de_thresh) %>%
             filter(p_val_adj.rec <= de_thresh)
-
     }
 
     # Filter according to end threshold
@@ -313,8 +337,7 @@ liana_aggregate_enh <- function(liana_res,
     }
 
     # aggregate liana results
-    liana_res %<>% liana_aggregate(...,
-                                   cap = 500000) # TO BE REMOVED!!!!
+    liana_res %<>% liana_aggregate(...)
 
     message(str_glue("Eval: {.eval} still capped!"))
 
@@ -330,9 +353,15 @@ liana_aggregate_enh <- function(liana_res,
     } else if(.eval=="independent"){
         liana_res %<>%
             rowwise() %>%
-            mutate(across(ends_with("rank"), # REMOVE |.x==500000 when cap is removed
-                          ~ifelse(.x==nrow(liana_res) || .x==500000, NA, .x)))
+            mutate(
+                across(
+                    ends_with("rank"),
+                    ~ifelse(.x==nrow(liana_res), NA, .x)
+                ))
     }
 
     return(liana_res)
 }
+
+
+

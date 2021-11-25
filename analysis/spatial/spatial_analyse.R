@@ -26,8 +26,7 @@ liana_format <- liana_res %>%
                         filt_outs = FALSE,
                         pval_thresh = 1,
                         sca_thresh = 0,
-                        .score_mode = liana:::.score_specs,
-                        cap = 500000  # cap for speed has no effect on performance
+                        .score_mode = liana:::.score_specs
     ) %>% # CHANGE TO ENH
     liana_agg_to_long()
 
