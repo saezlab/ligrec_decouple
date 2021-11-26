@@ -19,44 +19,46 @@ cytosig_eval_wrap(.eval = "independent",
                   score_mode = "specs",
                   generate = TRUE) # only generate cytosig enrichments once
 
-## B) Missing imputed as max
-cytosig_eval_wrap(.eval = "max",
-                  score_mode = "specs",
-                  generate = FALSE)
-
-## C) Intersect
-cytosig_eval_wrap(.eval = "intersect",
-                  score_mode = "specs",
-                  generate = FALSE)
+# ## B) Missing imputed as max
+# cytosig_eval_wrap(.eval = "max",
+#                   score_mode = "specs",
+#                   generate = FALSE)
+#
+# ## C) Intersect
+# cytosig_eval_wrap(.eval = "intersect",
+#                   score_mode = "specs",
+#                   generate = FALSE)
 
 
 # II) Mixed/Comp Scores ----
+## A) Independent (missing imputed as NA)
 cytosig_eval_wrap(.eval = "independent",
                   score_mode = "mixed",
                   generate = FALSE)
 
 ## B) Missing imputed as max
-cytosig_eval_wrap(.eval = "max",
-                  score_mode = "mixed",
-                  generate = FALSE)
-
-## C) Intersect
-cytosig_eval_wrap(.eval = "intersect",
-                  score_mode = "mixed",
-                  generate = FALSE)
+# cytosig_eval_wrap(.eval = "max",
+#                   score_mode = "mixed",
+#                   generate = FALSE)
+#
+# ## C) Intersect
+# cytosig_eval_wrap(.eval = "intersect",
+#                   score_mode = "mixed",
+#                   generate = FALSE)
 
 
 # III) Housekeeping Scores
+## A) Independent (missing imputed as NA)
 cytosig_eval_wrap(.eval = "independent",
                   score_mode = "house",
                   generate = FALSE)
 
-## B) Missing imputed as max
-cytosig_eval_wrap(.eval = "max",
-                  score_mode = "house",
-                  generate = FALSE)
-
-## C) Intersect
-cytosig_eval_wrap(.eval = "intersect",
-                  score_mode = "house",
-                  generate = FALSE)
+# ## B) Missing imputed as max
+# cytosig_eval_wrap(.eval = "max",
+#                   score_mode = "house",
+#                   generate = FALSE)
+#
+# ## C) Intersect
+# cytosig_eval_wrap(.eval = "intersect",
+#                   score_mode = "house",
+#                   generate = FALSE)

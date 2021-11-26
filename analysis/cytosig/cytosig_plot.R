@@ -81,3 +81,7 @@ maxsp <- readRDS("data/output/brca_extracts/ER_max_specs_liana_res.RDS")
 all_equal(liana_res, maxsp)
 
 ind
+
+indp <- readRDS("data/output/brca_extracts/ER_independent_specs_liana_res.RDS")
+
+
