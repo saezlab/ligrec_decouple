@@ -1,6 +1,19 @@
 
+
+
+
+cytosig_plot <- function(.eval,
+                         score_mode){
+
+}
+
+
+.eval = "intersect"
+score_mode = "specs"
+
+
 # Read results
-cytosig_eval <- readRDS("data/output/cytosig_out/brca_{}_cytosig_res.RDS") %>%
+cytosig_eval <- readRDS(str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS")) %>%
     select(dataset, cytosig_res) %>%
     unnest(cytosig_res)
 

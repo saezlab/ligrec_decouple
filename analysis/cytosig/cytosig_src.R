@@ -215,7 +215,7 @@ run_cytosig_eval <- function(seurat_object,
                          function(df) calc_curve(df,
                                                  curve="PR",
                                                  downsampling = TRUE,
-                                                 times = 100,
+                                                 times = 1000,
                                                  source_name = "cytokine_in_target",
                                                  auc_only = TRUE))) %>%
         mutate(corr = cyto_liana %>%
