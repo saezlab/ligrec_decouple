@@ -14,12 +14,15 @@ dataset <- args[[2]] # also job name # (e.g. "HER2")
 liana_path <- args[[3]] # path to liana (e.g. "data/output/comparison_out/BRCA_HER2_liana_res.RDS")
 eval <- args[[4]] # eval type ("intersect", "independent", "max")
 
-# Read Liana results
-liana_res <- readRDS(liana_path) %>%
-    # Only keep OP
-    transpose() %>%
-    pluck("OmniPath")
-gc()
+if(dataset!="brain"){ # Brain is ran only with OmniPath
+    # Read Liana results
+    liana_res <- readRDS(liana_path) %>%
+        # Only keep OP
+        transpose() %>%
+        pluck("OmniPath")
+    gc()
+
+}
 
 
 # I) Specifics
