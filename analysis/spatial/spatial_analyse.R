@@ -10,24 +10,30 @@ source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
 source("src/plot_utils.R")
 
-# merFISH genes
-# seqfish_obj <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
+
+
+# Loop over all combinations
+# eval does not matter here, unless it's intersect
+eval_vec <- c("independent"#,
+              #"max",
+              #"intersect"
+              )
+score_mode_vec <- c("mixed",
+                    # "house",
+                    "specs"
+                    )
+
+comb_tibble <- expand_grid(eval_vec, score_mode_vec)
+.eval = "independent"
+score_mode = "specs"
+
 
 # MOUSE BRAIN ATLAS ----
 brain_dir <- "data/input/spatial/brain_cortex/"
-murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+# murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 
 # Load Liana
-liana_res <- readRDS(str_glue("{brain_dir}/brain_liana_results.RDS"))
-# Format LIANA res to long tibble /w method_name and predictor (ranks)
-liana_format <- liana_res %>%
-    liana_aggregate_enh(filt_de_pvals = TRUE,
-                        de_thresh = 0.05, # we only filter Connectome DEs
-                        filt_outs = FALSE,
-                        pval_thresh = 1,
-                        sca_thresh = 0,
-                        .score_mode = liana:::.score_specs
-    ) %>% # CHANGE TO ENH
+liana_format <- readRDS(str_glue("data/output/aggregates/brain_{.eval}_{score_mode}.RDS")) %>%
     liana_agg_to_long()
 
 # load deconvolution results and do correlation
@@ -65,7 +71,7 @@ lr_coloc <- deconv_results %>%
     }) %>%
     bind_rows()
 # save liana LR score-colocalizations
-saveRDS(lr_coloc, "data/output/spatial_out/brain_lrcoloc.RDS")
+saveRDS(lr_coloc, str_glue("data/output/spatial_out/brain_cortex/coloc_{.eval}_{score_mode}.RDS"))
 
 
 ############################# Breast Cancer ####################################
@@ -130,10 +136,12 @@ lr_coloc <- pmap(.l = list(deconv_results$slide_name,
 
                # load aggregated liana
                liana_format <-
-                   readRDS(file.path("data/output/comparison_out/",
-                                     str_glue("BRCA_{slide_subtype}_liana_omni.RDS"))) %>%
+                   readRDS(
+                       file.path(
+                       "data/output/aggregates/",
+                       str_glue("{slide_subtype}_{.eval}_{score_mode}.RDS")
+                       )) %>%
                    liana_agg_to_long()
-
                gc()
 
                # Format further
@@ -145,5 +153,6 @@ lr_coloc <- pmap(.l = list(deconv_results$slide_name,
                    ungroup() %>%
                    mutate(dataset = slide_name) %>%
                    mutate(subtype = slide_subtype)
-           }) %>% bind_rows()
-saveRDS(lr_coloc, "data/output/spatial_out/brca_lrcoloc.RDS")
+           }) %>%
+    bind_rows()
+saveRDS(lr_coloc, str_glue("data/output/spatial_out/Wu_etal_2021_BRCA/coloc_{.eval}_{score_mode}.RDS"))

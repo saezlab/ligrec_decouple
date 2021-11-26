@@ -20,14 +20,14 @@ cytosig_eval_wrap(.eval = "independent",
                   generate = TRUE) # only generate cytosig enrichments once
 
 # ## B) Missing imputed as max
-# cytosig_eval_wrap(.eval = "max",
-#                   score_mode = "specs",
-#                   generate = FALSE)
-#
-# ## C) Intersect
-# cytosig_eval_wrap(.eval = "intersect",
-#                   score_mode = "specs",
-#                   generate = FALSE)
+cytosig_eval_wrap(.eval = "max",
+                  score_mode = "specs",
+                  generate = FALSE)
+
+## C) Intersect
+cytosig_eval_wrap(.eval = "intersect",
+                  score_mode = "specs",
+                  generate = FALSE)
 
 
 # II) Mixed/Comp Scores ----
@@ -37,14 +37,14 @@ cytosig_eval_wrap(.eval = "independent",
                   generate = FALSE)
 
 ## B) Missing imputed as max
-# cytosig_eval_wrap(.eval = "max",
-#                   score_mode = "mixed",
-#                   generate = FALSE)
-#
-# ## C) Intersect
-# cytosig_eval_wrap(.eval = "intersect",
-#                   score_mode = "mixed",
-#                   generate = FALSE)
+cytosig_eval_wrap(.eval = "max",
+                  score_mode = "mixed",
+                  generate = FALSE)
+
+## C) Intersect
+cytosig_eval_wrap(.eval = "intersect",
+                  score_mode = "mixed",
+                  generate = FALSE)
 
 
 # III) Housekeeping Scores
@@ -54,11 +54,11 @@ cytosig_eval_wrap(.eval = "independent",
                   generate = FALSE)
 
 # ## B) Missing imputed as max
-# cytosig_eval_wrap(.eval = "max",
-#                   score_mode = "house",
-#                   generate = FALSE)
-#
-# ## C) Intersect
-# cytosig_eval_wrap(.eval = "intersect",
-#                   score_mode = "house",
-#                   generate = FALSE)
+cytosig_eval_wrap(.eval = "max",
+                  score_mode = "house",
+                  generate = FALSE)
+
+## C) Intersect
+cytosig_eval_wrap(.eval = "intersect",
+                  score_mode = "house",
+                  generate = FALSE)
