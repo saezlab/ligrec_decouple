@@ -169,13 +169,13 @@ comb_tibble %>%
                     10000)
 
         # Bind ALL ----
-        all_lr_coloc <- bind_rows(readRDS("data/output/spatial_out/brain_cortex/coloc_{.eval}_{score_mode}.RDS") %>%
+        all_lr_coloc <- bind_rows(readRDS(str_glue("data/output/spatial_out/brain_cortex/coloc_{.eval}_{score_mode}.RDS")) %>%
                                       dplyr::mutate(
                                           localisation = case_when(estimate >= corr_thresh ~ "colocalized",
                                                                    estimate < corr_thresh ~ "not_colocalized")
                                       ),
                                   # seqfish_lr_coloc,
-                                  readRDS("data/output/spatial_out/Wu_etal_2021_BRCA/coloc_{.eval}_{score_mode}.RDS") %>%
+                                  readRDS(str_glue("data/output/spatial_out/Wu_etal_2021_BRCA/coloc_{.eval}_{score_mode}.RDS")) %>%
                                       dplyr::mutate(
                                           localisation = case_when(estimate >= corr_thresh ~ "colocalized",
                                                                    estimate < corr_thresh ~ "not_colocalized")
@@ -185,7 +185,7 @@ comb_tibble %>%
 
         # 1) Initial Check All
         all_lr_coloc %>% check_coloc()
-        summary(as.factor(all_lr_coloc$localisation))
+        print(summary(as.factor(all_lr_coloc$localisation)))
 
         # 2.1) FET boxplot All by slide
         # all_lr_coloc %>%
