@@ -32,7 +32,7 @@ all_lr_coloc <- bind_rows(readRDS("data/output/spatial_out/brain_cortex/coloc_in
 saveRDS(all_lr_coloc, "data/output/spatial_out/all_lrcoloc.RDS")
 
 # 1) Initial Check All
-all_lr_coloc <- readRDS("data/output/spatxxial_out/all_lrcoloc.RDS")
+all_lr_coloc <- readRDS("data/output/spatial_out/all_lrcoloc.RDS")
 all_lr_coloc %>% check_coloc()
 summary(as.factor(all_lr_coloc$localisation))
 
