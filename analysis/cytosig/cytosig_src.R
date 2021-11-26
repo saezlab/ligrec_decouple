@@ -362,9 +362,9 @@ cytosig_plot <- function(.eval,
     roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
     prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
 
-    roc_max <- max(aucs$roc_auc)
-    prc_max <- max(aucs$prc_auc)
-    auc_max <- max(roc_max, prc_max) + 0.1
+    # roc_max <- max(aucs$roc_auc)
+    # prc_max <- max(aucs$prc_auc)
+    # auc_max <- max(roc_max, prc_max) + 0.1
 
     p <- ggplot(aucs,
                 aes(x=roc_mean,
@@ -379,8 +379,8 @@ cytosig_plot <- function(.eval,
         theme(text = element_text(size=16)) +
         xlab('AUROC') +
         ylab('AUPRC') +
-        xlim(roc_min, auc_max) +
-        ylim(prc_min, auc_max) +
+        xlim(roc_min, 1) +
+        ylim(prc_min, 1) +
         geom_hline(yintercept = 0.5, colour = "pink",
                    linetype = 2, size = 1.2) +
         geom_vline(xintercept = 0.5, colour = "pink",
