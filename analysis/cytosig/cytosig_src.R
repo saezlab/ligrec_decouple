@@ -215,7 +215,7 @@ run_cytosig_eval <- function(seurat_object,
                          function(df) calc_curve(df,
                                                  curve="PR",
                                                  downsampling = TRUE,
-                                                 times = 1000,
+                                                 times = 100,
                                                  source_name = "cytokine_in_target",
                                                  auc_only = TRUE))) %>%
         mutate(corr = cyto_liana %>%
@@ -325,6 +325,71 @@ load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_ce
         ungroup()
 
     return(cytosig_net)
+}
+
+
+
+#' Helper function to generate CytoSig plot
+#' @param .eval eval type (independent, max, intersect)
+#' @param score_mode mixed, specs, house
+#'
+#' @returns a ggplot2 object
+#'
+cytosig_plot <- function(.eval,
+                         score_mode){
+
+    # Read results
+    cytosig_eval <- readRDS(str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS")) %>%
+        select(dataset, cytosig_res) %>%
+        unnest(cytosig_res)
+
+    aucs <- cytosig_eval %>%
+        select(-c(cyto_liana, corr)) %>%
+        unnest(prc) %>%
+        select(dataset, method_name, roc, prc_auc = auc) %>%
+        distinct() %>%
+        unnest(roc) %>%
+        select(dataset, method_name, roc_auc = auc, prc_auc) %>%
+        distinct() %>%
+        group_by(method_name) %>%
+        mutate(roc_mean = mean(roc_auc),
+               prc_mean = mean(prc_auc)) %>%
+        ungroup() %>%
+        mutate(method_name = gsub("\\..*","", method_name)) %>%
+        mutate(method_name = recode_methods(method_name))
+
+
+    roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
+    prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
+
+    roc_max <- max(aucs$roc_auc)
+    prc_max <- max(aucs$prc_auc)
+    auc_max <- max(roc_max, prc_max) + 0.1
+
+    p <- ggplot(aucs,
+                aes(x=roc_mean,
+                    y=prc_mean,
+                    color=method_name)) +
+        geom_point(shape = 9, size = 12, alpha=1) +
+        geom_point(aes(x = roc_auc,
+                       y = prc_auc,
+                       shape=dataset),
+                   size = 6,
+                   alpha = 0.3) +
+        theme(text = element_text(size=16)) +
+        xlab('AUROC') +
+        ylab('AUPRC') +
+        xlim(roc_min, auc_max) +
+        ylim(prc_min, auc_max) +
+        geom_hline(yintercept = 0.5, colour = "pink",
+                   linetype = 2, size = 1.2) +
+        geom_vline(xintercept = 0.5, colour = "pink",
+                   linetype = 2, size = 1.2) +
+        theme_bw(base_size = 30) +
+        guides(shape=guide_legend(title="Dataset"),
+               color=guide_legend(title="Method"))
+
+    return(p)
 }
 
 

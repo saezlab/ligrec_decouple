@@ -313,9 +313,9 @@ get_auroc_heat <- function(roc_tibble,
 liana_aggregate_enh <- function(liana_res,
                                 filt_de_pvals = TRUE,
                                 de_thresh = 0.05,
-                                filt_outs = FALSE,
-                                pval_thresh = 0.05,
-                                sca_thresh = 0.5,
+                                filt_outs = TRUE,
+                                pval_thresh = 1,
+                                sca_thresh = 0,
                                 .eval,
                                 ...){
 
@@ -337,11 +337,14 @@ liana_aggregate_enh <- function(liana_res,
         ## CellChat
         liana_res$cellchat %<>% filter(pval <= pval_thresh)
         ## CellPhoneDB/Squidpy
-        liana_res$squidpy %<>% filter(pvalue <= pval_thresh)
+        liana_res$cellphonedb %<>% filter(pvalue <= pval_thresh)
         ## sca
         liana_res$call_sca %<>% filter(LRscore >= sca_thresh)
     }
 
+    # Obtain cap (i.e. max)
+    cap <- liana:::.select_cap(liana_res, max)
+    print(cap)
     # aggregate liana results
     liana_res %<>% liana_aggregate(...)
 
@@ -362,8 +365,12 @@ liana_aggregate_enh <- function(liana_res,
                     ends_with("rank"),
                     # max is imputed by liana_aggregate by default
                     # thus, we simply set it as NA if we don't want to consider it
-                    ~ifelse(.x==nrow(liana_res), NA, .x)
-                ))
+                    ~na_if(.x, cap))
+            ) %>%
+            mutate(aggregate_rank = ifelse(aggregate_rank==1,
+                                           NA,
+                                           aggregate_rank)) %>%
+            ungroup()
     }
 
 

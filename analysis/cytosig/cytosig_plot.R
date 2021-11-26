@@ -1,63 +1,83 @@
+# load required libraries
+require(magrittr)
+require(tidyverse)
+require(liana)
+require(Seurat)
+require(yardstick)
+require(SingleCellExperiment)
+require(decoupleR)
 
+source("analysis/cytosig/cytosig_src.R")
+source("src/eval_utils.R")
+source("src/plot_utils.R")
 
+# Loop over all plots
+eval_vec <- c("independent", "max", "intersect")
+score_mode_vec <- c("mixed", "specs", "house")
 
+comb_tibble <- expand_grid(eval_vec, score_mode_vec)
 
-cytosig_plot <- function(.eval,
-                         score_mode){
-
+print_cyto_plot <- function(.eval,
+                            score_mode){
+    cairo_pdf(file.path("data/output/temp/",
+                        str_glue("cyto_{.eval}_{score_mode}_.pdf")),
+              height = 12,
+              width = 16,
+              family = 'DINPro')
+    print(cytosig_plot(.eval = .eval,
+                 score_mode = score_mode))
+    dev.off()
 }
 
-
-.eval = "intersect"
-score_mode = "specs"
-
-
-# Read results
-cytosig_eval <- readRDS(str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS")) %>%
-    select(dataset, cytosig_res) %>%
-    unnest(cytosig_res)
-
-aucs <- cytosig_eval %>%
-    select(-c(cyto_liana, corr)) %>%
-    unnest(prc) %>%
-    select(dataset, method_name, roc, prc_auc = auc) %>%
-    distinct() %>%
-    unnest(roc) %>%
-    select(dataset, method_name, roc_auc = auc, prc_auc) %>%
-    distinct() %>%
-    group_by(method_name) %>%
-    mutate(roc_mean = mean(roc_auc),
-           prc_mean = mean(prc_auc)) %>%
-    ungroup() %>%
-    mutate(method_name = gsub("\\..*","", method_name)) %>%
-    mutate(method_name = recode_methods(method_name))
+# Generate temp plots
+comb_tibble %>%
+    pmap(~print_cyto_plot(.x, .y))
 
 
-roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
-prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
+liana_res <- readRDS("data/output/comparison_out/BRCA_ER_liana_res.RDS") %>%
+    transpose() %>%
+    pluck("OmniPath")
+gc()
 
-# min_lim <- floor(min(c(aucs$roc, aucs$prc)) * 100)/100
-# max_lim <- ceiling(max(c(aucs$roc, aucs$prc)) * 100)/100
+liana_agg <- liana_res %>%
+    liana_aggregate_enh(filt_de_pvals = TRUE,
+                        de_thresh = 0.05,
+                        filt_outs = TRUE,
+                        pval_thresh = 1,
+                        sca_thresh = 0,
+                        .eval = "independent")
 
-ggplot(aucs,
-       aes(x=roc_mean,
-           y=prc_mean,
-           color=method_name)) +
-    geom_point(shape = 9, size = 12, alpha=1) +
-    geom_point(aes(x = roc_auc,
-                   prc_auc,
-                   shape=dataset),
-               size = 6,
-               alpha = 0.3) +
-    theme(text = element_text(size=16)) +
-    xlab('AUROC') +
-    ylab('AUPRC') +
-    xlim(roc_min, 0.7) +
-    ylim(prc_min, 0.8) +
-    geom_hline(yintercept = 0.5, colour = "pink",
-               linetype = 2, size = 1.2) +
-    geom_vline(xintercept = 0.5, colour = "pink",
-               linetype = 2, size = 1.2) +
-    theme_bw(base_size = 30) +
-    guides(shape=guide_legend(title="Dataset"),
-           color=guide_legend(title="Method"))
+agg_sample <- liana_agg %>%
+    head(250000) %>%
+    rowwise() %>%
+    mutate(
+        across(
+            ends_with("rank"),
+            # max is imputed by liana_aggregate by default
+            # thus, we simply set it as NA if we don't want to consider it
+            ~na_if(.x, cap))
+        ) %>%
+    mutate(
+        across(
+            ends_with("rank"),
+            # max is imputed by liana_aggregate by default
+            # thus, we simply set it as NA if we don't want to consider it
+            ~na_if(.x, nrow(liana_res)))
+    )
+
+rowwise() %>%
+    mutate(
+        across(
+            ends_with("rank"),
+            # max is imputed by liana_aggregate by default
+            # thus, we simply set it as NA if we don't want to consider it
+            ~ifelse(.x==(nrow(liana_agg) || .x==cap), NA, .x)
+        )) %>%
+    ungroup()
+
+#^ Try with max and compare
+maxsp <- readRDS("data/output/brca_extracts/ER_max_specs_liana_res.RDS")
+
+all_equal(liana_res, maxsp)
+
+ind
