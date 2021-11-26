@@ -14,13 +14,14 @@ source("src/plot_utils.R")
 # Loop over all combinations
 # eval does not matter here, unless it's intersect
 .eval <- c("independent"#,
-              #"max",
-              #"intersect"
-              )
+           #"max",
+           #"intersect"
+           )
 score_mode <- c("mixed",
-                    # "house",
-                    "specs"
-                    )
+                # "house",
+                "specs"
+                )
+
 comb_tibble <- expand_grid(.eval, score_mode)
 # .eval = "independent"
 # score_mode = "mixed"
@@ -140,7 +141,7 @@ comb_tibble %>%
                 readRDS(
                     file.path(
                         "data/output/aggregates/",
-                        str_glue("{slide_subtype}_{.eval}_{score_mode}.RDS")
+                        str_glue("{slide_subtype}_{.eval}_{score_mode}_liana_res.RDS")
                     )) %>%
                 liana_agg_to_long()
             gc()
@@ -168,22 +169,21 @@ comb_tibble %>%
                     10000)
 
         # Bind ALL ----
-        all_lr_coloc <- bind_rows(readRDS("data/output/spatial_out/brain_cortex/coloc_inpdependent_specs.RDS") %>%
+        all_lr_coloc <- bind_rows(readRDS("data/output/spatial_out/brain_cortex/coloc_{.eval}_{score_mode}.RDS") %>%
                                       dplyr::mutate(
                                           localisation = case_when(estimate >= corr_thresh ~ "colocalized",
                                                                    estimate < corr_thresh ~ "not_colocalized")
                                       ),
                                   # seqfish_lr_coloc,
-                                  readRDS("data/output/spatial_out/Wu_etal_2021_BRCA/coloc_independent_specs.RDS") %>%
+                                  readRDS("data/output/spatial_out/Wu_etal_2021_BRCA/coloc_{.eval}_{score_mode}.RDS") %>%
                                       dplyr::mutate(
                                           localisation = case_when(estimate >= corr_thresh ~ "colocalized",
                                                                    estimate < corr_thresh ~ "not_colocalized")
                                       )
         )
-        saveRDS(all_lr_coloc, "data/output/spatial_out/all_lrcoloc.RDS")
+        saveRDS(all_lr_coloc, str_glue("data/output/spatial_out/all_lrcoloc_{score_mode}.RDS"))
 
         # 1) Initial Check All
-        all_lr_coloc <- readRDS("data/output/spatial_out/all_lrcoloc.RDS")
         all_lr_coloc %>% check_coloc()
         summary(as.factor(all_lr_coloc$localisation))
 
