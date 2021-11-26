@@ -30,9 +30,9 @@ cytosig_eval_wrap <- function(.eval,
                                           "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
                           ),
                           # liana results generated from extract_evals.sh
-                          liana_path = c(file.path("data/output/brca_extracts", str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/brca_extracts", str_glue("HER2_{.eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/brca_extracts", str_glue("TNBC_{.eval}_{score_mode}_liana_res.RDS"))
+                          liana_path = c(file.path("data/output/aggregates", str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/aggregates", str_glue("HER2_{.eval}_{score_mode}_liana_res.RDS")),
+                                         file.path("data/output/aggregates", str_glue("TNBC_{.eval}_{score_mode}_liana_res.RDS"))
                           ))
 
     # get cytosig

@@ -14,9 +14,11 @@ dataset <- args[[2]] # also job name # (e.g. "HER2")
 liana_path <- args[[3]] # path to liana (e.g. "data/output/comparison_out/BRCA_HER2_liana_res.RDS")
 eval <- args[[4]] # eval type ("intersect", "independent", "max")
 
+liana_res <- readRDS(liana_path)
+
 if(dataset!="brain"){ # Brain is ran only with OmniPath
     # Read Liana results
-    liana_res <- readRDS(liana_path) %>%
+    liana_res %<>%
         # Only keep OP
         transpose() %>%
         pluck("OmniPath")
@@ -34,7 +36,7 @@ liana_specs_agg <- liana_res %>%
         .score_mode = liana:::.score_specs,
         .eval = eval
         )
-saveRDS(liana_specs_agg, file.path("data/output/brca_extracts", str_glue("{dataset}_{eval}_specs_liana_res.RDS")))
+saveRDS(liana_specs_agg, file.path("data/output/aggregates", str_glue("{dataset}_{eval}_specs_liana_res.RDS")))
 rm(liana_specs_agg)
 gc()
 
@@ -48,7 +50,7 @@ liana_house_agg <- liana_res %>%
         .score_mode = liana:::.score_housekeep,
         .eval = eval
 )
-saveRDS(liana_house_agg, file.path("data/output/brca_extracts", str_glue("{dataset}_{eval}_house_liana_res.RDS")))
+saveRDS(liana_house_agg, file.path("data/output/aggregates", str_glue("{dataset}_{eval}_house_liana_res.RDS")))
 rm(liana_house_agg)
 gc()
 
@@ -62,7 +64,7 @@ liana_mixed_agg <- liana_res %>%
         .score_mode = .score_comp,
         .eval = eval
 )
-saveRDS(liana_mixed_agg, file.path("data/output/brca_extracts", str_glue("{dataset}_{eval}_mixed_liana_res.RDS")))
+saveRDS(liana_mixed_agg, file.path("data/output/aggregates", str_glue("{dataset}_{eval}_mixed_liana_res.RDS")))
 rm(liana_mixed_agg)
 gc()
 
