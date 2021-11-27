@@ -1,6 +1,7 @@
 source("analysis/citeseq/citeseq_src.R")
 source("src/eval_utils.R")
 source("src/plot_utils.R")
+source("analysis/comparison/comparison_utils.R")
 
 require(liana)
 require(tidyverse)
@@ -16,8 +17,10 @@ citeseq_dir <- "data/input/citeseq/"
 op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
-.eval = "intersect"
 
+
+set_aggregation_settings("specs_n") # n makes no difference
+.eval = "independent"
 
 ### Receptor Specificity ROC -----
 pr_roc_tibble <- list.files(citeseq_dir) %>%
@@ -35,11 +38,11 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
                          adt_pipe_type = "specificity",
                          # liana_aggregate_enh params
                          filt_de_pvals = TRUE,
-                         de_thresh = 0.05, # we only filter Connectome DEs
+                         de_thresh = de_thresh, # we only filter Connectome DEs
                          filt_outs = FALSE,
-                         pval_thresh = 1,
+                         pval_thresh = pval_thresh,
                          sca_thresh = 0,
-                         .score_mode = liana:::.score_specs,
+                         .score_mode = .score_specs,
                          .eval = .eval
             )
         } else { # human
@@ -54,11 +57,11 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
                          adt_pipe_type = "specificity",
                          # liana_aggregate_enh params
                          filt_de_pvals = TRUE,
-                         de_thresh = 0.05, # we only filter Connectome DEs
+                         de_thresh = de_thresh, # we only filter Connectome DEs
                          filt_outs = FALSE,
-                         pval_thresh = 1,
+                         pval_thresh = pval_thresh,
                          sca_thresh = 0,
-                         .score_mode = liana:::.score_specs,
+                         .score_mode = .score_specs,
                          .eval = .eval
 
             )
@@ -69,7 +72,7 @@ pr_roc_tibble <- list.files(citeseq_dir) %>%
     unnest(value)
 
 # Save obj
-saveRDS(pr_roc_tibble, str_glue("data/output/citeseq_out/citeseq_aurocs_{.eval}.RDS"))
+saveRDS(pr_roc_tibble, str_glue("data/output/citeseq_out/citeseq_aurocs_{.score_specs}_{.eval}.RDS"))
 
 
 
@@ -88,12 +91,11 @@ corr_table <- list.files(citeseq_dir) %>%
                          adt_pipe_type = "correlation",
                          # liana_aggregate_enh params
                          filt_de_pvals = TRUE,
-                         de_thresh = 0.05, # we only filter Connectome DEs
+                         de_thresh = de_thresh, # we only filter Connectome DEs
                          filt_outs = FALSE,
-                         pval_thresh = 1,
+                         pval_thresh = pval_thresh,
                          sca_thresh = 0,
-                         .score_mode = liana:::.score_specs,
-                         cap = 500000  # cap for speed has no effect on performance
+                         .score_mode = .score_specs
             )
         } else { # human
             run_adt_pipe(dir = citeseq_dir,
@@ -105,16 +107,16 @@ corr_table <- list.files(citeseq_dir) %>%
                          adt_pipe_type = "correlation",
                          # liana_aggregate_enh params
                          filt_de_pvals = TRUE,
-                         de_thresh = 0.05, # we only filter Connectome DEs
+                         de_thresh = de_thresh, # we only filter Connectome DEs
                          filt_outs = FALSE,
-                         pval_thresh = 1,
+                         pval_thresh = pval_thresh,
                          sca_thresh = 0,
-                         .score_mode = liana:::.score_specs,
-                         cap = 500000  # cap for speed has no effect on performance
+                         .score_mode = .score_specs
             )
         }
 
-    }) %>% setNames(list.files(citeseq_dir)) %>%
+    }) %>%
+    setNames(list.files(citeseq_dir)) %>%
     enframe() %>%
     unnest(value) %>%
     rename(dataset = name)

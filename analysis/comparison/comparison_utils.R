@@ -1129,6 +1129,30 @@ comp_summ_plot <- function(pattern,
     all_binary_dfs <- map(dirs, function(d){
         readRDS(file.path(comparison_out, d, "binary_df.RDS"))
     }) %>%
+        setNames(dirs)
+
+    # Check if all Binary DFs have the same columns (i.e. same comparisons)
+    method_resource_combs <- all_binary_dfs %>%
+        map(function(binary_df) colnames(binary_df)) %>%
+        reduce(union)
+
+    # if they don't fill missing with 0s (e.g. CellChat has no sig hits)
+    all_binary_dfs %>%
+        imap(function(.x, .y){
+            if(!setequal(colnames(.x), method_resource_combs)){
+                # Get missing combinations
+                missing_combs <- setdiff(method_resource_combs, colnames(.x))
+                # Notify
+                print(str_glue("Missing comb_res: {paste0(missing_combs)}"))
+                map(missing_combs, function(missing_col){
+                    all_binary_dfs[[.y]] <<- all_binary_dfs[[.y]] %>%
+                        mutate( {{missing_col}} := 0)
+                })
+            }
+        })
+
+    # Get Jaccard Indeces and format
+    all_binary_dfs %<>%
         setNames(dirs) %>%
         enframe(name = "dataset_setting",
                 value = "binary") %>%
@@ -1139,6 +1163,7 @@ comp_summ_plot <- function(pattern,
                              diag = TRUE,
                              upper = TRUE)
         }))
+
 
     # Calculate jaccard index median across datasets
     jaccard_mat_mean <- apply(simplify2array(all_binary_dfs$jaccard_mat),
@@ -1212,7 +1237,67 @@ recode_resources <- function(resources){
                   "tnbc_house_n" = "TNBC BRCA",
                   "cbmc_house_n" = "CBMCs",
                   "crc_house_n" = "Colorectal Cancer",
-                  "panc8_house_n" = "Pancreatic Islets"
+                  "panc8_house_n" = "Pancreatic Islets",
+
+                  "er_comp_n" = "ER+ BRCA",
+                  "her2_comp_n" = "HER2+ BRCA",
+                  "tnbc_comp_n" = "TNBC BRCA",
+                  "cbmc_comp_n" = "CBMCs",
+                  "crc_comp_n" = "Colorectal Cancer",
+                  "panc8_comp_n" = "Pancreatic Islets",
+
+                  "er_comp_frac" = "ER+ BRCA",
+                  "her2_comp_frac" = "HER2+ BRCA",
+                  "tnbc_comp_frac" = "TNBC BRCA",
+                  "cbmc_comp_frac" = "CBMCs",
+                  "crc_comp_frac" = "Colorectal Cancer",
+                  "panc8_comp_frac" = "Pancreatic Islets"
 )
 
 
+
+#' Helper Function to load appropriate aggregate settings
+#'
+#' @param setting type of aggregation to be performed (passed from `comp_summarise`)
+#'
+set_aggregation_settings <<- function(setting){
+
+    if(setting=="specs_frac"){
+        .score_specs <<- liana:::.score_specs
+        top_fun <<- "top_frac"
+        top_x <<- 0.01
+        pval_thresh <<- 1
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="specs_n"){
+        .score_specs <<- liana:::.score_specs
+        top_fun <<- "top_n"
+        top_x <<- 1000
+        pval_thresh <<- 1
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="comp_n"){
+        .score_specs <<- .score_comp
+        top_fun <<- "top_n"
+        top_x <<- 1000
+        pval_thresh <<- 0.05
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="comp_frac"){
+        .score_specs <<- .score_comp
+        top_fun <<- "top_frac"
+        top_x <<- 0.01
+        pval_thresh <<- 0.05
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="house_n"){ # RENAME
+        .score_specs <<- liana:::.score_housekeep
+        top_fun <<- "top_n"
+        top_x <<- 1000
+        pval_thresh <<- 1 #!!!
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else{
+        stop("Setting is wrong!")
+    }
+}

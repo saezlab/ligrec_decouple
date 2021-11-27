@@ -26,6 +26,8 @@ recode_datasets <- function(datasets){
 # Comparison out
 comparison_out <- "data/output/comparison_out/"
 
+
+
 ## I. Specs_n ----
 n_tibble <- comp_summ_plot(pattern = "specs_n",
                            comparison_out = comparison_out,
@@ -54,6 +56,31 @@ house_tibble <- comp_summ_plot(pattern = "house_n",
                                box_name = "SuppFig_12_housekeeping_n.pdf",
                                heat_name = "SuppFig14_house_n_JI_heat.pdf")
 house_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
+
+## IV. Comp_n ----
+comp_tibble <- comp_summ_plot(pattern = "comp_n",
+                               comparison_out = comparison_out,
+                               box_name = "SuppFig_X_mixed_n.pdf",
+                               heat_name = "SuppFigX_mised_n_JI_heat.pdf")
+comp_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
+# Note CBMC has ~identical Jaccard for different resources and methods
+
+
+
+## V. Comp_frac ----
+comp_tibble_frac <- comp_summ_plot(pattern = "comp_frac",
+                                   comparison_out = comparison_out,
+                                   box_name = "SuppFig_X_mixed_frac.pdf",
+                                   heat_name = "SuppFigX_mixed_frac_JI_heat.pdf")
+comp_tibble_frac %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
            med = median(med_jacc),

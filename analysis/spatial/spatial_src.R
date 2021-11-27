@@ -187,7 +187,7 @@ get_spatial_boxplot <- function(boxplot_data){
         geom_hline(yintercept = 1, colour = "pink",
                    linetype = 2, size = 1.5) +
         theme(strip.text.x = element_text(angle = 90),
-              axis.text.x = element_text(angle = 45, hjust=1)
+              axis.text.x = element_text(angle = 90, hjust=1)
         ) +
         labs(shape=guide_legend(title="Dataset")) +
         ylab("Odds Ratio") +
@@ -372,3 +372,36 @@ deconv_brca_slides <- function(slide_name,
     return()
 }
 
+
+#' Plot Spatial Fet Results
+#' @param lr_coloc_path path to FET enrichments of co-localized or not
+#'
+#' @returns a ggplot2 object
+get_spatial_bigbox <- function(lr_coloc_path){
+    type_lr_coloc <- readRDS(lr_coloc_path)
+    ggplot(type_lr_coloc,
+           aes(x = n_rank,
+               y = odds_ratio,
+               color = dataset_type,
+               fill = dataset_type)) +
+        geom_boxplot(alpha = 0.2,
+                     outlier.size = 1.5,
+                     width = 0.8)  +
+        # geom_point(aes(shape = dataset), size = 2) +
+        scale_shape_manual(values = rep(1:12, len =  length(unique(type_lr_coloc$dataset)))) +
+        facet_grid(~method_name, scales='free_x', space='free', switch="x") +
+        theme_bw(base_size = 32) +
+        geom_hline(yintercept = 1, colour = "black",
+                   linetype = 2, size = 1.3) +
+        theme(strip.text.x = element_text(angle = 90),
+              axis.text.x = element_text(angle = 90,
+                                         hjust=1, vjust = 0.5,
+                                         size = 20)
+        ) +
+        # guides(color = "none") +
+        labs(shape = guide_legend(title="Visium slide"),
+             color = guide_legend(title="Dataset type")) +
+        guides(fill = "none") +
+        ylab("Odds Ratio") +
+        xlab("#Ranks Considered")
+}

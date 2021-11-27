@@ -1,4 +1,5 @@
 source("analysis/citeseq/citeseq_src.R")
+source("analysis/comparison/comparison_utils.R")
 source("src/eval_utils.R")
 source("src/plot_utils.R")
 
@@ -60,8 +61,6 @@ aucs <- pr_roc_tibble %>%
 roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
 prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
 
-# min_lim <- floor(min(c(aucs$roc, aucs$prc)) * 100)/100
-# max_lim <- ceiling(max(c(aucs$roc, aucs$prc)) * 100)/100
 
 ggplot(aucs,
        aes(x=roc_mean,

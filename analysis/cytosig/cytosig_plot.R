@@ -24,64 +24,9 @@ print_cyto_plot <- function(.eval,
               height = 12,
               width = 16,
               family = 'DINPro')
-    print(cytosig_plot(.eval = .eval,
+    print(plot_cytosig_aucs(.eval = .eval,
                  score_mode = score_mode))
     dev.off()
 }
-
-# Generate temp plots
-comb_tibble %>%
-    pmap(~print_cyto_plot(.x, .y))
-
-
-liana_res <- readRDS("data/output/comparison_out/BRCA_ER_liana_res.RDS") %>%
-    transpose() %>%
-    pluck("OmniPath")
-gc()
-
-liana_agg <- liana_res %>%
-    liana_aggregate_enh(filt_de_pvals = TRUE,
-                        de_thresh = 0.05,
-                        filt_outs = TRUE,
-                        pval_thresh = 1,
-                        sca_thresh = 0,
-                        .eval = "independent")
-
-agg_sample <- liana_agg %>%
-    head(250000) %>%
-    rowwise() %>%
-    mutate(
-        across(
-            ends_with("rank"),
-            # max is imputed by liana_aggregate by default
-            # thus, we simply set it as NA if we don't want to consider it
-            ~na_if(.x, cap))
-        ) %>%
-    mutate(
-        across(
-            ends_with("rank"),
-            # max is imputed by liana_aggregate by default
-            # thus, we simply set it as NA if we don't want to consider it
-            ~na_if(.x, nrow(liana_res)))
-    )
-
-rowwise() %>%
-    mutate(
-        across(
-            ends_with("rank"),
-            # max is imputed by liana_aggregate by default
-            # thus, we simply set it as NA if we don't want to consider it
-            ~ifelse(.x==(nrow(liana_agg) || .x==cap), NA, .x)
-        )) %>%
-    ungroup()
-
-#^ Try with max and compare
-maxsp <- readRDS("data/output/brca_extracts/ER_max_specs_liana_res.RDS")
-
-all_equal(liana_res, maxsp)
-
-ind
-
-indp <- readRDS("data/output/brca_extracts/ER_independent_specs_liana_res.RDS")
 
 

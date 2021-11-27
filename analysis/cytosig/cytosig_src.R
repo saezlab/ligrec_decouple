@@ -68,10 +68,7 @@ cytosig_eval_wrap <- function(.eval,
                         }))
     saveRDS(cytosig_eval, str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS"))
 
-
 }
-
-
 
 
 #' Pipeline Function to build eval curves on cytokine activity as ground truth
@@ -335,8 +332,8 @@ load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_ce
 #'
 #' @returns a ggplot2 object
 #'
-cytosig_plot <- function(.eval,
-                         score_mode){
+plot_cytosig_aucs <- function(.eval,
+                              score_mode){
 
     # Read results
     cytosig_eval <- readRDS(str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS")) %>%

@@ -23,7 +23,6 @@ if(dataset!="brain"){ # Brain is ran only with OmniPath
         transpose() %>%
         pluck("OmniPath")
     gc()
-
 }
 
 
