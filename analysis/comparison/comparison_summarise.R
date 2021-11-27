@@ -24,7 +24,7 @@ args <- commandArgs(trailingOnly=TRUE)
 # Get Job name
 output_filepath <- args[[2]]  # e.g. "panc8_specs_n" (+ job name)
 input_filepath <- args[[3]] # e.g. "data/output/comparison_out/panc8_liana_res.RDS"
-setting <- args[[4]]
+setting <- args[[4]] # comparison setting
 
 # load appropriate settings
 if(setting=="specs_frac"){
@@ -34,18 +34,32 @@ if(setting=="specs_frac"){
     pval_thresh = 1
     sca_thresh = 0
     de_thresh = 0.05
-} else if(setting=="house_n"){ # RENAME
-    .score_specs = liana:::.score_housekeep
-    top_fun <- "top_n"
-    top_x <- 1000
-    pval_thresh = 0.05 #!!!
-    sca_thresh = 0
-    de_thresh = 0.05
 } else if(setting=="specs_n"){
     .score_specs = liana:::.score_specs
     top_fun <- "top_n"
     top_x <- 1000
     pval_thresh = 1
+    sca_thresh = 0
+    de_thresh = 0.05
+} else if(setting=="mixed_n"){
+    .score_specs = .score_comp
+    top_fun <- "top_n"
+    top_x <- 1000
+    pval_thresh = 0.05
+    sca_thresh = 0
+    de_thresh = 0.05
+} else if(setting=="mixed_frac"){
+    .score_specs = .score_comp
+    top_fun <- "top_frac"
+    top_x <- 0.01
+    pval_thresh = 0.05
+    sca_thresh = 0
+    de_thresh = 0.05
+} else if(setting=="house_n"){ # RENAME
+    .score_specs = liana:::.score_housekeep
+    top_fun <- "top_n"
+    top_x <- 1000
+    pval_thresh = 1 #!!!
     sca_thresh = 0
     de_thresh = 0.05
 } else{
