@@ -2,7 +2,7 @@
 ## Bash to run all script for all comparison summaries
 summscript="analysis/comparison/comparison_summarise.R"
 
-## Define Variables (setting = "specs_frac", "house_n", "specs_n", 'mixed_n', 'mixed_frac')
+## Define Variables (setting = "specs_frac", "house_n", "specs_n", 'comp_n', 'comp_frac')
 setting=$1
 
 ### Run CRC

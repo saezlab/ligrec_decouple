@@ -41,14 +41,14 @@ if(setting=="specs_frac"){
     pval_thresh = 1
     sca_thresh = 0
     de_thresh = 0.05
-} else if(setting=="mixed_n"){
+} else if(setting=="comp_n"){
     .score_specs = .score_comp
     top_fun <- "top_n"
     top_x <- 1000
     pval_thresh = 0.05
     sca_thresh = 0
     de_thresh = 0.05
-} else if(setting=="mixed_frac"){
+} else if(setting=="comp_frac"){
     .score_specs = .score_comp
     top_fun <- "top_frac"
     top_x <- 0.01
