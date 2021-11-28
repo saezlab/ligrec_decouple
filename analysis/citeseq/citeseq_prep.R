@@ -24,7 +24,8 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 
 ### I) Generate Generate Seurat Objects and run LIANA ----
 # Iterate over all citeseq directories (i.e. datasets)
-list.files(citeseq_dir) %T>%
+list.files(citeseq_dir)
+list.files(citeseq_dir)[-c(1,2)] %T>% # 10k are ok
     # Load 10x .h5 mat and cluster each, and save the appropriate Seurat objects
     # map(function(subdir){
     #     if(subdir %in% c("10k_malt", "10k_pbmcs", "5k_pbmcs", "5k_pbmcs_nextgem")){
