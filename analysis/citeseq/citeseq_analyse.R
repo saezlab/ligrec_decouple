@@ -21,11 +21,10 @@ arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 # Unchanged variables:
 .eval = "independent"
-correlation <- FALSE
+correlation <- TRUE
 
 # Different settings to use
 settings_vec <- c("specs_n", "comp_n", "house_n")  # n makes no difference
-
 
 map(settings_vec,
     function(setting){
@@ -131,7 +130,3 @@ map(settings_vec,
             saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations_{setting}_{.eval}.RDS")
         }
     })
-
-
-
-
