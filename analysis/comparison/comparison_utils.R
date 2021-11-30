@@ -1109,7 +1109,7 @@ comp_summ_plot <- function(pattern,
         labs(shape="Dataset")
 
     # Plots assembled with patchwork (box_name)
-    cairo_pdf(file.path(comparison_out, box_name),
+    cairo_pdf(file.path("figures", box_name),
               height = 24,
               width = 32,
               family = 'DINPro')
@@ -1181,7 +1181,7 @@ comp_summ_plot <- function(pattern,
                                           cluster_columns = TRUE)
 
     # Plots assembled with patchwork (box_name)
-    cairo_pdf(file.path(comparison_out, heat_name),
+    cairo_pdf(file.path("figures", heat_name),
               height = 16,
               width = 20,
               family = 'DINPro')
@@ -1290,7 +1290,7 @@ set_aggregation_settings <<- function(setting){
         pval_thresh <<- 0.05
         sca_thresh <<- 0
         de_thresh <<- 0.05
-    } else if(setting=="house_n"){ # RENAME
+    } else if(setting=="house_n"){
         .score_specs <<- liana:::.score_housekeep
         top_fun <<- "top_n"
         top_x <<- 1000

@@ -27,45 +27,11 @@ recode_datasets <- function(datasets){
 comparison_out <- "data/output/comparison_out/"
 
 
-
-## I. Specs_n ----
-n_tibble <- comp_summ_plot(pattern = "specs_n",
-                           comparison_out = comparison_out,
-                           box_name = "Figure4.pdf",
-                           heat_name = "SuppFig11_specs_n_JI_heat.pdf")
-n_tibble %>%
-    group_by(entity) %>%
-    mutate(minimum = min(med_jacc),
-           med = median(med_jacc),
-           maximum = max(med_jacc))
-
-## II. Specs_FRAC ----
-frac_tibble <- comp_summ_plot(pattern = "specs_frac",
-                              comparison_out = comparison_out,
-                              box_name = "SuppFig_10_Specificity_frac.pdf",
-                              heat_name = "SuppFigX_specs_frac_JI_heat.pdf")
-frac_tibble %>%
-    group_by(entity) %>%
-    mutate(minimum = min(med_jacc),
-           med = median(med_jacc),
-           maximum = max(med_jacc))
-
-## III. House_n ----
-house_tibble <- comp_summ_plot(pattern = "house_n",
-                               comparison_out = comparison_out,
-                               box_name = "SuppFig_12_housekeeping_n.pdf",
-                               heat_name = "SuppFig14_house_n_JI_heat.pdf")
-house_tibble %>%
-    group_by(entity) %>%
-    mutate(minimum = min(med_jacc),
-           med = median(med_jacc),
-           maximum = max(med_jacc))
-
-## IV. Comp_n ----
+## I. Comp_n ----
 comp_tibble <- comp_summ_plot(pattern = "comp_n",
-                               comparison_out = comparison_out,
-                               box_name = "SuppFig_X_mixed_n.pdf",
-                               heat_name = "SuppFigX_mised_n_JI_heat.pdf")
+                              comparison_out = comparison_out,
+                              box_name = "Figure4.pdf",
+                              heat_name = "SuppFig11_mixed_n_JI_heat.pdf")
 comp_tibble %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
@@ -75,13 +41,53 @@ comp_tibble %>%
 
 
 
-## V. Comp_frac ----
+## II. Comp_frac ----
 comp_tibble_frac <- comp_summ_plot(pattern = "comp_frac",
                                    comparison_out = comparison_out,
-                                   box_name = "SuppFig_X_mixed_frac.pdf",
-                                   heat_name = "SuppFigX_mixed_frac_JI_heat.pdf")
+                                   box_name = "SuppFig_10_Composite_frac.pdf",
+                                   heat_name = "SuppFig10_mixed_frac_JI_heat.pdf")
 comp_tibble_frac %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
            med = median(med_jacc),
            maximum = max(med_jacc))
+
+
+## III. Specs_n ----
+n_tibble <- comp_summ_plot(pattern = "specs_n",
+                           comparison_out = comparison_out,
+                           box_name = "SuppFig_12_Specificity_n.pdf",
+                           heat_name = "SuppFig12_specs_n_JI_heat.pdf")
+n_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
+
+
+## IV. Specs_FRAC ----
+frac_tibble <- comp_summ_plot(pattern = "specs_frac",
+                              comparison_out = comparison_out,
+                              box_name = "SuppFig_12_Specificity_frac.pdf",
+                              heat_name = "SuppFig12_specs_frac_JI_heat.pdf")
+frac_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
+
+# Robustness Supp. 13
+
+
+## V. House_n ----
+house_tibble <- comp_summ_plot(pattern = "house_n",
+                               comparison_out = comparison_out,
+                               box_name = "SuppFig_14_housekeeping_n.pdf",
+                               heat_name = "SuppFig14_house_n_JI_heat.pdf")
+house_tibble %>%
+    group_by(entity) %>%
+    mutate(minimum = min(med_jacc),
+           med = median(med_jacc),
+           maximum = max(med_jacc))
+
+

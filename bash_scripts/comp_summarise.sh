@@ -22,3 +22,5 @@ bash bash_scripts/generic_bash.sh $summscript "her2_"$setting "data/output/compa
 
 ### Run TNBC (BRCA)
 bash bash_scripts/generic_bash.sh $summscript "tnbc_"$setting "data/output/comparison_out/BRCA_TNBC_liana_res.RDS" $setting
+
+

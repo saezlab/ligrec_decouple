@@ -124,9 +124,8 @@ map(settings_vec,
 
                 }) %>%
                 setNames(list.files(citeseq_dir)) %>%
-                enframe() %>%
-                unnest(value) %>%
-                rename(dataset = name)
+                enframe(name = "dataset") %>%
+                unnest(value)
             saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations_{setting}_{.eval}.RDS")
         }
     })
