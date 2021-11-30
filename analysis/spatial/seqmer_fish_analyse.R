@@ -91,7 +91,7 @@ lr_coloc <- pmap(
         as.matrix() %>%
         reshape_coloc_estimate() %>% # already z-scaled
         mutate(across(c(celltype1, celltype2), ~str_replace_all(.x," ", "\\."))) %>%
-        mutate(across(c(celltype1, celltype2), ~str_replace_all(.x, "[/]", "\\.")))
+        mutate(across(c(celltype1, celltype2), ~gsub("[/]", "\\.", .x)))
 
     # Load and Format LIANA res
     liana_res <- readRDS(liana_path)
@@ -115,8 +115,13 @@ lr_coloc <- pmap(
         # FILTER AUTOCRINE
         filter(source!=target) %>%
         ungroup() %>%
-        mutate(dataset = dataset_name)
+        mutate(dataset = dataset_name) %>%
+        mutate(setting = setting) %>%
+        dplyr::mutate(localisation =
+                          case_when(estimate >= 1.645 ~ "colocalized",
+                                    estimate < 1.645 ~ "not_colocalized")
+                      )
     }) %>%
     bind_rows()
 # save liana LR score-colocalizations
-saveRDS(lr_coloc, "data/output/spatial_out/fish/fish_lrcoloc_{setting}.RDS")
+saveRDS(lr_coloc, str_glue("data/output/spatial_out/fish/fish_lrcoloc.RDS"))

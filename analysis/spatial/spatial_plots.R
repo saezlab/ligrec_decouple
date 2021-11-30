@@ -28,3 +28,25 @@ cairo_pdf(file.path("data/output/temp/",
 print(get_spatial_boxplot("data/output/spatial_out/all_fets_specs.RDS"))
 dev.off()
 
+
+### Mer/Seq Supp. Fig
+### Seq/MerFISH
+n_ranks <- c(50, 100,
+             500, 1000,
+             2500, 5000,
+             10000)
+
+
+seqfish_lr_coloc <- readRDS("data/output/spatial_out/fish/fish_lrcoloc.RDS") %>%
+    filter(setting == "comp_n")
+
+
+# 1) Initial Check
+hist(seqfish_lr_coloc$estimate)
+seqfish_lr_coloc %>%
+    check_coloc()
+
+# 2) FET boxplot
+seqfish_lr_coloc %>%
+    get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+    get_spatial_boxplot()
