@@ -1,0 +1,162 @@
+---
+title: "squdpy_nes_obtain_data"
+author: "Daniel Dimitrov"
+date: "10/8/2021"
+output: html_document
+---
+
+This .Rmd is used to convert the processed anndata object from Squidpy to
+appropriately formatted and normalized Seurat objects.
+Further, I run the neighbourhood enrichment analysis from Squidpy, which seeks
+to identify co-localizing cells using a graph structure.
+
+## Load Required Libs
+```{r setup, include=FALSE}
+require(tidyverse)
+require(reticulate)
+require(Seurat)
+require(magrittr)
+require(liana)
+```
+
+```{python pysetup, include=FALSE}
+import scanpy as sc
+import pandas as pd
+import numpy as np
+import squidpy as sq
+import anndata2ri
+print(sq.__version__) # should be >1.1
+```
+
+
+## Obtain data and enrichment
+```{python get_adata_nes}
+"""""
+Title: Function to return the EM and do NES with Squidpy
+
+params:
+    adata - anndata
+    coord_type - type of coordinate system
+    cluster_key - variable where clustering is stored
+    spatial_key - where spatial coordinates are stored - for some reason relevant for neighbourhood analysis
+    kwargs - passed to plot
+    
+    
+returns: list with processed adata and Neighbourhood Enrichment Scores (NES)
+"""""
+def get_adata_nes(adata, cluster_key, spatial_key = "spatial", **kwargs):
+    sq.gr.spatial_neighbors(adata, coord_type="generic", spatial_key=spatial_key)
+    sq.gr.nhood_enrichment(adata, cluster_key=cluster_key)
+    sq.pl.nhood_enrichment(adata, cluster_key=cluster_key, **kwargs)
+    
+    # nes
+    cats = adata.obs[cluster_key].cat.categories
+    nes_key = "{}_nhood_enrichment".format(cluster_key)
+    nes = pd.DataFrame(adata.uns[nes_key]['zscore'], index=cats, columns=cats)
+    
+    both = dict(adata = adata, nes = nes)
+    return(both)
+```
+
+### Function to Convert to Seurat
+```{r adata_to_seurat, warning = FALSE}
+#' Function to Convert adata to Seurat object
+#' @param adata anndata object as obtain from the function above
+#' @returns a Seurat object
+adata_to_seurat <- function(adata){
+    exprs <- t(as.matrix(py$adata$X))
+    colnames(exprs) <- py$adata$obs_names$to_list()
+    rownames(exprs) <- py$adata$var_names$to_list()
+    # Create the Seurat object
+    seurat_object <- CreateSeuratObject(exprs)
+    # Set the expression assay
+    seurat_object <- SetAssayData(seurat_object, "counts", exprs)
+    # Add observation metadata
+    seurat_object <- AddMetaData(seurat_object, py$adata$obs)
+    return(seurat_object)
+}
+```
+
+## Convert and Save Datasets
+```{python seq_squidpy_res}
+# seqFISH
+# https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_seqfish.html#sphx-glr-auto-tutorials-tutorial-seqfish-py
+adata = sq.datasets.seqfish()
+seq_adata_nes = get_adata_nes(adata, cluster_key="celltype_mapped_refined", method="ward")
+```
+
+
+### seqFISH Format and Write Object
+```{r seq_format_save, warning=FALSE}
+# Get Seq Seurat
+seq_seurat <- adata_to_seurat(py$seq_adata_nes$adata)
+
+# format meta and remove low quality cells
+seq_seurat@meta.data %<>% 
+    filter(celltype_mapped_refined!="Low quality") %>%
+    mutate(celltype_mapped_refined = gsub("[/]", ".", celltype_mapped_refined)) %>%
+    mutate(seurat_clusters = 
+               as.factor(str_replace_all(celltype_mapped_refined,
+                                         " ", "\\."))) 
+seq_seurat <- subset(seq_seurat, cells=rownames(seq_seurat@meta.data))
+Idents(seq_seurat) <- seq_seurat@meta.data$seurat_clusters
+levels(Idents(seq_seurat))
+
+# run normalization etc
+seq_seurat %<>%
+    Seurat::SCTransform(verbose = FALSE) %>%
+    Seurat::FindVariableFeatures() %>%
+    Seurat::RunPCA(., verbose = FALSE) %>%
+    Seurat::RunUMAP(., dims = 1:30, verbose = FALSE)
+
+seq_seurat
+saveRDS(seq_seurat, "data/input/spatial/fishes/seqFISH_seurat.RDS")
+
+# get and save UNFORMATTED NES results (clusters to be rename and filtered)
+nes <- py$seq_adata_nes$nes %>%
+        py_to_r()
+saveRDS(nes, "data/input/spatial/fishes/seqFISH_nes.RDS")
+```
+
+
+### merFISH Format and Write Object
+```{python mer_squidpy_res}
+# merFISH
+# https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_merfish.html#sphx-glr-auto-tutorials-tutorial-merfish-py
+adata = sq.datasets.merfish()
+mer_adata_nes = get_adata_nes(adata, cluster_key="Cell_class", spatial_key="spatial3d", method="single", cmap="inferno", vmin=-50, vmax=100)
+```
+
+```{r mer_format_save, warning=FALSE}
+# Get MER Seurat
+mer_seurat <- adata_to_seurat(py$mer_adata_nes$adata)
+
+# format meta and remove low ambigious
+mer_seurat@meta.data %<>%
+    filter(Cell_class!="Ambiguous") %>%
+    mutate(seurat_clusters = 
+               str_replace_all(Cell_class, " ", "\\.") %>%
+               as.factor())
+mer_seurat <- subset(mer_seurat, cells=rownames(mer_seurat@meta.data))
+Idents(mer_seurat) <- mer_seurat@meta.data$seurat_clusters
+levels(Idents(mer_seurat))
+
+# run normalization etc
+mer_seurat %<>% 
+    Seurat::SCTransform(verbose = FALSE) %>%
+    Seurat::FindVariableFeatures() %>%
+    Seurat::RunPCA(., verbose = FALSE) %>%
+    Seurat::RunUMAP(., dims = 1:30, verbose = FALSE) 
+
+# save object
+mer_seurat
+saveRDS(mer_seurat, "data/input/spatial/fishes/merFISH_seurat.RDS")
+
+# get and save UNFORMATTED NES results (clusters to be rename and filtered)
+nes <- py$mer_adata_nes$nes %>%
+        py_to_r() 
+
+saveRDS(nes, "data/input/spatial/fishes/merFISH_nes.RDS")
+```
+
+
