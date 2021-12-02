@@ -266,7 +266,7 @@ recode_methods <- function(methods){
                 "cellchat" = "CellChat",
                 "aggregate_rank" = "Aggregated Ranks",
                 "logfc" = "LogFC Mean",
-                "cytotalk" = "Cytotalk",
+                "cytotalk" = "Crosstalk scores",
 
                 "natmi" = "NATMI",
                 "call.natmi" = "NATMI",

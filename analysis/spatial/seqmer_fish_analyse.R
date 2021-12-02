@@ -68,7 +68,7 @@ pmap(list(paths_tibble$sobj,
 paths_tibble %<>%
     mutate(setting = "comp_n") %>%
     bind_rows(., .)
-paths_tibble$setting[c(3,4)] <- "house_n"
+paths_tibble$setting[c(3,4)] <- "specs_n"
 paths_tibble
 
 
@@ -122,6 +122,7 @@ lr_coloc <- pmap(
                                     estimate < 1.645 ~ "not_colocalized")
                       )
     }) %>%
+    na.omit() %>%
     bind_rows()
 # save liana LR score-colocalizations
 saveRDS(lr_coloc, str_glue("data/output/spatial_out/fish/fish_lrcoloc.RDS"))

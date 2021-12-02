@@ -173,15 +173,22 @@ get_fet_boxplot_data <- function(lr_coloc, n_ranks){
 #' > Aggregated Ranks    2.17e- 9  9.21  5.07e- 9   9.21       50  Cortex Anterior 1
 #' @returns a ggplot odds-ratio boxplot across methods and datasets
 get_spatial_boxplot <- function(boxplot_data){
+
+    if(length(unique(boxplot_data$dataset)) > 3){
+       box_or_not <- geom_boxplot(alpha = 0.15,
+                     outlier.size = 1.5,
+                     width = 0.2,
+                     show.legend = FALSE)
+    } else{
+        box_or_not <- NULL
+    }
+
     # plot Enrichment of colocalized in top vs total
     boxplot <- ggplot(boxplot_data,
                       aes(x = n_rank, y = odds_ratio,
                           color = method_name)) +
-        geom_boxplot(alpha = 0.15,
-                     outlier.size = 1.5,
-                     width = 0.2,
-                     show.legend = FALSE)  +
-        geom_jitter(aes(shape = dataset), width = 0) +
+        box_or_not +
+        geom_jitter(aes(shape = dataset), width = 0, size = 5) +
         facet_grid(~method_name, scales='free_x', space='free', switch="x") +
         theme_bw(base_size = 24) +
         geom_hline(yintercept = 1, colour = "pink",
@@ -191,7 +198,8 @@ get_spatial_boxplot <- function(boxplot_data){
         ) +
         labs(shape=guide_legend(title="Dataset")) +
         ylab("Odds Ratio") +
-        xlab("#Ranks Considered")
+        xlab("#Ranks Considered") +
+        guides(color = "none")
 
     return(boxplot)
 }

@@ -34,7 +34,7 @@ space_specs <- get_spatial_bigbox("data/output/spatial_out/all_fets_specs.RDS")
 cytosig_specs <- plot_cytosig_aucs(.eval = "independent", score_mode = "specs")
 
 path <- file.path("figures",
-                  "SuppFigure19_Evals_Specific.RDS")
+                  "SuppFigure20_Evals_Specific.RDS")
 cairo_pdf(path,
           height = 26,
           width = 22,
