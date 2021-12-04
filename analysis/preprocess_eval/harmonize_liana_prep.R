@@ -78,6 +78,6 @@ liana_agg <- liana_res %>%
         filt_de_pvals = FALSE,
         de_thresh = 1,
         .score_mode = .score_comp,
-        .eval = eval
+        .eval = "independent"
     )
 saveRDS(liana_agg, "data/output/eval_harmonize/brain_liana_agg.RDS")
