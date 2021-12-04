@@ -2,10 +2,10 @@
 # A. Overview ------------------------------------------------------------------
 
 # This a truncated version of all the code from the Seurat tutorial. The visual
-# outputs have been removed, but all the processing steps are identical. If you 
-# want to properly understand these processing steps and decisions, I recommend 
+# outputs have been removed, but all the processing steps are identical. If you
+# want to properly understand these processing steps and decisions, I recommend
 # reading the tutorial side by side with this code. The tutorial can be found
-# here: 
+# here:
 #   "https://satijalab.org/seurat/articles/pbmc3k_tutorial.html"
 
 
@@ -22,12 +22,12 @@ library(patchwork)
 
 # Load the PBMC dataset
 
-pbmc.data <- Read10X(data.dir = "Data/filtered_gene_bc_matrices/hg19/")
+pbmc.data <- Read10X(data.dir = "analysis/robustness/Data/filtered_gene_bc_matrices/hg19/")
 
 # Initialize the Seurat object with the raw (non-normalized data).
-pbmc <- CreateSeuratObject(counts = pbmc.data, 
-                           project = "pbmc3k", 
-                           min.cells = 3, 
+pbmc <- CreateSeuratObject(counts = pbmc.data,
+                           project = "pbmc3k",
+                           min.cells = 3,
                            min.features = 200)
 
 
@@ -42,7 +42,7 @@ pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 # Now we subset the data using the three main QC metrics
 # We cut out outliers on the high side of mt proportion and feature counts
 # the plots. As recommended, we subset in one step here considering all variables.
-pbmc <- 
+pbmc <-
   subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 
 
@@ -54,8 +54,8 @@ pbmc <-
 # We normalize the counts of each cell with the total number of counts for that
 # cell and multiply it by 10000.
 # Additionally, we then lognormalize the entirety of the count data.
-pbmc <- NormalizeData(pbmc, 
-                      normalization.method = "LogNormalize", 
+pbmc <- NormalizeData(pbmc,
+                      normalization.method = "LogNormalize",
                       scale.factor = 10000)
 
 
@@ -75,8 +75,8 @@ pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
 #------------------------------------------------------------------------------#
 # F. Data Scaling --------------------------------------------------------------
 
-# We adjust the gene expression such that each gene's mean expression is 0 and 
-# variance is 1. This makes all genes equally weighted in analysis. Highly 
+# We adjust the gene expression such that each gene's mean expression is 0 and
+# variance is 1. This makes all genes equally weighted in analysis. Highly
 # expressed genes have as much impact as lowly expressed ones.
 
 all.genes <- rownames(pbmc)
@@ -98,12 +98,12 @@ pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
 #------------------------------------------------------------------------------#
 # H. Dimensionality Assessment -------------------------------------------------
 
-# PCAs are constructed for multiple resamplings of the data set. The PCs that 
-# most consistently show up are chosen as meta features to summarize the data 
-# with. 
+# PCAs are constructed for multiple resamplings of the data set. The PCs that
+# most consistently show up are chosen as meta features to summarize the data
+# with.
 
-# NOTE: This process can take a long time for big data sets. More approximate 
-# techniques such as those implemented in ElbowPlot(pbmc) can be used to reduce 
+# NOTE: This process can take a long time for big data sets. More approximate
+# techniques such as those implemented in ElbowPlot(pbmc) can be used to reduce
 # computation time.
 pbmc <- JackStraw(pbmc, num.replicate = 100)
 pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
@@ -129,11 +129,11 @@ pbmc <- FindClusters(pbmc, resolution = 0.5)
 # of the data, but shouldn't be used for analysis. For completions' sake it is
 # included here.
 
-# If you haven't installed UMAP in python, you can do so via 
+# If you haven't installed UMAP in python, you can do so via
 # reticulate::py_install(packages = 'umap-learn'). The LIANA++ conda env
-# installation covers this already. 
-pbmc <- RunUMAP(pbmc, dims = 1:10, 
-                umap.method = 'umap-learn', 
+# installation covers this already.
+pbmc <- RunUMAP(pbmc, dims = 1:10,
+                umap.method = 'umap-learn',
                 metric = 'correlation')
 
 
@@ -152,14 +152,14 @@ pbmc <- RunUMAP(pbmc, dims = 1:10,
 # Canonical cluster markers are known for this data set. See the seurat tutorial
 # for more information on how these labels were concluded.
 
-new.cluster.ids <- c("Naive CD4 T", 
-                     "CD14+ Mono", 
-                     "Memory CD4 T", 
-                     "B", 
-                     "CD8 T", 
+new.cluster.ids <- c("Naive CD4 T",
+                     "CD14+ Mono",
+                     "Memory CD4 T",
+                     "B",
+                     "CD8 T",
                      "FCGR3A+ Mono",
-                     "NK", 
-                     "DC", 
+                     "NK",
+                     "DC",
                      "Platelet")
 
 names(new.cluster.ids) <- levels(pbmc)
@@ -173,6 +173,6 @@ pbmc <- RenameIdents(pbmc, new.cluster.ids)
 # M. Saving the Seurat Object --------------------------------------------------
 
 
-saveRDS(pbmc, file = str_glue(getwd(), "/Data/pbmc3k_final.rds"))
+saveRDS(pbmc, file = str_glue(getwd(), "/analysis/robustness/Data/pbmc3k_final.rds"))
 
 
