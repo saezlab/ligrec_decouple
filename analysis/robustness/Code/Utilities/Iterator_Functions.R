@@ -115,7 +115,7 @@
     if (testdata_type == "seurat_pbmc") {
 
       # Read testdata from outputs
-      testdata <- readRDS(file = "Data/pbmc3k_final.rds")
+      testdata <- readRDS(file = "analysis/robustness/Data/pbmc3k_final.rds")
 
     } else if (testdata_type == "liana_test") {
 
