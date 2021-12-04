@@ -24,8 +24,7 @@ map(c("HER2", "ER", "TNBC"), function(brca_subtype){
                                        ),
                             expr_prop=0.1,
                             cellchat.params = list(nboot=1000,
-                                                   expr_prop = 0.1,
-                                                   de_tresh = 1),
+                                                   expr_prop = 0.1),
                             assay = "SCT")
 
     # save LIANA results
@@ -65,8 +64,7 @@ liana_res <- liana_wrap(cortex_sc,
                         expr_prop=0.1,
                         cellchat.params = list(nboot=1000,
                                                organism="mouse",
-                                               expr_prop = 0.1,
-                                               de_tresh = 1),
+                                               expr_prop = 0.1),
                         assay = "SCT")
 saveRDS(liana_res, "data/output/eval_harmonize/brain_liana_results.RDS")
 
