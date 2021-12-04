@@ -58,12 +58,12 @@
 
 
       # make sure the scale is the same on both axes, since both are in percent
-      scale_y_continuous(breaks = seq(0, 100, 20), limits = c(0, 100)) +
+      scale_y_continuous(breaks = seq(0, 1, 0.20), limits = c(0, 1)) +
       scale_x_continuous(breaks = seq(0, 100, 20)) +
 
       # add text
       ggtitle("Robustness of Method Predictions") +
-      ylab("Overlap of Top Ranks [%]") +
+      ylab("Overlap of Top Ranks [Jaccard Index]") +
       xlab(x_axis_name) +
       labs(subtitle = "Line / point scatter plot.",
            caption = plotting_caption,
@@ -118,13 +118,13 @@
 
 
       # make sure the scale is the same on both axes, since both are in percent
-      scale_y_continuous(breaks = seq(0, 100, 20), limits = c(0, 100)) +
+      scale_y_continuous(breaks = seq(0, 1, 0.20), limits = c(0, 1)) +
       scale_x_continuous(breaks = seq(0, 100, 20)) +
 
 
       # add text
       ggtitle("Robustness of Method Predictions") +
-      ylab("Overlap of Top Ranks [%]") +
+      ylab("Overlap of Top Ranks [Jaccard Index]") +
       xlab(x_axis_name) +
       labs(subtitle = "Boxplot by Method.",
            caption = plotting_caption,

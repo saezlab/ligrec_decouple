@@ -586,16 +586,18 @@ wrap_cluster_Iterator <-
   tr_overlap_for_plot <- top_ranks_overlap %>%
     as.data.frame()                        %>%
     mutate(Mismatch = Mismatch * 100)      %>% # proportion to percent
-    mutate(Overlap  = Overlap  * 100)      %>% # proportion to percent
+    mutate(Overlap  = Overlap)             %>%
     as_tibble()                            %>%
     mutate("Method" = recode(Method,
                              "call_connectome" = "Connectome",
                              "squidpy"         = "CellPhoneDB",
+                             "cellphonedb"     = "CellPhoneDB",
                              "call_natmi"      = "NATMI",
                              "call_italk"      = "LogFC Product",
+                             "logfc"           = "LogFC Mean",
                              "call_sca"        = "SingleCellSignalR",
+                             "cytotalk"        = "CytoTalk",
                              "cellchat"        = "CellChat")) # renaming
-
 
 
 
