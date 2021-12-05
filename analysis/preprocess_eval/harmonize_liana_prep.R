@@ -5,11 +5,11 @@ library(Seurat)
 library(magrittr)
 
 source("src/eval_utils.R")
-brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
 
 ## LIANA Runs ----
 # A) BRCA ----
 # Load BRCA object from Spatial Directory
+brca_dir <- "data/input/spatial/Wu_etal_2021_BRCA"
 map(c("HER2", "ER", "TNBC"), function(brca_subtype){
     deconv_directory <- file.path(brca_dir,
                                   "deconv", str_glue("{brca_subtype}_celltype_minor"))

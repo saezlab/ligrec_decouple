@@ -169,8 +169,8 @@ get_simdist_heatmap <- function(sig_list,
     pull(method)
   resource_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
-    mutate(resource = recode_resources(resource)) %>%
     separate(value, into = c("method", "resource"), sep = "⊎") %>%
+    mutate(resource = recode_resources(resource)) %>%
     pull(resource)
 
   # data frame with column annotations.

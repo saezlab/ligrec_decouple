@@ -44,4 +44,5 @@ cytosig_eval_wrap(.eval = .eval,
 # Plot results
 plot_cytosig_aucs(inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS")
 
+### Spatial ----
 

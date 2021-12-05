@@ -130,8 +130,7 @@ comparison_summary <- function(input_filepath,
                 mutate(resource = reso_name)
         }) %>%
         bind_rows() %>%
-        unite(resource_method1, resource_method2, col = "combination") %>%
-        mutate(resource = recode_resources(resource))
+        unite(resource_method1, resource_method2, col = "combination")
     saveRDS(across_methods_ji, str_glue("{outpath}/across_methods_ji.RDS"))
 
     # JI Box
