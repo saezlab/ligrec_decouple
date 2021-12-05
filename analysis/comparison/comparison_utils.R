@@ -59,9 +59,9 @@ comparison_summary <- function(input_filepath,
     # III) Interaction Frequencies per Cell Type (TOP) -----
     message("Interaction Frequencies")
     ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]],
-                                       cap_value = cap_value_freq,
-                                       main_title="Relative\nFrequency")
-    freq_heat <- get_ct_heatmap(ct_frequncies)
+                                       cap_value = cap_value_freq)
+    freq_heat <- get_ct_heatmap(ct_frequncies,
+                                main_title="Relative\nFrequency")
     saveRDS(ct_frequncies, str_glue("{outpath}/cp_frequencies.RDS"))
     gc()
 
