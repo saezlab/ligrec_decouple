@@ -836,6 +836,7 @@ get_ct_frequncies <- function(sig_list,
         enframe(name = "method", value = "results_resource") %>%
         mutate(method = recode_methods(method)) %>%
         unnest(results_resource) %>%
+        mutate(resource = recode_resources(resource)) %>%
         unite(method, resource, col = "mr", sep = "⊎") %>%
         mutate_all(~ replace(., is.na(.), 0))
 }

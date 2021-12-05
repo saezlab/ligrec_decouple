@@ -44,5 +44,53 @@ cytosig_eval_wrap(.eval = .eval,
 # Plot results
 plot_cytosig_aucs(inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS")
 
-### Spatial ----
 
+
+### Spatial ----
+.eval = "independent"
+score_mode = "mixed"
+
+# MOUSE BRAIN ATLAS ----
+brain_dir <- "data/input/spatial/brain_cortex/"
+# murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+
+# Load Liana
+liana_format <- readRDS(str_glue("data/output/aggregates/brain_{.eval}_{score_mode}_liana_res.RDS")) %>%
+    liana_agg_to_long()
+
+# load deconvolution results and do correlation
+slides <- c("anterior1",
+            "anterior2",
+            "posterior1",
+            "posterior2")
+deconv_results <- slides %>%
+    map(function(slide){
+        # load results
+        deconv_res <- readRDS(str_glue("{brain_dir}/{slide}_doconvolution2.RDS"))
+        deconv_res[[2]]
+        # # correlations of proportions
+        # decon_cor <- cor(decon_mtrx)
+        #
+        # # format and z-transform deconv proportion correlations
+        # deconv_corr_long <- decon_cor %>%
+        #     reshape_coloc_estimate(z_scale = FALSE)
+        #
+        # return(deconv_corr_long)
+    }) %>%
+    setNames(slides)
+
+# Bind lr and coloc
+lr_coloc <- deconv_results %>%
+    map2(names(.), function(deconv_cor_formatted, slide_name){
+        # Assign colocalisation to liana results in long according to a threshold
+        liana_loc <- liana_format %>%
+            left_join(deconv_cor_formatted, by = c("source"="celltype1",
+                                                   "target"="celltype2")) %>%
+            # FILTER AUTOCRINE
+            filter(source!=target) %>%
+            ungroup() %>%
+            mutate(dataset = slide_name)
+    }) %>%
+    bind_rows()
+# save liana LR score-colocalizations
+saveRDS(lr_coloc, str_glue("data/output/spatial_out/brain_cortex/coloc_{.eval}_{score_mode}.RDS"))
