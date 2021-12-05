@@ -27,4 +27,4 @@ bash bash_scripts/generic_bash.sh $extractscript brain "data/input/spatial/brain
 # bash bash_scripts/large_bash.sh analysis/cytosig/cytosig_analyse.R cytosig
 
 ### Run Spatial Analyse
-bash bash_scripts/large_bash.sh analysis/spatial/spatial_analyse.R space
+# bash bash_scripts/large_bash.sh analysis/spatial/spatial_analyse.R space

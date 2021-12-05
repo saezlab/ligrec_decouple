@@ -18,22 +18,26 @@
 #' `.score_comp` = specs /w cellchat and cpdb means, filtered by p-val
 cytosig_eval_wrap <- function(.eval,
                               score_mode,
-                              generate){
+                              generate,
+                              path_tibble = NULL,
+                              outpath = "data/output/cytosig_out/"){
 
     # path_tibble (relative paths to the relevant objects)
-    path_tibble <- tibble(dataset = c("ER",
-                                      "HER2",
-                                      "TNBC"),
-                          # BRCA seurat objects used throughout the manuscript
-                          seurat_path = c("data/input/spatial/Wu_etal_2021_BRCA/deconv/ER_celltype_minor/ER_celltype_minor_seurat.RDS",
-                                          "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
-                                          "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
-                          ),
-                          # liana results generated from extract_evals.sh
-                          liana_path = c(file.path("data/output/aggregates", str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/aggregates", str_glue("HER2_{.eval}_{score_mode}_liana_res.RDS")),
-                                         file.path("data/output/aggregates", str_glue("TNBC_{.eval}_{score_mode}_liana_res.RDS"))
-                          ))
+    path_tibble %<>% `%||%`(
+        tibble(dataset = c("ER",
+                           "HER2",
+                           "TNBC"),
+               # BRCA seurat objects used throughout the manuscript
+               seurat_path = c("data/input/spatial/Wu_etal_2021_BRCA/deconv/ER_celltype_minor/ER_celltype_minor_seurat.RDS",
+                               "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
+                               "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
+                               ),
+               # liana results generated from extract_evals.sh
+               liana_path = c(file.path("data/output/aggregates", str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")),
+                              file.path("data/output/aggregates", str_glue("HER2_{.eval}_{score_mode}_liana_res.RDS")),
+                              file.path("data/output/aggregates", str_glue("TNBC_{.eval}_{score_mode}_liana_res.RDS"))
+                              ))
+        )
 
     # get cytosig
     cytosig_net <- load_cytosig()
@@ -66,7 +70,9 @@ cytosig_eval_wrap <- function(.eval,
                             gc()
                             return(cyto_res)
                         }))
-    saveRDS(cytosig_eval, str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS"))
+    saveRDS(cytosig_eval,
+            file.path(outpath,
+                      str_glue("cytosig_res_{.eval}_{score_mode}.RDS")))
 
 }
 
@@ -94,9 +100,6 @@ run_cytosig_eval <- function(seurat_object,
                              NES_thresh,
                              subtype,
                              generate = TRUE){
-
-    # aggregate liana
-    # liana_res <- liana_res %>% liana_aggregate()
 
     # get pseudobulk and filter
     if(generate){
@@ -329,14 +332,21 @@ load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_ce
 #' Helper function to generate CytoSig plot
 #' @param .eval eval type (independent, max, intersect)
 #' @param score_mode mixed, specs, house
+#' @param inputpath path to cytosig results / output of `cytosig_eval_wrap`
 #'
 #' @returns a ggplot2 object
 #'
 plot_cytosig_aucs <- function(.eval,
-                              score_mode){
+                              score_mode,
+                              inputpath = NULL){
+
+    inputpath %<>% `%||%`(
+        file.path("data", "output", "cytosig_out",
+                  str_glue("cytosig_res_{.eval}_{score_mode}.RDS"))
+    )
 
     # Read results
-    cytosig_eval <- readRDS(str_glue("data/output/cytosig_out/cytosig_res_{.eval}_{score_mode}.RDS")) %>%
+    cytosig_eval <- readRDS(inputpath) %>%
         select(dataset, cytosig_res) %>%
         unnest(cytosig_res)
 
