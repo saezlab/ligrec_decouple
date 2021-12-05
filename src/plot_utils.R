@@ -132,6 +132,13 @@ plot_freq_pca <- function(freq_df){
 #' (i.e. top hits obtained via `get_top_hits`)
 #' @inheritDotParams get_simil_dist
 #' @export
+#' Jaccard Similarities Heatmap Function
+#'
+#' @param sig_list list of top ranked hits for each method
+#' (i.e. top hits obtained via `get_top_hits`)
+#'
+#' @inheritDotParams get_simil_dist
+#' @export
 get_simdist_heatmap <- function(sig_list,
                                 binary_df = NULL,
                                 simdif_df = NULL,
@@ -158,10 +165,11 @@ get_simdist_heatmap <- function(sig_list,
   method_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
     separate(value, into = c("method", "resource"), sep = "⊎") %>%
-    mutate(method=recode_methods(method)) %>%
+    mutate(method = recode_methods(method)) %>%
     pull(method)
   resource_groups <- colnames(heatmap_binary_df) %>%
     enframe() %>%
+    mutate(resource = recode_resources(resource)) %>%
     separate(value, into = c("method", "resource"), sep = "⊎") %>%
     pull(resource)
 
@@ -216,6 +224,7 @@ get_simdist_heatmap <- function(sig_list,
                                 top_annotation = top_ann,
                                 left_annotation = left_ann,
                                 heatmap_legend_param = legend_arg_list,
+                                column_dend_height = unit(5, "cm"),
                                 show_row_names = FALSE,
                                 show_column_names = FALSE)
 

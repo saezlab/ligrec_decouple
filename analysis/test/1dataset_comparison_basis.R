@@ -128,6 +128,67 @@ ct_strength <- get_ct_strength(liana_all_spec,
 get_ct_heatmap(ct_strength, cap_value = 1)
 
 
+ct_tibble <- ct_strength
+# annotation groups (sequential vectors as in heatmap_binary_list)
+method_groups <- ct_tibble %>%
+    separate(mr, into = c("method", "resource"), sep = "⊎") %>%
+    pull(method)
+resource_groups <- ct_tibble %>%
+    separate(mr, into = c("method", "resource"), sep = "⊎") %>%
+    pull(resource)
+
+# data frame with column annotations.
+# with a column for resources and a column for methods
+annotations_df <- data.frame(Resource = resource_groups,
+                             Method = method_groups) %>%
+    mutate(rn = ct_tibble$mr) %>%
+    column_to_rownames("rn")
+
+annotations_row <- data.frame(cell_cat = colnames(ct_tibble)[-1]) %>%
+    separate(cell_cat, sep="\\^", into = c("Cell", "Category"), remove = FALSE) %>%
+    column_to_rownames("cell_cat") %>%
+    select(Category)
+
+# List with colors for each annotation.
+mycolors <- list(Method = colorRampPalette(brewer.pal(8, "Dark2"))(length(unique(method_groups))),
+                 Resource = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(resource_groups))),
+                 Category = c("#E41A1C", "#377EB8"))
+names(mycolors$Resource) <- unique(resource_groups)
+names(mycolors$Method) <- unique(method_groups)
+names(mycolors$Category) <- unique(annotations_row$Category)
+
+lab_rows <- annotations_row %>%
+    rownames_to_column("cellname") %>%
+    separate(cellname, into = c("cell", "cat"), sep = "_") %>%
+    pull(cell)
+
+ph_data <- ct_tibble %>%
+    column_to_rownames("mr") %>%
+    t()
+
+
+# names(ct_tibble)[-1] <- str_to_title(gsub("[\\^].*", "", names(ct_tibble)[-1]))
+cellfraq_heat <- pheatmap::pheatmap(ph_data,
+                                    annotation_row = annotations_row,
+                                    annotation_col = annotations_df,
+                                    annotation_colors = mycolors,
+                                    display_numbers = FALSE,
+                                    silent = FALSE,
+                                    show_colnames = FALSE,
+                                    show_rownames = TRUE,
+                                    color = colorRampPalette(c("darkslategray2",
+                                                               "violetred2"))(20),
+                                    fontsize = 26,
+                                    drop_levels = TRUE,
+                                    cluster_rows = FALSE,
+                                    cluster_cols = TRUE,
+                                    border_color = NA,
+                                    labels_row = gsub("[\\^].*", "", rownames(ph_data)[-1]),
+                                    treeheight_row = 0,
+                                    treeheight_col = 100
+)
+
+
 
 # III) Interaction Frequencies per Cell Type ----
 # This works TOP x

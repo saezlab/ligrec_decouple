@@ -50,14 +50,17 @@ comparison_summary <- function(input_filepath,
     # II) Interaction Relative Strength per Cell Type -----
     message("Interaction Relative Strength")
     ct_strength <- get_ct_strength(liana_all_spec, ...)
-    strength_heat <- get_ct_heatmap(ct_strength, cap_value = cap_value_str)
+    strength_heat <- get_ct_heatmap(ct_strength,
+                                    cap_value = cap_value_str,
+                                    main_title="Relative\nStrength")
     saveRDS(ct_strength, str_glue("{outpath}/cp_strength.RDS"))
     gc()
 
     # III) Interaction Frequencies per Cell Type (TOP) -----
     message("Interaction Frequencies")
     ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]],
-                                       cap_value = cap_value_freq)
+                                       cap_value = cap_value_freq,
+                                       main_title="Relative\nFrequency")
     freq_heat <- get_ct_heatmap(ct_frequncies)
     saveRDS(ct_frequncies, str_glue("{outpath}/cp_frequencies.RDS"))
     gc()
@@ -702,7 +705,12 @@ regularize_scores <- function(liana_scores,
 #' @export
 get_ct_heatmap <- function(ct_tibble,
                            cap_value = 1,
+                           main_title,
                            ...){
+
+    ph_data <- ct_tibble %>%
+        column_to_rownames("mr") %>%
+        t()
 
     # annotation groups (sequential vectors as in heatmap_binary_list)
     method_groups <- ct_tibble %>%
@@ -712,6 +720,7 @@ get_ct_heatmap <- function(ct_tibble,
         separate(mr, into = c("method", "resource"), sep = "⊎") %>%
         pull(resource)
 
+
     # data frame with column annotations.
     # with a column for resources and a column for methods
     annotations_df <- data.frame(Resource = resource_groups,
@@ -719,46 +728,74 @@ get_ct_heatmap <- function(ct_tibble,
         mutate(rn = ct_tibble$mr) %>%
         column_to_rownames("rn")
 
+    # data frame with row annotations.
     annotations_row <- data.frame(cell_cat = colnames(ct_tibble)[-1]) %>%
-        separate(cell_cat, sep="\\^", into = c("Cell", "Category"), remove = FALSE) %>%
+        separate(cell_cat, sep="\\^", into = c("Celltype", "Role"), remove = FALSE) %>%
         column_to_rownames("cell_cat") %>%
-        select(Category)
+        select(Role)
 
     # List with colors for each annotation.
     mycolors <- list(Method = colorRampPalette(brewer.pal(8, "Dark2"))(length(unique(method_groups))),
                      Resource = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(resource_groups))),
-                     Category = c("#E41A1C", "#377EB8"))
+                     Role = c("#E41A1C", "#377EB8"))
     names(mycolors$Resource) <- unique(resource_groups)
     names(mycolors$Method) <- unique(method_groups)
-    names(mycolors$Category) <- unique(annotations_row$Category)
+    names(mycolors$Role) <- unique(annotations_row$Role)
 
-    lab_rows <- annotations_row %>%
-        rownames_to_column("cellname") %>%
-        separate(cellname, into = c("cell", "cat"), sep = "_") %>%
-        pull(cell)
 
-    names(ct_tibble)[-1] <- str_to_title(gsub("[\\^].*", "", names(ct_tibble)[-1]))
-    cellfraq_heat <- pheatmap::pheatmap(ct_tibble %>%
-                                            column_to_rownames("mr") %>%
-                                            t(),
-                                        annotation_row = annotations_row,
-                                        annotation_col = annotations_df,
-                                        annotation_colors = mycolors,
-                                        display_numbers = FALSE,
-                                        silent = FALSE,
-                                        show_colnames = FALSE,
-                                        show_rownames = TRUE,
-                                        color = colorRampPalette(c("darkslategray2",
-                                                                   "violetred2"))(20),
-                                        fontsize = 30,
-                                        drop_levels = TRUE,
-                                        cluster_rows = TRUE,
-                                        cluster_cols = TRUE,
-                                        border_color = NA,
-                                        treeheight_row = 0,
-                                        treeheight_col = 100,
-                                        ...
-                                        )
+    # define top_annotation
+    top_ann <- HeatmapAnnotation(df = annotations_df,
+                                 col = list(Resource=mycolors$Resource,
+                                            Method=mycolors$Method),
+                                 simple_anno_size = unit(1.4, "cm"),
+                                 annotation_name_gp = gpar(fontsize = 24),
+                                 show_legend = TRUE,
+                                 annotation_legend_param = list(title_gp = gpar(fontsize = 24,
+                                                                                fontface = "bold"),
+                                                                labels_gp = gpar(fontsize = 23),
+                                                                pch=20))
+
+    # define legend params
+    legend_arg_list <- list(title = main_title, #/Frequency
+                            title_gp = gpar(fontsize = 24,
+                                            fontface = "bold"),
+                            grid_height = unit(60, "mm"),
+                            grid_width = unit(16, "mm"),
+                            legend_height = unit(50, "mm"),
+                            size = unit(16, "mm"),
+                            labels_gp = gpar(fontsize = 23),
+                            pch=32)
+
+    # define row annotation
+    left_ann <- rowAnnotation(df = annotations_row,
+                              col = list(Role=c("source" = "blue", "target" = "orange")),
+                              simple_anno_size = unit(1.4, "cm"),
+                              annotation_name_gp = gpar(fontsize = 24),
+                              show_legend = TRUE,
+                              annotation_legend_param = list(
+                                  title_gp = gpar(fontsize = 24,
+                                                  fontface = "bold"),
+                                  labels_gp = gpar(fontsize = 23),
+                                  pch=20))
+
+    ht <- ComplexHeatmap::Heatmap(
+        ph_data,
+        col=colorRampPalette(c("darkslategray2",
+                               "violetred2"))(10),
+        cluster_rows = FALSE,
+        cluster_columns = TRUE,
+        top_annotation = top_ann,
+        left_annotation = left_ann,
+        heatmap_legend_param = legend_arg_list,
+        column_dend_height = unit(5, "cm"),
+        row_names_gp = gpar(fontsize = 24),
+        row_labels = gsub("\\.", " ", gsub("[\\^].*", "", rownames(ph_data))),
+        show_row_names = TRUE,
+        show_column_names = FALSE
+    )
+    ht
+
+    return(ht)
 }
 
 #' Helper function to get Frequncies of Interactions per Cell Type
@@ -903,6 +940,7 @@ get_ct_strength <- function(liana_all_spec,
     }) %>%
         setNames(resources_used) %>%
         enframe(name = "resource") %>%
+        mutate(resource = recode_resources(resource)) %>%
         unnest(value) %>%
         unite(method, resource, sep ="⊎", col = "mr")
 }
