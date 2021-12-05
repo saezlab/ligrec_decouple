@@ -700,8 +700,8 @@ regularize_scores <- function(liana_scores,
 #'
 #' @return Cell Type Activity Heatmap
 #'
-#' @import pheatmap tidyverse
-#' @inheritDotParams pheatmap::pheatmap
+#' @import ComplexHeatmap tidyverse
+#' @inheritDotParams ComplexHeatmap::Heatmap
 #' @export
 get_ct_heatmap <- function(ct_tibble,
                            cap_value = 1,
@@ -791,7 +791,8 @@ get_ct_heatmap <- function(ct_tibble,
         row_names_gp = gpar(fontsize = 24),
         row_labels = gsub("\\.", " ", gsub("[\\^].*", "", rownames(ph_data))),
         show_row_names = TRUE,
-        show_column_names = FALSE
+        show_column_names = FALSE,
+        ...
     )
     ht
 

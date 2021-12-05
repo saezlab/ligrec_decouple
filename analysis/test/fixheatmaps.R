@@ -56,7 +56,8 @@ legend_arg_list <- list(title = main_title, #/Frequency
                         legend_height = unit(50, "mm"),
                         size = unit(16, "mm"),
                         labels_gp = gpar(fontsize = 23),
-                        pch=32)
+                        pch=32,
+                        direction = "vertical")
 
 # define row annotation
 left_ann <- rowAnnotation(df = annotations_row,
