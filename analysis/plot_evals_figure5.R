@@ -8,42 +8,58 @@ source("analysis/cytosig/cytosig_src.R")
 source("src/plot_utils.R")
 source("analysis/spatial/spatial_src.R")
 
+# Function to Combine the plots
+cyto_space_patch <- function(cytosig_p,
+                             space_p,
+                             path
+                             ){
+    cairo_pdf(path,
+              height = 26,
+              width = 22,
+              family = 'DINPro')
+    print((cytosig_p / space_p) +
+              plot_layout(guides = 'keep', heights = c(1.1, 1)) +
+              plot_annotation(tag_levels = 'A',
+                              tag_suffix = ')') &
+              theme(plot.tag = element_text(face = 'bold',
+                                            size = 40)))
+    dev.off()
+}
+
+
+
 # Mixed/Comp Method specifics
-space_mixed <- get_spatial_bigbox("data/output/spatial_out/all_fets_mixed.RDS")
 cytosig_mixed <- plot_cytosig_aucs(.eval = "independent",
                                    score_mode = "mixed")
+space_mixed <- readRDS("data/output/spatial_out/all_fets_mixed.RDS") %>%
+    get_spatial_boxplot()
 
 path <- file.path("figures",
                   "Figure5_Evals_Composite.RDS")
-cairo_pdf(path,
-          height = 26,
-          width = 22,
-          family = 'DINPro')
-print((space_mixed /
-        cytosig_mixed) +
-    plot_layout(guides = 'keep', heights = c(1, 1)) +
-    plot_annotation(tag_levels = 'A',
-                    tag_suffix = ')') &
-    theme(plot.tag = element_text(face = 'bold',
-                                  size = 40)))
-dev.off()
+
+cyto_space_patch(cytosig_mixed,
+                 space_mixed,
+                 path)
 
 
 # Specificities Method specifics
-space_specs <- get_spatial_bigbox("data/output/spatial_out/all_fets_specs.RDS")
+space_specs <- readRDS("data/output/spatial_out/all_fets_specs.RDS") %>%
+    get_spatial_boxplot()
 cytosig_specs <- plot_cytosig_aucs(.eval = "independent", score_mode = "specs")
 
 path <- file.path("figures",
                   "SuppFigure20_Evals_Specific.RDS")
-cairo_pdf(path,
-          height = 26,
-          width = 22,
-          family = 'DINPro')
-print((space_specs /
-           cytosig_specs) +
-          plot_layout(guides = 'keep', heights = c(1, 1)) +
-          plot_annotation(tag_levels = 'A',
-                          tag_suffix = ')') &
-          theme(plot.tag = element_text(face = 'bold',
-                                        size = 40)))
-dev.off()
+cyto_space_patch(space_specs,
+                 cytosig_specs,
+                 path)
+
+
+# Harmonized Plot
+cytosig_harmonize <- plot_cytosig_aucs(inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS")
+space_harmonize <- readRDS("data/output/eval_harmonize/harmonize_lr_coloc.RDS") %>%
+    get_spatial_boxplot()
+path <- file.path("figures",
+                  "SuppFigure21_Harmonize_CytoSpace.RDS")
+cyto_space_patch(cytosig_harmonize,
+                 space_harmonize,
+                 path)

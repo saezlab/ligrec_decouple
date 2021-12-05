@@ -1,3 +1,51 @@
+
+#' Get LR co-localized
+#'
+#' @param liana_agg_path point to aggregated liana
+#' @param spatial_corr_path point to condition co-loc output
+#' @param condition name of the condition
+#' @param corr_thresh correlation threshold
+#' @param n_ranks vector of ranks
+#'
+#' @return `get_fet_boxplot_data` output
+get_lr_colocalized <- function(liana_agg_path,
+                               spatial_corr_path,
+                               condition,
+                               corr_thresh = 1.645,
+                               n_ranks = c(50, 100,
+                                           500, 1000,
+                                           2500, 5000,
+                                           10000)){
+    # LIANA and Format
+    # Colocalized or not
+    spatial_correlations <- readRDS(spatial_corr_path)
+
+    # Load Liana
+    liana_format <- readRDS(liana_agg_path) %>%
+        liana_agg_to_long()
+    # Bind to LIANA
+    liana_loc <- liana_format %>%
+        left_join(spatial_correlations, by = c("source"="celltype1",
+                                               "target"="celltype2")) %>%
+        # FILTER AUTOCRINE
+        filter(source!=target) %>%
+        ungroup()
+    lr_loc <- liana_loc %>%
+        dplyr::mutate(
+            localisation = case_when(estimate >= corr_thresh ~ "colocalized",
+                                     estimate < corr_thresh ~ "not_colocalized")
+        ) %>%
+        mutate(dataset = condition) %>%
+        na.omit()
+
+    print(lr_loc %>% check_coloc())
+    lr_loc %>%
+        get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+        ungroup()
+}
+
+
+
 #' Function to reshape estimate to long format
 #' @param estimate_mat diagonal df/matrix with colocalisation estimates
 #' @param z_scale whether to z-tranform the estimate column
@@ -186,15 +234,15 @@ get_spatial_boxplot <- function(boxplot_data){
     # plot Enrichment of colocalized in top vs total
     boxplot <- ggplot(boxplot_data,
                       aes(x = n_rank, y = odds_ratio,
-                          color = method_name)) +
+                          color = dataset)) +
         box_or_not +
-        geom_jitter(aes(shape = dataset), width = 0, size = 5) +
+        geom_point(aes(shape = dataset), size = 5, alpha = 0.9) +
         facet_grid(~method_name, scales='free_x', space='free', switch="x") +
         theme_bw(base_size = 24) +
         geom_hline(yintercept = 1, colour = "pink",
                    linetype = 2, size = 1.5) +
         theme(strip.text.x = element_text(angle = 90),
-              axis.text.x = element_text(angle = 90, hjust=1)
+              axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.5)
         ) +
         labs(shape=guide_legend(title="Dataset")) +
         ylab("Odds Ratio") +
@@ -380,36 +428,3 @@ deconv_brca_slides <- function(slide_name,
     return()
 }
 
-
-#' Plot Spatial Fet Results
-#' @param lr_coloc_path path to FET enrichments of co-localized or not
-#'
-#' @returns a ggplot2 object
-get_spatial_bigbox <- function(lr_coloc_path){
-    type_lr_coloc <- readRDS(lr_coloc_path)
-    ggplot(type_lr_coloc,
-           aes(x = n_rank,
-               y = odds_ratio,
-               color = dataset_type,
-               fill = dataset_type)) +
-        geom_boxplot(alpha = 0.2,
-                     outlier.size = 1.5,
-                     width = 0.8)  +
-        # geom_point(aes(shape = dataset), size = 2) +
-        scale_shape_manual(values = rep(1:12, len =  length(unique(type_lr_coloc$dataset)))) +
-        facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-        theme_bw(base_size = 32) +
-        geom_hline(yintercept = 1, colour = "black",
-                   linetype = 2, size = 1.3) +
-        theme(strip.text.x = element_text(angle = 90),
-              axis.text.x = element_text(angle = 90,
-                                         hjust=1, vjust = 0.5,
-                                         size = 20)
-        ) +
-        # guides(color = "none") +
-        labs(shape = guide_legend(title="Visium slide"),
-             color = guide_legend(title="Dataset type")) +
-        guides(fill = "none") +
-        ylab("Odds Ratio") +
-        xlab("#Ranks Considered")
-}

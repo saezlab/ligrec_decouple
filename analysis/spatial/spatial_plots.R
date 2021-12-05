@@ -12,8 +12,8 @@ source("src/plot_utils.R")
 ### Mer/Seq Supp. Fig
 ### Seq/MerFISH
 n_ranks <- c(25, 50, 100,
-             500, 1000,
-             2500, 5000)
+             250, 500,
+             2500)
 
 
 seqfish_lr_coloc <- readRDS("data/output/spatial_out/fish/fish_lrcoloc.RDS") %>%

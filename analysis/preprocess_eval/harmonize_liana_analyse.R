@@ -12,10 +12,11 @@ require(SingleCellExperiment)
 require(decoupleR)
 
 source("analysis/cytosig/cytosig_src.R")
+source("analysis/spatial/spatial_src.R")
 source("src/eval_utils.R")
 source("src/plot_utils.R")
 
-### Cytosig ----
+# 1) Cytosig ----
 .eval = "independent"
 # Customize tibble to harmonized results
 path_tibble <-
@@ -40,57 +41,49 @@ cytosig_eval_wrap(.eval = .eval,
                   path_tibble = path_tibble,
                   outpath = "data/output/eval_harmonize")
 
-
 # Plot results
 plot_cytosig_aucs(inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS")
 
 
 
-### Spatial ----
-.eval = "independent"
-score_mode = "mixed"
+# 2) Spatial ----
+corr_thresh <- 1.645
+n_ranks = c(50, 100,
+            500, 1000,
+            2500, 5000,
+            10000)
 
-# MOUSE BRAIN ATLAS ----
-brain_dir <- "data/input/spatial/brain_cortex/"
-# murine_resource <- readRDS("data/input/murine_omnipath.RDS")
+visium_dict <- list("ER",
+                    "TNBC",
+                    "brain"
+                   )
 
-# Load Liana
-liana_format <- readRDS(str_glue("data/output/aggregates/brain_{.eval}_{score_mode}_liana_res.RDS")) %>%
-    liana_agg_to_long()
+# Tibble with Paths
+coloc_tibble <- tibble::tribble(~condition, ~liana_agg_path, ~spatial_corr_path,
+                                "ER+ BRCA",
+                                "data/output/eval_harmonize/BRCA_ER_liana_agg.RDS",
+                                "data/output/spatial_out/deconv_summ/ER_coloc_corr.RDS",
+                                "TNBC",
+                                "data/output/eval_harmonize/BRCA_TNBC_liana_agg.RDS",
+                                "data/output/spatial_out/deconv_summ/TNBC_coloc_corr.RDS",
+                                "Brain Cortex",
+                                "data/output/eval_harmonize/brain_liana_agg.RDS",
+                                "data/output/spatial_out/deconv_summ/brain_coloc_corr.RDS"
+                                )
 
-# load deconvolution results and do correlation
-slides <- c("anterior1",
-            "anterior2",
-            "posterior1",
-            "posterior2")
-deconv_results <- slides %>%
-    map(function(slide){
-        # load results
-        deconv_res <- readRDS(str_glue("{brain_dir}/{slide}_doconvolution2.RDS"))
-        deconv_res[[2]]
-        # # correlations of proportions
-        # decon_cor <- cor(decon_mtrx)
-        #
-        # # format and z-transform deconv proportion correlations
-        # deconv_corr_long <- decon_cor %>%
-        #     reshape_coloc_estimate(z_scale = FALSE)
-        #
-        # return(deconv_corr_long)
-    }) %>%
-    setNames(slides)
-
-# Bind lr and coloc
-lr_coloc <- deconv_results %>%
-    map2(names(.), function(deconv_cor_formatted, slide_name){
-        # Assign colocalisation to liana results in long according to a threshold
-        liana_loc <- liana_format %>%
-            left_join(deconv_cor_formatted, by = c("source"="celltype1",
-                                                   "target"="celltype2")) %>%
-            # FILTER AUTOCRINE
-            filter(source!=target) %>%
-            ungroup() %>%
-            mutate(dataset = slide_name)
+# Tibble with FET results
+coloc_tibble %<>%
+    pmap(function(condition, liana_agg_path, spatial_corr_path){
+        get_lr_colocalized(liana_agg_path,
+                           spatial_corr_path,
+                           condition = condition,
+                           corr_thresh = 1.645,
+                           n_ranks = c(50, 100, 500, 1000,
+                                       2500, 5000, 10000))
     }) %>%
     bind_rows()
-# save liana LR score-colocalizations
-saveRDS(lr_coloc, str_glue("data/output/spatial_out/brain_cortex/coloc_{.eval}_{score_mode}.RDS"))
+saveRDS(coloc_tibble,"data/output/eval_harmonize/harmonize_lr_coloc.RDS")
+
+# Spatial Plot
+coloc_tibble %>%
+    get_spatial_boxplot()
