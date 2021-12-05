@@ -12,10 +12,9 @@ get_lr_colocalized <- function(liana_agg_path,
                                spatial_corr_path,
                                condition,
                                corr_thresh = 1.645,
-                               n_ranks = c(50, 100,
-                                           500, 1000,
-                                           2500, 5000,
-                                           10000)){
+                               n_ranks = c(100, 250, 500, 1000,
+                                           2500, 5000, 10000)
+                               ){
     # LIANA and Format
     # Colocalized or not
     spatial_correlations <- readRDS(spatial_corr_path)
@@ -116,6 +115,8 @@ run_coloc_fet <- function(liana_loc, n_rank){
                                message("Only NOT colocalized are present")
                                tibble(pval=1,
                                       odds_ratio=-9999)
+                           } else{
+                               stop("Only positive class is present!!!")
                            }
                        } else{ # run enrichment
                            cont_tab %>% enrich3

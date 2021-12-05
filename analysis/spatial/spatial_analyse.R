@@ -131,7 +131,7 @@ comb_tibble %>%
                                    spatial_corr_path,
                                    condition = condition,
                                    corr_thresh = 1.645,
-                                   n_ranks = c(50, 100, 500, 1000,
+                                   n_ranks = c(100, 250, 500, 1000,
                                                2500, 5000, 10000)
                                    )
             }) %>%
