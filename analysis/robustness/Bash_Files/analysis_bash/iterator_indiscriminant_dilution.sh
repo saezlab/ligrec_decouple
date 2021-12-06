@@ -12,4 +12,4 @@
 
 
 # Add arguments to pass to Run_Iterator. 1 = modify_baseline, 2 = job_id
-RScipt analysis/robustness/Code/Analysis_Scripts/Resources_Run_Iterator.R TRUE $SLURM_JOBID
+RScript analysis/robustness/Code/Analysis_Scripts/Resources_Run_Iterator.R TRUE $SLURM_JOBID
