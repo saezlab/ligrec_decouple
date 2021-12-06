@@ -80,8 +80,6 @@
 
   # Define wrap_cluster_Iterator(), a function that performs the core analysis
   source("analysis/robustness/Code/Cluster_Reshuffling/CR_Iterator.R")
-  # Define Iterator helper functions that work with the top-ranked CCI's
-  source("analysis/robustness/Code/Cluster_Reshuffling/Iterator_Top_Ranks.R")
   # Define Iterator helpers that work at a meta level, saving results and so on
   source("analysis/robustness/Code/Cluster_Reshuffling/Iterator_Meta_and_Saves.R")
 
