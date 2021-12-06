@@ -151,7 +151,7 @@ wrap_cluster_Iterator <-
 
 
 
-           cellchat_nperms = 100,
+           cellchat_nperms = 1000,
 
            outputs = c("top_ranks_overlap",
                        "plot_box",
@@ -388,9 +388,9 @@ wrap_cluster_Iterator <-
 
       # Add parameters for liana_wrap that are passed as (...)
       expr_prop = 0.1,
-      cellchat.params   = list(nboot     = cellchat_nperms,
-                               expr_prop = 0.1,
-                               thresh    = 1)
+      cellchat.params   = list(nboot = cellchat_nperms,
+                               expr_prop = 0,
+                               thresh = 1)
     )
 
 

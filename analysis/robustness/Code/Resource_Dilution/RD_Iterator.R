@@ -168,7 +168,7 @@ wrap_resource_Iterator <-
 
 
 
-           cellchat_nperms = 100,
+           cellchat_nperms = 1000,
 
            bundled_outputs = c(
              "liana_results_OP",
@@ -341,18 +341,15 @@ wrap_resource_Iterator <-
     # Generate Undiluted liana results by running res_liana_with_warnings() for
     # our baseline conditions.
     baseline_liana <-
-      res_liana_with_warnings(testdata        = testdata,
+      res_liana_with_warnings(testdata = testdata,
                               methods_vector  = methods_vector,
-                              resource        = c('OmniPath'),
-
-                              liana_warnings  = liana_warnings,
+                              resource = c('OmniPath'),
+                              liana_warnings = liana_warnings,
                               warning_logfile = warning_logfile,
-
                               tag = NATMI_tag,
-
-                              expr_prop       = 0.1,
+                              expr_prop = 0.1,
                               cellchat.params = list(nboot = cellchat_nperms,
-                                                     expr_prop = 0.1,
+                                                     expr_prop = 0,
                                                      thresh = 1))
 
     print(baseline_liana)
