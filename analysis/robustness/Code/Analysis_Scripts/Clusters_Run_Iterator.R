@@ -54,15 +54,14 @@
 args = commandArgs(TRUE)
 
 reshuffle_or_subset <- as.character(args[2])
-job_id              <- as.numeric(args[3])
-
-
+job_id <- as.numeric(args[3])
+print(reshuffle_or_subset)
+print(job_id)
 
 # First we load testdata from the data folder.
 # We also give a label (testdata_type, choose "seurat_pbmc" or "liana_test")
 testdata_type <- "seurat_pbmc"
-testdata      <- extract_Testdata(testdata_type = testdata_type)
-
+testdata <- extract_Testdata(testdata_type = testdata_type)
 
 # Double-check the Inputs
 {
