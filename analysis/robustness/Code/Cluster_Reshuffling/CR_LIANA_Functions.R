@@ -38,9 +38,7 @@
 
   liana_with_warnings <- function(testdata,
                                   methods_vector,
-
                                   tag,
-
                                   liana_warnings,
                                   warning_logfile,
                                   ...) {
@@ -93,18 +91,26 @@
 
     }
 
-
     # If only one method is fed to liana_wrap(), the output data structure is
     # different. So here we convert it to the same data structure that would
     # exist if multiple methods had been called, so the code below works
     # properly for single method runs too.
     if (length(methods_vector) == 1) {
 
-      liana_results        <- list(liana_results)
+      liana_results %<>% list()
       names(liana_results) <- methods_vector
-
-
     }
+
+    ## Connectome
+    if(!is.null(liana_results$call_connectome)){
+      liana_results$call_connectome %<>%
+        filter(p_val_adj.lig <= 0.05) %>%
+        filter(p_val_adj.rec <= 0.05)
+    }
+    ## CellChat
+    liana_results$cellchat %<>% filter(pval <= 0.05)
+    ## CellPhoneDB/Squidpy
+    liana_results$cellphonedb %<>% filter(pvalue <= 0.05)
 
     return(liana_results)
 
@@ -246,11 +252,6 @@
         # Set the idents of the reshuffled testdata through the new metadata
         Idents(reshuffled_testdata) <-
           reshuffled_testdata@meta.data$cluster_key
-
-
-
-
-
 
 
         # Run liana with the modified testdata

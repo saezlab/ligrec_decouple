@@ -74,6 +74,7 @@
   require(Seurat)
   require(liana)
   require(lubridate)
+  require(magrittr)
 
 
   # Define the functions needed to perform our analysis
@@ -110,7 +111,7 @@
 # First we load testdata from the data folder.
 # We also give a label (testdata_type, choose "seurat_pbmc" or "liana_test")
 testdata_type <- "liana_test"
-testdata      <- extract_Testdata(testdata_type = testdata_type)
+testdata <- extract_Testdata(testdata_type = testdata_type)
 
 # We need a tag to distinctly mark this analysis from others in the NATMI save
 # files, such as a SLURM JOBID. If you're only running one analysis at a time
@@ -119,9 +120,9 @@ tag <- 12345
 
 # We run the wrapper with test settings
 robustness_reshuffle_default <-
-  wrap_cluster_Iterator(testdata       = testdata,
-                        testdata_type  = testdata_type,
-                        NATMI_tag      = tag,
+  wrap_cluster_Iterator(testdata = testdata,
+                        testdata_type = testdata_type,
+                        NATMI_tag = tag,
                         methods_vector = c("call_connectome",
                                            "call_natmi",
                                            "call_sca",
@@ -129,12 +130,8 @@ robustness_reshuffle_default <-
                                            "cellchat",
                                            "cytotalk",
                                            "logfc"),
-                        number_seeds   = 2,
-                        top_n          = 100,
+                        number_seeds = 2,
+                        top_n = 100,
                         mismatch_props = c(0.2, 0.4),
-                        trial_run      = TRUE)
-
-
-
-
+                        trial_run = TRUE)
 

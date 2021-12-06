@@ -49,7 +49,6 @@
                                            group = Method,  # for colors
                                            color = Method)) +
 
-
       # add transparency because some points may overlap
       geom_point(alpha = 0.4) +
       stat_summary(alpha = 0.6,

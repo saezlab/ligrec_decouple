@@ -33,32 +33,29 @@
       # method considers best
       rank_spec_list <-
         list(
-          "cellchat"        = list(method_score = "pval",
-                                   descending_order =  FALSE),
+          "cellchat" = list(method_score = "prob",
+                            descending_order =  TRUE),
 
           "call_connectome" = list(method_score = "weight_sc",
                                    descending_order =  TRUE),
 
-          "call_italk"      = list(method_score = "logfc_comb",
-                                   descending_order =  TRUE),
+          "call_italk" = list(method_score = "logfc_comb",
+                              descending_order =  TRUE),
 
-          "call_natmi"      = list(method_score = "edge_specificity",
-                                   descending_order =  TRUE),
+          "call_natmi" = list(method_score = "edge_specificity",
+                              descending_order =  TRUE),
 
-          "call_sca"        = list(method_score = "LRscore",
-                                   descending_order =  TRUE),
+          "call_sca" = list(method_score = "LRscore",
+                            descending_order =  TRUE),
 
-          "cellphonedb"     = list(method_score = "pvalue",
-                                   descending_order =  FALSE),
+          "cellphonedb" = list(method_score = "lr.mean",
+                               descending_order =  TRUE),
 
-          "call_squidpy"    = list(method_score = "pvalue",
-                                   descending_order =  FALSE),
+          "cytotalk" = list(method_score = "crosstalk_score",
+                            descending_order = TRUE),
 
-          "cytotalk"        = list(method_score = "crosstalk_score",
-                                   descending_order = TRUE),
-
-          "logfc"           = list(method_score = "logfc_comb",
-                                   descending_order =  TRUE)
+          "logfc" = list(method_score = "logfc_comb",
+                         descending_order =  TRUE)
         )
 
 

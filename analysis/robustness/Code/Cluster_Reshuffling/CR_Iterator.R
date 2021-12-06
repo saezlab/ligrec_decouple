@@ -124,8 +124,6 @@
 #'
 #' "metadata": The metadata of the run. Save file names, parameters, run times
 #' and so on.
-
-
 wrap_cluster_Iterator <-
   function(testdata,
            testdata_type,
@@ -133,9 +131,9 @@ wrap_cluster_Iterator <-
 
            reshuffle_or_subset = "reshuffle",
            mismatch_props = c(seq(0.05, 0.40, 0.05)),
-           top_n = 250,
+           top_n = 100,
 
-           number_seeds = 10,
+           number_seeds = 5,
            methods_vector = c("call_connectome",
                               "call_natmi",
                               "call_sca",
@@ -144,12 +142,9 @@ wrap_cluster_Iterator <-
                               "cytotalk",
                               "logfc"),
 
-
            liana_warnings  = "divert",
            save_results    = TRUE,
            trial_run       = FALSE,
-
-
 
            cellchat_nperms = 1000,
 
@@ -585,10 +580,10 @@ wrap_cluster_Iterator <-
   # The Reshuffling proportion and overlap are clearer in percentage
   # Rename the methods from the LIANA++ internal string to their official name
   tr_overlap_for_plot <- top_ranks_overlap %>%
-    as.data.frame()                        %>%
-    mutate(Mismatch = Mismatch * 100)      %>% # proportion to percent
-    mutate(Overlap  = Overlap)             %>%
-    as_tibble()                            %>%
+    as.data.frame() %>%
+    mutate(Mismatch = Mismatch * 100) %>% # proportion to percent
+    mutate(Overlap  = Overlap) %>%
+    as_tibble() %>%
     mutate("Method" = recode(Method,
                              "call_connectome" = "Connectome",
                              "squidpy"         = "CellPhoneDB",

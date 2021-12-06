@@ -18,6 +18,7 @@
   require(Seurat)
   require(liana)
   require(lubridate)
+  require(magrittr)
 
 
   # Define the functions needed to perform our analysis
@@ -54,9 +55,6 @@
   source("analysis/robustness/Code/Utilities/User_Outputs_and_Plots.R")
   # Define common functions that help with NATMI parameters
   source("analysis/robustness/Code/Utilities/LIANA_Utilities.R")
-
-
-
 
 }
 

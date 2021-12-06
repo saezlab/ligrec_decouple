@@ -17,6 +17,7 @@
   require(Seurat)
   require(liana)
   require(lubridate)
+  require(magrittr)
 
 
   # Define the functions needed to perform our analysis
@@ -87,11 +88,10 @@ testdata <- extract_Testdata(testdata_type = testdata_type)
 
 # We run the wrapper with test settings
 robustness_cluster <-
-  wrap_cluster_Iterator(testdata      = testdata,
+  wrap_cluster_Iterator(testdata = testdata,
                         testdata_type = testdata_type,
-
                         reshuffle_or_subset = reshuffle_or_subset,
-                        NATMI_tag           = job_id)
+                        NATMI_tag = job_id)
 
 
 # Extra info for console output

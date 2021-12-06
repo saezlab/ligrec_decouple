@@ -143,14 +143,13 @@ wrap_resource_Iterator <-
   function(testdata,
            testdata_type,
            NATMI_tag,
-
-           number_seeds      = 10,
-           feature_type      = "variable",
-           modify_baseline   = FALSE,
+           number_seeds = 5,
+           feature_type = "variable",
+           modify_baseline = FALSE,
            preserve_topology = FALSE,
-           dilution_props    = c(seq(0.05, 0.40, 0.05)),
+           dilution_props = c(seq(0.05, 0.40, 0.05)),
 
-           top_n = 250,
+           top_n = 100,
 
            methods_vector = c("call_connectome",
                               "call_natmi",
@@ -164,9 +163,6 @@ wrap_resource_Iterator <-
 
            save_results    = TRUE,
            trial_run       = FALSE,
-
-
-
 
            cellchat_nperms = 1000,
 
@@ -486,9 +482,6 @@ wrap_resource_Iterator <-
     # Print out visualizations
     print(plot_line)
     print(plot_box)
-
-
-
 
     # Removing Clutter
     rm(tr_overlap_for_plot, plotting_caption)

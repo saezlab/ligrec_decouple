@@ -65,6 +65,7 @@
   require(Seurat)
   require(liana)
   require(lubridate)
+  require(magrittr)
 
 
   # Define the functions needed to perform our analysis
@@ -134,10 +135,10 @@ robustness_default <-
                                             "cytotalk",
                                             "logfc"),
 
-                         cellchat_nperms = 10,
+                         cellchat_nperms = 2,
                          number_seeds    = 2,
-                         top_n           = 250,
-                         dilution_props  = c(0.2, 0.45),
+                         top_n           = 100,
+                         dilution_props  = c(0.2, 0.4),
                          trial_run       = TRUE,
                          modify_baseline = FALSE)
 
