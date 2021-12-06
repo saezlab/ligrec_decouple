@@ -68,8 +68,8 @@
 # We get SLURM input arguments, including job_id to mark NATMI files with.
 args = commandArgs(TRUE)
 
-modify_baseline <- as.logical(args[1])
-job_id          <- as.numeric(args[2])
+modify_baseline <- as.logical(args[2])
+job_id          <- as.numeric(args[3])
 
 
 # First we load testdata from the data folder.

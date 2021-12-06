@@ -53,8 +53,8 @@
 # We get SLURM input arguments, including job_id to mark NATMI files with.
 args = commandArgs(TRUE)
 
-reshuffle_or_subset <- as.character(args[1])
-job_id              <- as.numeric(args[2])
+reshuffle_or_subset <- as.character(args[2])
+job_id              <- as.numeric(args[3])
 
 
 
