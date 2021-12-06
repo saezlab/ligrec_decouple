@@ -4,7 +4,7 @@
 #SBATCH --time=48:00:00
 #SBATCH --mem=60000
 #SBATCH --job-name="modify_iterator"
-#SBATCH --output=modify_iterator.out
+#SBATCH --output="out/modify_iterator.out"
 #SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
 #SBATCH --mail-type=ALL
 #SBATCH --requeue
