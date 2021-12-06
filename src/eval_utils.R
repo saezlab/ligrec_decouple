@@ -167,10 +167,10 @@ calc_curve = function(df,
 
 #' Run Fischer's exact test on a contigency_table
 #' @param cont_tab
-enrich3 <- function(cont_tab){
+enrich3 <- function(cont_tab, response = "localisation"){
     cont_table <- cont_tab %>%
         as.data.frame() %>%
-        column_to_rownames("localisation") %>%
+        column_to_rownames(response) %>%
         t()
 
     result <- fisher.test(cont_table)
@@ -178,6 +178,67 @@ enrich3 <- function(cont_tab){
 }
 
 
+#' Function to get boxplot for FET odds ratios
+#' @param boxplot_data tibble in the following format:
+#' > method_name            pval odds_ratio padj  enrichment n_rank    dataset
+#' >     <chr>             <dbl>   <dbl>    <dbl>   <dbl>     <fct>     <chr>
+#' > Aggregated Ranks    2.17e- 9  9.21  5.07e- 9   9.21       50  Cortex Anterior 1
+#' @returns a ggplot odds-ratio boxplot across methods and datasets
+get_eval_boxplot <- function(boxplot_data, eval_type = NULL){
+
+    if(length(unique(boxplot_data$dataset)) > 3){
+        box_or_not <- geom_boxplot(alpha = 0.15,
+                                   outlier.size = 1.5,
+                                   width = 0.2,
+                                   show.legend = FALSE)
+    } else{
+        box_or_not <- NULL
+    }
+
+    if(eval_type == "cytosig"){
+        random_color = "pink"
+        facet_color = "#913628"
+    } else if(eval_type=="space"){
+        random_color = "lightblue"
+        facet_color = "#2F7699"
+    } else{
+        stop("Please specify eval type!")
+    }
+
+    # plot Enrichment of colocalized in top vs total
+    boxplot <- ggplot(boxplot_data,
+                      aes(x = n_rank, y = odds_ratio,
+                          color = dataset, group=dataset)) +
+        box_or_not +
+        geom_point(aes(shape = dataset), size = 4, alpha = 0.8) +
+        scale_colour_manual(values=recode_colours(unique(boxplot_data$dataset))) +
+        facet_grid(~method_name, scales='free_x', space='free', switch="x") +
+        theme_bw(base_size = 24) +
+        geom_line(size = 1.9, alpha = 0.6) +
+        geom_hline(yintercept = 1, colour = random_color,
+                   linetype = 2, size = 1.7) +
+        theme(strip.text.x = element_text(angle = 90, face="bold", colour="white"),
+              axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.5),
+              strip.background = element_rect(fill=facet_color),
+              legend.title = element_text(size = 28),
+              legend.text = element_text(size = 25)
+        ) +
+        labs(colour=guide_legend(title="Dataset")) +
+        ylab("Odds Ratio") +
+        xlab("Ranked Interactions Range") +
+        guides(shape = "none")
+    boxplot
+}
+
+#' Recode colours for Eval figs
+recode_colours <- function(colours){
+    dplyr::recode(colours %>% sort(),
+                  "ER+ BRCA" = "#FFA44FFA",
+                  "TNBC" = "#7264B9",
+                  "HER2+ BRCA" =  "#DEDA00",
+                  "Brain Cortex" = "#1B9E77"
+    )
+}
 
 #' @title Recode dataset names
 #' @param dataset - vector /w dataset names
@@ -203,7 +264,10 @@ recode_datasets <- function(datasets){
                   "CID4290" = "ER1 (CID4290)",
                   "CID4465" = "TNBC3 (CID4465)",
                   "CID4535" = "ER2 (CID4535)",
-                  "CID44971" = "TNBC4 (CID44971)"
+                  "CID44971" = "TNBC4 (CID44971)",
+                  "ER" = "ER+ BRCA",
+                  "TNBC" = "TNBC",
+                  "HER2" = "HER2+ BRCA"
                   )
 }
 
@@ -377,6 +441,5 @@ liana_aggregate_enh <- function(liana_res,
 
     return(liana_res)
 }
-
 
 

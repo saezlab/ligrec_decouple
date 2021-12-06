@@ -111,7 +111,8 @@ run_coloc_fet <- function(liana_loc, n_rank){
                    map(function(cont_tab){
                        # handle case where no colocolalized are in top X ranks
                        if(nrow(cont_tab) == 1){
-                           if(cont_tab %>% pluck("localisation")=="not_colocalized"){
+                           if(cont_tab %>%
+                              pluck("localisation")=="not_colocalized"){
                                message("Only NOT colocalized are present")
                                tibble(pval=1,
                                       odds_ratio=-9999)
@@ -119,7 +120,9 @@ run_coloc_fet <- function(liana_loc, n_rank){
                                stop("Only positive class is present!!!")
                            }
                        } else{ # run enrichment
-                           cont_tab %>% enrich3
+                           cont_tab %>%
+                               arrange(desc(localisation)) %>%
+                               enrich3
                        }
                    })) %>%
         # unnest fet results
@@ -215,43 +218,6 @@ get_fet_boxplot_data <- function(lr_coloc, n_ranks){
 }
 
 
-#' Function to get boxplot for FET odds ratios
-#' @param boxplot_data tibble in the following format:
-#' > method_name            pval odds_ratio padj  enrichment n_rank    dataset
-#' >     <chr>             <dbl>   <dbl>    <dbl>   <dbl>     <fct>     <chr>
-#' > Aggregated Ranks    2.17e- 9  9.21  5.07e- 9   9.21       50  Cortex Anterior 1
-#' @returns a ggplot odds-ratio boxplot across methods and datasets
-get_spatial_boxplot <- function(boxplot_data){
-
-    if(length(unique(boxplot_data$dataset)) > 3){
-       box_or_not <- geom_boxplot(alpha = 0.15,
-                     outlier.size = 1.5,
-                     width = 0.2,
-                     show.legend = FALSE)
-    } else{
-        box_or_not <- NULL
-    }
-
-    # plot Enrichment of colocalized in top vs total
-    boxplot <- ggplot(boxplot_data,
-                      aes(x = n_rank, y = odds_ratio,
-                          color = dataset)) +
-        box_or_not +
-        geom_point(aes(shape = dataset), size = 5, alpha = 0.9) +
-        facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-        theme_bw(base_size = 24) +
-        geom_hline(yintercept = 1, colour = "pink",
-                   linetype = 2, size = 1.5) +
-        theme(strip.text.x = element_text(angle = 90),
-              axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.5)
-        ) +
-        labs(shape=guide_legend(title="Dataset")) +
-        ylab("Odds Ratio") +
-        xlab("#Ranks Considered") +
-        guides(color = "none")
-
-    return(boxplot)
-}
 
 
 #' Load10x_Spatial function made to work with matrix rather than h5,
