@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH	-p single
+#SBATCH -N 1
+#SBATCH --time=48:00:00
+#SBATCH --mem=20000
+#SBATCH --job-name="modify_iterator"
+#SBATCH --output=modify_iterator.out
+#SBATCH --mail-user=[insert email]
+#SBATCH --mail-type=ALL
+#SBATCH --requeue
+#SBATCH --chdir /net/data.isilon/ag-saez/[insert filepath]/repos/ligrec_decouple
+
+
+# Add arguments to pass to Run_Iterator. 1 = modify_baseline, 2 = job_id
+/net/data.isilon/ag-saez/[filepath to liana_env and Rscript] analysis/robustness/Code/Analysis_Scripts/Resources_Run_Iterator.R TRUE $SLURM_JOBID
