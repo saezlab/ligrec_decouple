@@ -4,11 +4,11 @@
 #SBATCH --time=48:00:00
 #SBATCH --mem=60000
 #SBATCH --job-name="modify_iterator"
-#SBATCH --output=modify_iterator.out
-#SBATCH --mail-user=[insert email]
+#SBATCH --output=subset_iterator.out
+#SBATCH --mail-user=daniel.dimitrov@uni-heidelberg.de
 #SBATCH --mail-type=ALL
 #SBATCH --requeue
-#SBATCH --chdir /net/data.isilon/ag-saez/[insert filepath]/repos/ligrec_decouple
+#SBATCH --chdir /net/data.isilon/ag-saez/bq_ddimitrov/Repos/ligrec_decouple
 
 
 # Add arguments to pass to Run_Iterator. 1 = modify_baseline, 2 = job_id
