@@ -6,6 +6,7 @@ require(patchwork)
 
 source("analysis/cytosig/cytosig_src.R")
 source("src/plot_utils.R")
+source("src/eval_utils.R")
 source("analysis/spatial/spatial_src.R")
 
 # Function to Combine the plots
@@ -14,11 +15,11 @@ cyto_space_patch <- function(cytosig_p,
                              path
                              ){
     cairo_pdf(path,
-              height = 26,
+              height = 24,
               width = 22,
               family = 'DINPro')
     print((cytosig_p / space_p) +
-              plot_layout(guides = 'keep', heights = c(1.1, 1)) +
+              plot_layout(guides = 'keep', heights = c(1, 1)) +
               plot_annotation(tag_levels = 'A',
                               tag_suffix = ')') &
               theme(plot.tag = element_text(face = 'bold',
@@ -29,14 +30,15 @@ cyto_space_patch <- function(cytosig_p,
 
 
 # Mixed/Comp Method specifics
-cytosig_mixed <- plot_cytosig_aucs(.eval = "independent",
-                                   score_mode = "mixed")
+cytosig_mixed_data <- get_cytosig_fets(.eval = "independent",
+                                       score_mode = "mixed")
+cytosig_mixed <- cytosig_mixed_data %>%
+    get_eval_boxplot(eval_type = "cytosig")
+#plot
 space_mixed <- readRDS("data/output/spatial_out/all_fets_mixed.RDS") %>%
-    get_spatial_boxplot()
-
+    get_eval_boxplot(eval_type="space")
 path <- file.path("figures",
                   "Figure5_Evals_Composite.RDS")
-
 cyto_space_patch(cytosig_mixed,
                  space_mixed,
                  path)

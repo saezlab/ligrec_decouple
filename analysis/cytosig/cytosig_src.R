@@ -405,3 +405,96 @@ z_transform_nes <- function(df){
         unnest(NES) %>%
         ungroup()
 }
+
+#' FET on Cytosig Output
+#'
+#' @param .eval how we deal with evaluation
+#' @param score_mode type of scores
+#' @param inputpath path to cytosig results / output of `cytosig_eval_wrap`
+#' @param n_rank range of ranks considered
+get_cytosig_fets <- function(.eval = .eval,
+                             score_mode = score_mode,
+                             inputpath = NULL,
+                             n_ranks = c(100, 250, 500, 1000,
+                                         2500, 5000, 10000)){
+    # Load Cytosig output path
+    inputpath %<>% `%||%`(
+        file.path("data", "output", "cytosig_out",
+                  str_glue("cytosig_res_{.eval}_{score_mode}.RDS"))
+    )
+
+    map(n_ranks, function(n_rank){
+        map(c("ER", "HER2", "TNBC"), function(ds){
+
+            # Obtain top
+            cytolr <- readRDS(inputpath) %>%
+                filter(dataset==ds)  %>%
+                pluck("cytosig_res") %>%
+                pluck(1) %>%
+                select(-c(roc, prc, corr))  %>%
+                unnest(cyto_liana)
+
+            # Count total vs top
+            ranks_counted <- cytolr %>%
+                group_by(method_name) %>%
+                mutate(predictor = min_rank(predictor*-1)) %>%
+                group_by(method_name, response) %>%
+                mutate(total = n())  %>%
+                # count in x rank (Alt)
+                filter(predictor <= n_rank) %>%
+                group_by(method_name, response) %>%
+                mutate(top = n()) %>%
+                dplyr::select(method_name, response, total, top) %>%
+                distinct() %>%
+                ungroup()
+
+            # contingency tables for colocalized vs not by method
+            cont_tabs <- ranks_counted %>%
+                group_by(method_name) %>%
+                group_nest(.key = "contigency_tables")
+
+            # Fischer's exact test on co-localized in top vs total interactions
+            fet_results <- cont_tabs %>%
+                # FET
+                mutate(fet_res = contigency_tables %>%
+                           map(function(cont_tab){
+                               # handle case where no colocolalized are in top X ranks
+                               if(nrow(cont_tab) == 1){
+                                   if(cont_tab %>% pluck("response")==0){
+                                       message("Only negative class is present")
+                                       tibble(pval=1,
+                                              odds_ratio=-9999)
+                                   } else{
+                                       stop("Only positive class is present!!!")
+                                   }
+                               } else{ # run enrichment
+                                   cont_tab %>%
+                                       arrange(desc(response)) %>%
+                                       enrich3(., "response")
+                               }
+                           })) %>%
+                # unnest fet results
+                dplyr::select(-contigency_tables) %>%
+                unnest(fet_res) %>%
+                # modify results
+                mutate(
+                    padj = p.adjust(pval, method = "fdr"),
+                    enrichment = ifelse(
+                        odds_ratio < 1,
+                        -1 / odds_ratio,
+                        odds_ratio
+                    ) %>% unname
+                ) %>%
+                arrange(desc(enrichment))
+            fet_results %>%
+                mutate(dataset=ds)
+        }) %>%
+            bind_rows() %>%
+            mutate(n_rank = n_rank)
+    }) %>% bind_rows %>%
+        mutate(n_rank = as.factor(n_rank)) %>%
+        mutate(method_name = gsub("\\..*","", method_name)) %>%
+        mutate(method_name = recode_methods(method_name)) %>%
+        mutate(dataset = recode_datasets(dataset))
+}
+
