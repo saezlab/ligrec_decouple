@@ -152,12 +152,13 @@ wrap_resource_Iterator <-
 
            top_n = 250,
 
-           methods_vector = c('call_connectome' ,
-                              'call_natmi'      ,
-                              'call_italk'      ,
-                              'call_sca'        ,
-                              'cellchat'        ,
-                              'squidpy'),
+           methods_vector = c("call_connectome",
+                              "call_natmi",
+                              "call_sca",
+                              "cellphonedb",
+                              "cellchat",
+                              "cytotalk",
+                              "logfc"),
 
            liana_warnings  = "divert",
 
@@ -286,10 +287,10 @@ wrap_resource_Iterator <-
 
         # Generate the filepaths to save the data under.
         # RD stands for Resource Dilution.
-        box_plot_png_name <-
+        box_plot_rds_name <-
           auto_file_Name(
             prefix = "Boxplot_RD_",
-            suffix = ".png",
+            suffix = ".rds",
 
             preserve_topology  = preserve_topology,
             modify_baseline    = modify_baseline,
@@ -299,10 +300,10 @@ wrap_resource_Iterator <-
             time_of_run        = time_of_run,
             trial_run          = trial_run)
 
-        line_plot_png_name <-
+        line_plot_rds_name <-
           auto_file_Name(
             prefix = "Lineplot_RD_",
-            suffix = ".png",
+            suffix = ".rds",
 
             preserve_topology  = preserve_topology,
             modify_baseline    = modify_baseline,
@@ -315,7 +316,7 @@ wrap_resource_Iterator <-
         iterator_results_save_path <-
           auto_file_Name(
             prefix = "analysis/robustness/Outputs/Resource_Dilution/Iterator_Results_RD_",
-            suffix = ".rds",
+            suffix = ".RData",
 
             preserve_topology  = preserve_topology,
             modify_baseline    = modify_baseline,
@@ -539,8 +540,8 @@ wrap_resource_Iterator <-
         time_of_run    = time_of_run,
 
         warning_logfile    = warning_logfile,
-        box_plot_png_name  = box_plot_png_name,
-        line_plot_png_name = line_plot_png_name,
+        box_plot_rds_name  = box_plot_rds_name,
+        line_plot_rds_name = line_plot_rds_name,
         iterator_results_save_path = iterator_results_save_path,
 
         cellchat_nperms = cellchat_nperms,
@@ -590,8 +591,8 @@ wrap_resource_Iterator <-
                    plot_line = plot_line,
                    iterator_results = iterator_results,
 
-                   box_plot_png_name  = box_plot_png_name,
-                   line_plot_png_name = line_plot_png_name,
+                   box_plot_rds_name  = box_plot_rds_name,
+                   line_plot_rds_name = line_plot_rds_name,
                    iterator_results_save_path = iterator_results_save_path)
 
     }

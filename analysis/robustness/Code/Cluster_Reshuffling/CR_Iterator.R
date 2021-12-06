@@ -132,16 +132,17 @@ wrap_cluster_Iterator <-
            NATMI_tag,
 
            reshuffle_or_subset = "reshuffle",
-           mismatch_props = c(seq(0.50, 0.05, -0.05)) ,
-           top_n = 500,
+           mismatch_props = c(seq(0.05, 0.40, 0.05)),
+           top_n = 250,
 
            number_seeds = 10,
-           methods_vector = c('call_connectome' ,
-                              'call_natmi'      ,
-                              'call_italk'      ,
-                              'call_sca'        ,
-                              'cellchat'        ,
-                              'squidpy'),
+           methods_vector = c("call_connectome",
+                              "call_natmi",
+                              "call_sca",
+                              "cellphonedb",
+                              "cellchat",
+                              "cytotalk",
+                              "logfc"),
 
 
            liana_warnings  = "divert",
@@ -266,10 +267,10 @@ wrap_cluster_Iterator <-
   # CR stands for Cluster Reshuffling.
   if (save_results == TRUE) {
 
-    box_plot_png_name <-
+    box_plot_rds_name <-
       clust_auto_file_Name(
         prefix = "Boxplot_CR_",
-        suffix = ".png",
+        suffix = ".rds",
 
         reshuffle_or_subset = reshuffle_or_subset,
         testdata_type       = testdata_type,
@@ -277,10 +278,10 @@ wrap_cluster_Iterator <-
         time_of_run         = time_of_run,
         trial_run           = trial_run)
 
-    line_plot_png_name <-
+    line_plot_rds_name <-
       clust_auto_file_Name(
         prefix = "Lineplot_CR_",
-        suffix = ".png",
+        suffix = ".rds",
 
         reshuffle_or_subset = reshuffle_or_subset,
         testdata_type       = testdata_type,
@@ -292,7 +293,7 @@ wrap_cluster_Iterator <-
       clust_auto_file_Name(
         prefix =
           "analysis/robustness/Outputs/Cluster_Reshuffling/Iterator_Results_CR_",
-        suffix = ".rds",
+        suffix = ".RData",
 
         reshuffle_or_subset = reshuffle_or_subset,
         testdata_type       = testdata_type,
@@ -454,8 +455,8 @@ wrap_cluster_Iterator <-
           time_of_run = time_of_run,
 
           warning_logfile    = warning_logfile,
-          line_plot_png_name = line_plot_png_name,
-          box_plot_png_name  = box_plot_png_name,
+          line_plot_rds_name = line_plot_rds_name,
+          box_plot_rds_name  = box_plot_rds_name,
           iterator_results_save_path = iterator_results_save_path
         )
 
@@ -714,8 +715,8 @@ wrap_cluster_Iterator <-
     time_of_run = time_of_run,
 
     warning_logfile    = warning_logfile,
-    line_plot_png_name = line_plot_png_name,
-    box_plot_png_name  = box_plot_png_name,
+    line_plot_rds_name = line_plot_rds_name,
+    box_plot_rds_name  = box_plot_rds_name,
     iterator_results_save_path = iterator_results_save_path
   )
 
@@ -803,8 +804,8 @@ wrap_cluster_Iterator <-
       plot_line = plot_line,
       iterator_results = iterator_results,
 
-      line_plot_png_name = line_plot_png_name,
-      box_plot_png_name  = box_plot_png_name,
+      line_plot_rds_name = line_plot_rds_name,
+      box_plot_rds_name  = box_plot_rds_name,
       iterator_results_save_path = iterator_results_save_path)
 
   }
