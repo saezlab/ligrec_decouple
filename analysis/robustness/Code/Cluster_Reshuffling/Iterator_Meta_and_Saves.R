@@ -284,9 +284,9 @@
   #' @param warning_logile Where should the warnings be logged? Only necessary
   #' when liana_warnings == "divert"
   #'
-  #' @param line_plot_png_name The save file for the line plot.
+  #' @param line_plot_rds_name The save file for the line plot.
   #'
-  #' @param box_plot_png_name The save file for the box plot.
+  #' @param box_plot_rds_name The save file for the box plot.
   #'
   #' @param iterator_results_save_path The save file for the iterator results.
   #'
@@ -312,8 +312,8 @@
                                        time_of_run,
 
                                        warning_logfile,
-                                       line_plot_png_name,
-                                       box_plot_png_name,
+                                       line_plot_rds_name,
+                                       box_plot_rds_name,
                                        iterator_results_save_path) {
 
     # Summarize the metadata parameters
@@ -338,8 +338,8 @@
       save_files <- save_files %>%
         append(
           list(
-            "line_plot_png_name" = line_plot_png_name,
-            "box_plot_png_name"  = box_plot_png_name,
+            "line_plot_rds_name" = line_plot_rds_name,
+            "box_plot_rds_name"  = box_plot_rds_name,
             "iterator_results_save_path" = iterator_results_save_path
           )
         )
@@ -392,9 +392,9 @@
   #' @param iterator_results Takes the list of results from the iterator, saves
   #' them to a descriptive file name in the outputs folder.
   #'
-  #' @param line_plot_png_name The save file for the line plot.
+  #' @param line_plot_rds_name The save file for the line plot.
   #'
-  #' @param box_plot_png_name The save file for the box plot.
+  #' @param box_plot_rds_name The save file for the box plot.
   #'
   #' @param iterator_results_save_path The save file for the iterator results.
   #'
@@ -406,25 +406,26 @@
                                  plot_line,
                                  iterator_results,
 
-                                 line_plot_png_name,
-                                 box_plot_png_name,
+                                 line_plot_rds_name,
+                                 box_plot_rds_name,
                                  iterator_results_save_path) {
     # Save both plots
-    ggsave(
-      plot = plot_box,
-      box_plot_png_name,
-      height = 7.75,
-      width = 8.00,
-      path = "analysis/robustness/Outputs/Cluster_Reshuffling"
+    saveRDS(
+        object = plot_box,
+        file = str_glue(
+            "analysis/robustness/Outputs/Cluster_Reshuffling/",
+            box_plot_rds_name
+            )
     )
 
-    ggsave(
-      plot = plot_line,
-      line_plot_png_name,
-      height = 9.00,
-      width = 8.00,
-      path = "analysis/robustness/Outputs/Cluster_Reshuffling"
+    saveRDS(
+        object = plot_line,
+        file = str_glue(
+            "analysis/robustness/Outputs/Cluster_Reshuffling/",
+            line_plot_rds_name
+        )
     )
+
 
     # Save R environment and all the results within it
     save(iterator_results, file = iterator_results_save_path)
@@ -434,7 +435,7 @@
     cat(str_wrap(
       str_glue(
         "Box Plot saved at ~/analysis/robustness/Outputs/Cluster_Reshuffling/",
-        box_plot_png_name,
+        box_plot_rds_name,
         "."
       ),
       width = 60
@@ -443,7 +444,7 @@
     cat(str_wrap(
       str_glue(
         "Line Plot saved at ~/analysis/robustness/Outputs/Cluster_Reshuffling/",
-        line_plot_png_name,
+        line_plot_rds_name,
         "."
       ),
       width = 60

@@ -50,8 +50,8 @@
                                  time_of_run,
 
                                  warning_logfile,
-                                 box_plot_png_name,
-                                 line_plot_png_name,
+                                 box_plot_rds_name,
+                                 line_plot_rds_name,
                                  iterator_results_save_path) {
 
     # Summarize the metadata parameters
@@ -93,11 +93,11 @@
     if (save_results == TRUE) {
       # Generate the filepaths data was saved under.
       # RD stands for Resource Dilution.
-      metadata[["box_plot_png_name"]] <-
-        box_plot_png_name
+      metadata[["box_plot_rds_name"]] <-
+        box_plot_rds_name
 
-      metadata[["line_plot_png_name"]] <-
-        line_plot_png_name
+      metadata[["line_plot_rds_name"]] <-
+        line_plot_rds_name
 
       metadata[["iterator_results_save_path"]] <-
         iterator_results_save_path
@@ -138,8 +138,8 @@
   #' @param iterator_results Takes the list of results from the iterator, saves
   #' them to a descriptive file name in the outputs folder.
   #'
-  #' @param box_plot_png_name Name for the boxplot, ending in ".png".
-  #' @param line_plot_png_name Name for the lineplot, ending in ".png".
+  #' @param box_plot_rds_name Name for the boxplot, ending in ".rds".
+  #' @param line_plot_rds_name Name for the lineplot, ending in ".rds".
   #' @param iterator_results_save_path Filepath to save the iterator results
   #' under.
 
@@ -147,26 +147,26 @@
                            plot_line,
                            iterator_results,
 
-                           box_plot_png_name,
-                           line_plot_png_name,
+                           box_plot_rds_name,
+                           line_plot_rds_name,
                            iterator_results_save_path) {
 
 
     # Save both plots
-    ggsave(
-      plot = plot_box,
-      box_plot_png_name,
-      height = 7.75,
-      width = 8.00,
-      path = "analysis/robustness/Outputs/Resource_Dilution"
+    saveRDS(
+       object = plot_box,
+       file = str_glue(
+           "analysis/robustness/Outputs/Resource_Dilution/",
+           box_plot_rds_name
+       )
     )
 
-    ggsave(
-      plot = plot_line,
-      line_plot_png_name,
-      height = 9.00,
-      width = 8.00,
-      path = "analysis/robustness/Outputs/Resource_Dilution"
+    saveRDS(
+        object = plot_line,
+        file = str_glue(
+            "analysis/robustness/Outputs/Resource_Dilution/",
+            line_plot_rds_name
+        )
     )
 
     # Save R environment and all the results within it
@@ -177,10 +177,10 @@
 
     # Let the user know where everything was stored.
     cat(str_wrap(str_glue("Box Plot saved at ~/analysis/robustness/Outputs/Resource_Dilution/",
-                   box_plot_png_name, "."), width = 60), "\n\n")
+                   box_plot_rds_name, "."), width = 60), "\n\n")
 
     cat(str_wrap(str_glue("Line Plot saved at ~/analysis/robustness/Outputs/Resource_Dilution/",
-                   line_plot_png_name, "."), width = 60), "\n\n")
+                   line_plot_rds_name, "."), width = 60), "\n\n")
 
     cat(str_wrap(str_glue("Iterator Results saved at ~/",
                    iterator_results_save_path, "."), width = 60), "\n\n")
