@@ -30,3 +30,76 @@ print_cyto_plot <- function(.eval,
 }
 
 
+#### Purgatory ----
+enrich3 <- function(cont_tab){
+    cont_table <- cont_tab %>%
+        as.data.frame() %>%
+        column_to_rownames("response") %>%
+        t()
+
+    result <- fisher.test(cont_table)
+    tibble(pval = last(result$p.value), odds_ratio = result$estimate)
+}
+
+
+
+xx <- readRDS("data/output/cytosig_out/cytosig_res_independent_mixed.RDS")
+cytolr <- xx$cytosig_res[[1]] %>% unnest(cyto_liana) %>%
+    select(-c(roc, prc, corr))
+
+n_rank = 100
+
+ranks_counted <- cytolr %>%
+    group_by(method_name) %>%
+    mutate(predictor = min_rank(predictor*-1)) %>%
+    group_by(method_name, response) %>%
+    mutate(total = n())  %>%
+    # count in x rank (Alt)
+    filter(predictor <= n_rank) %>%
+    group_by(method_name, response) %>%
+    mutate(top = n()) %>%
+    dplyr::select(method_name, response, total, top) %>%
+    distinct() %>%
+    ungroup()
+
+
+
+# contingency tables for colocalized vs not by method
+cont_tabs <- ranks_counted %>%
+    group_by(method_name) %>%
+    group_nest(.key = "contigency_tables")
+
+# Fischer's exact test on co-localized in top vs total interactions
+fet_results <- cont_tabs %>%
+    # FET
+    mutate(fet_res = contigency_tables %>%
+               map(function(cont_tab){
+                   # handle case where no colocolalized are in top X ranks
+                   if(nrow(cont_tab) == 1){
+                       if(cont_tab %>% pluck("response")==0){
+                           message("Only negative class is present")
+                           tibble(pval=1,
+                                  odds_ratio=-9999)
+                       } else{
+                           stop("Only positive class is present!!!")
+                       }
+                   } else{ # run enrichment
+                       cont_tab %>% enrich3
+                   }
+               })) %>%
+    # unnest fet results
+    dplyr::select(-contigency_tables) %>%
+    unnest(fet_res) %>%
+    # modify results
+    mutate(
+        padj = p.adjust(pval, method = "fdr"),
+        enrichment = ifelse(
+            odds_ratio < 1,
+            -1 / odds_ratio,
+            odds_ratio
+        ) %>% unname
+    ) %>%
+    arrange(desc(enrichment))
+fet_results
+
+

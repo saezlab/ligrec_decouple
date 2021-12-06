@@ -125,7 +125,7 @@ ct_strength <- get_ct_strength(liana_all_spec,
                                pval_thresh = pval_thresh,
                                sca_thresh = sca_thresh,
                                de_thresh = de_thresh)
-get_ct_heatmap(ct_strength, cap_value = 1, main_title="Relative\nStrength")
+print(get_ct_heatmap(ct_strength, cap_value = 1, main_title="Relative\nStrength"))
 
 
 ct_tibble <- ct_strength

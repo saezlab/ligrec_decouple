@@ -369,10 +369,6 @@ plot_cytosig_aucs <- function(.eval,
     roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
     prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
 
-    # roc_max <- max(aucs$roc_auc)
-    # prc_max <- max(aucs$prc_auc)
-    # auc_max <- max(roc_max, prc_max) + 0.1
-
     p <- ggplot(aucs,
                 aes(x=roc_mean,
                     y=prc_mean,
