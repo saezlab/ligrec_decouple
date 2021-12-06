@@ -15,3 +15,7 @@ This code has all the same dependencies as LIANA (mainly [Seurat](https://satija
 1.  **Code**: All the code can be found here, including the the GetData script.
 2.  **Data**: When you run the GetData script input data will be collected and deposited here.
 3.  **Outputs**: This is where scripts will drop their results if they're saving them to the PC.
+
+
+## Steps.
+Obtain the Data via Code/GetData

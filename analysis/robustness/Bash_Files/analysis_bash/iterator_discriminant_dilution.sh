@@ -2,7 +2,7 @@
 #SBATCH	-p single
 #SBATCH -N 1
 #SBATCH --time=48:00:00
-#SBATCH --mem=20000
+#SBATCH --mem=60000
 #SBATCH --job-name="baseline_iterator"
 #SBATCH --output=baseline_iterator.out
 #SBATCH --mail-user=[insert email]
