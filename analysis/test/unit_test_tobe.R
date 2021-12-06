@@ -117,3 +117,74 @@ testrun <- liana_wrap(seurat_object,
                       method = c('italk', 'sca','connectome'),
                       resource = c('OmniPath'))
 saveRDS(testrun, "inst/testdata/output/liana_res.RDS")
+
+
+
+all_binary_dfs <- map(dirs, function(d){
+    readRDS(file.path(comparison_out, d, "binary_df.RDS"))
+}) %>%
+    setNames(dirs)
+
+# Check if all Binary DFs have the same columns (i.e. same comparisons)
+# if they don't fill missing with 0s (e.g. CellChat has no sig hits)
+all_binary_dfs %>%
+    imap(function(.x, .y){
+        if(!setequal(colnames(.x), method_resource_combs)){
+            # Get missing combinations
+            missing_combs <- setdiff(method_resource_combs, colnames(.x))
+            # Notify
+            print(str_glue("Missing comb_res: {paste0(missing_combs)}"))
+            map(missing_combs, function(missing_col){
+                all_binary_dfs[[.y]] <<- all_binary_dfs[[.y]] %>%
+                    mutate( {{missing_col}} := 0)
+            })
+            }
+        })
+
+# Get Jaccard Indeces and format
+all_binary_dfs %<>%
+    setNames(dirs) %>%
+    enframe(name = "dataset_setting",
+            value = "binary") %>%
+    mutate(jaccard_mat = binary %>% map(function(b){
+        get_heatmap_data(b,
+                         sim_dist = "simil",
+                         method = "Jaccard",
+                         diag = TRUE,
+                         upper = TRUE)
+    }))
+
+
+xx[[1]] %>% map(function(missing_col){
+    all_binary_dfs$binary[[1]] <<- all_binary_dfs$binary[[1]] %>%
+        mutate( {{missing_col}} := 0)
+})
+
+
+all_binary_fixed <- all_binary_dfs %>%
+    mutate(jaccard_mat = binary %>% map(function(b){
+        get_heatmap_data(b,
+                         sim_dist = "simil",
+                         method = "Jaccard",
+                         diag = TRUE,
+                         upper = TRUE)
+    }))
+
+
+
+setdiff(method_resource_combs, colnames(all_binary_dfs$jaccard_mat[[1]]))
+
+
+ncol(all_binary_dfs$binary[[1]])
+
+all_binary_dfs$binary[[1]]
+
+all_binary_dfs %>%
+    pmap(function(dataset_setting,
+                  binary){
+        if(setequal(colnames(binary), method_resource_combs)){
+            print(setdiff(colnames(binary), method_resource_combs))
+        }
+    })
+
+colnames(all_binary_dfs$binary[[1]])

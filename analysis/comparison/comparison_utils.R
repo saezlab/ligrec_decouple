@@ -50,7 +50,9 @@ comparison_summary <- function(input_filepath,
     # II) Interaction Relative Strength per Cell Type -----
     message("Interaction Relative Strength")
     ct_strength <- get_ct_strength(liana_all_spec, ...)
-    strength_heat <- get_ct_heatmap(ct_strength, cap_value = cap_value_str)
+    strength_heat <- get_ct_heatmap(ct_strength,
+                                    cap_value = cap_value_str,
+                                    main_title="Relative\nStrength")
     saveRDS(ct_strength, str_glue("{outpath}/cp_strength.RDS"))
     gc()
 
@@ -58,7 +60,8 @@ comparison_summary <- function(input_filepath,
     message("Interaction Frequencies")
     ct_frequncies <- get_ct_frequncies(top_lists[[top_hits_key]],
                                        cap_value = cap_value_freq)
-    freq_heat <- get_ct_heatmap(ct_frequncies)
+    freq_heat <- get_ct_heatmap(ct_frequncies,
+                                main_title="Relative\nFrequency")
     saveRDS(ct_frequncies, str_glue("{outpath}/cp_frequencies.RDS"))
     gc()
 
@@ -127,8 +130,7 @@ comparison_summary <- function(input_filepath,
                 mutate(resource = reso_name)
         }) %>%
         bind_rows() %>%
-        unite(resource_method1, resource_method2, col = "combination") %>%
-        mutate(resource = recode_resources(resource))
+        unite(resource_method1, resource_method2, col = "combination")
     saveRDS(across_methods_ji, str_glue("{outpath}/across_methods_ji.RDS"))
 
     # JI Box
@@ -697,12 +699,17 @@ regularize_scores <- function(liana_scores,
 #'
 #' @return Cell Type Activity Heatmap
 #'
-#' @import pheatmap tidyverse
-#' @inheritDotParams pheatmap::pheatmap
+#' @import ComplexHeatmap tidyverse
+#' @inheritDotParams ComplexHeatmap::Heatmap
 #' @export
 get_ct_heatmap <- function(ct_tibble,
                            cap_value = 1,
+                           main_title,
                            ...){
+
+    ph_data <- ct_tibble %>%
+        column_to_rownames("mr") %>%
+        t()
 
     # annotation groups (sequential vectors as in heatmap_binary_list)
     method_groups <- ct_tibble %>%
@@ -712,6 +719,7 @@ get_ct_heatmap <- function(ct_tibble,
         separate(mr, into = c("method", "resource"), sep = "⊎") %>%
         pull(resource)
 
+
     # data frame with column annotations.
     # with a column for resources and a column for methods
     annotations_df <- data.frame(Resource = resource_groups,
@@ -719,46 +727,76 @@ get_ct_heatmap <- function(ct_tibble,
         mutate(rn = ct_tibble$mr) %>%
         column_to_rownames("rn")
 
+    # data frame with row annotations.
     annotations_row <- data.frame(cell_cat = colnames(ct_tibble)[-1]) %>%
-        separate(cell_cat, sep="\\^", into = c("Cell", "Category"), remove = FALSE) %>%
+        separate(cell_cat, sep="\\^", into = c("Celltype", "Role"), remove = FALSE) %>%
         column_to_rownames("cell_cat") %>%
-        select(Category)
+        select(Role)
 
     # List with colors for each annotation.
     mycolors <- list(Method = colorRampPalette(brewer.pal(8, "Dark2"))(length(unique(method_groups))),
                      Resource = colorRampPalette(brewer.pal(9, "Set1"))(length(unique(resource_groups))),
-                     Category = c("#E41A1C", "#377EB8"))
+                     Role = c("#E41A1C", "#377EB8"))
     names(mycolors$Resource) <- unique(resource_groups)
     names(mycolors$Method) <- unique(method_groups)
-    names(mycolors$Category) <- unique(annotations_row$Category)
+    names(mycolors$Role) <- unique(annotations_row$Role)
 
-    lab_rows <- annotations_row %>%
-        rownames_to_column("cellname") %>%
-        separate(cellname, into = c("cell", "cat"), sep = "_") %>%
-        pull(cell)
 
-    names(ct_tibble)[-1] <- str_to_title(gsub("[\\^].*", "", names(ct_tibble)[-1]))
-    cellfraq_heat <- pheatmap::pheatmap(ct_tibble %>%
-                                            column_to_rownames("mr") %>%
-                                            t(),
-                                        annotation_row = annotations_row,
-                                        annotation_col = annotations_df,
-                                        annotation_colors = mycolors,
-                                        display_numbers = FALSE,
-                                        silent = FALSE,
-                                        show_colnames = FALSE,
-                                        show_rownames = TRUE,
-                                        color = colorRampPalette(c("darkslategray2",
-                                                                   "violetred2"))(20),
-                                        fontsize = 30,
-                                        drop_levels = TRUE,
-                                        cluster_rows = TRUE,
-                                        cluster_cols = TRUE,
-                                        border_color = NA,
-                                        treeheight_row = 0,
-                                        treeheight_col = 100,
-                                        ...
-                                        )
+    # define top_annotation
+    top_ann <- HeatmapAnnotation(df = annotations_df,
+                                 col = list(Resource=mycolors$Resource,
+                                            Method=mycolors$Method),
+                                 simple_anno_size = unit(1.4, "cm"),
+                                 annotation_name_gp = gpar(fontsize = 24),
+                                 show_legend = TRUE,
+                                 annotation_legend_param = list(title_gp = gpar(fontsize = 24,
+                                                                                fontface = "bold"),
+                                                                labels_gp = gpar(fontsize = 23),
+                                                                pch=20))
+
+    # define legend params
+    legend_arg_list <- list(title = main_title, #/Frequency
+                            title_gp = gpar(fontsize = 24,
+                                            fontface = "bold"),
+                            grid_height = unit(60, "mm"),
+                            grid_width = unit(16, "mm"),
+                            legend_height = unit(50, "mm"),
+                            size = unit(16, "mm"),
+                            labels_gp = gpar(fontsize = 23),
+                            pch=32)
+
+    # define row annotation
+    left_ann <- rowAnnotation(df = annotations_row,
+                              col = list(Role=c("source" = "blue", "target" = "orange")),
+                              simple_anno_size = unit(1.4, "cm"),
+                              annotation_name_gp = gpar(fontsize = 24),
+                              show_legend = TRUE,
+                              annotation_legend_param = list(
+                                  title_gp = gpar(fontsize = 24,
+                                                  fontface = "bold"),
+                                  labels_gp = gpar(fontsize = 23),
+                                  pch=20))
+
+    ht <- ComplexHeatmap::Heatmap(
+        ph_data,
+        col=colorRampPalette(c("darkslategray2",
+                               "violetred2"))(10),
+        cluster_rows = FALSE,
+        cluster_columns = TRUE,
+        top_annotation = top_ann,
+        left_annotation = left_ann,
+        heatmap_legend_param = legend_arg_list,
+        column_dend_height = unit(5, "cm"),
+        row_names_gp = gpar(fontsize = 21),
+        row_names_side = "left",
+        row_labels = gsub("\\.", " ", gsub("[\\^].*", "", rownames(ph_data))),
+        show_row_names = TRUE,
+        show_column_names = FALSE,
+        ...
+    )
+    ht
+
+    return(ht)
 }
 
 #' Helper function to get Frequncies of Interactions per Cell Type
@@ -799,6 +837,7 @@ get_ct_frequncies <- function(sig_list,
         enframe(name = "method", value = "results_resource") %>%
         mutate(method = recode_methods(method)) %>%
         unnest(results_resource) %>%
+        mutate(resource = recode_resources(resource)) %>%
         unite(method, resource, col = "mr", sep = "⊎") %>%
         mutate_all(~ replace(., is.na(.), 0))
 }
@@ -903,6 +942,7 @@ get_ct_strength <- function(liana_all_spec,
     }) %>%
         setNames(resources_used) %>%
         enframe(name = "resource") %>%
+        mutate(resource = recode_resources(resource)) %>%
         unnest(value) %>%
         unite(method, resource, sep ="⊎", col = "mr")
 }
@@ -1109,7 +1149,7 @@ comp_summ_plot <- function(pattern,
         labs(shape="Dataset")
 
     # Plots assembled with patchwork (box_name)
-    cairo_pdf(file.path(comparison_out, box_name),
+    cairo_pdf(file.path("figures", box_name),
               height = 24,
               width = 32,
               family = 'DINPro')
@@ -1129,6 +1169,30 @@ comp_summ_plot <- function(pattern,
     all_binary_dfs <- map(dirs, function(d){
         readRDS(file.path(comparison_out, d, "binary_df.RDS"))
     }) %>%
+        setNames(dirs)
+
+    # Check if all Binary DFs have the same columns (i.e. same comparisons)
+    method_resource_combs <- all_binary_dfs %>%
+        map(function(binary_df) colnames(binary_df)) %>%
+        reduce(union)
+
+    # if they don't fill missing with 0s (e.g. CellChat has no sig hits)
+    all_binary_dfs %>%
+        imap(function(.x, .y){
+            if(!setequal(colnames(.x), method_resource_combs)){
+                # Get missing combinations
+                missing_combs <- setdiff(method_resource_combs, colnames(.x))
+                # Notify
+                print(str_glue("Missing comb_res: {paste0(missing_combs)}"))
+                map(missing_combs, function(missing_col){
+                    all_binary_dfs[[.y]] <<- all_binary_dfs[[.y]] %>%
+                        mutate( {{missing_col}} := 0)
+                })
+            }
+        })
+
+    # Get Jaccard Indeces and format
+    all_binary_dfs %<>%
         setNames(dirs) %>%
         enframe(name = "dataset_setting",
                 value = "binary") %>%
@@ -1139,6 +1203,7 @@ comp_summ_plot <- function(pattern,
                              diag = TRUE,
                              upper = TRUE)
         }))
+
 
     # Calculate jaccard index median across datasets
     jaccard_mat_mean <- apply(simplify2array(all_binary_dfs$jaccard_mat),
@@ -1156,7 +1221,7 @@ comp_summ_plot <- function(pattern,
                                           cluster_columns = TRUE)
 
     # Plots assembled with patchwork (box_name)
-    cairo_pdf(file.path(comparison_out, heat_name),
+    cairo_pdf(file.path("figures", heat_name),
               height = 16,
               width = 20,
               family = 'DINPro')
@@ -1212,7 +1277,67 @@ recode_resources <- function(resources){
                   "tnbc_house_n" = "TNBC BRCA",
                   "cbmc_house_n" = "CBMCs",
                   "crc_house_n" = "Colorectal Cancer",
-                  "panc8_house_n" = "Pancreatic Islets"
+                  "panc8_house_n" = "Pancreatic Islets",
+
+                  "er_comp_n" = "ER+ BRCA",
+                  "her2_comp_n" = "HER2+ BRCA",
+                  "tnbc_comp_n" = "TNBC BRCA",
+                  "cbmc_comp_n" = "CBMCs",
+                  "crc_comp_n" = "Colorectal Cancer",
+                  "panc8_comp_n" = "Pancreatic Islets",
+
+                  "er_comp_frac" = "ER+ BRCA",
+                  "her2_comp_frac" = "HER2+ BRCA",
+                  "tnbc_comp_frac" = "TNBC BRCA",
+                  "cbmc_comp_frac" = "CBMCs",
+                  "crc_comp_frac" = "Colorectal Cancer",
+                  "panc8_comp_frac" = "Pancreatic Islets"
 )
 
 
+
+#' Helper Function to load appropriate aggregate settings
+#'
+#' @param setting type of aggregation to be performed (passed from `comp_summarise`)
+#'
+set_aggregation_settings <<- function(setting){
+
+    if(setting=="specs_frac"){
+        .score_specs <<- liana:::.score_specs
+        top_fun <<- "top_frac"
+        top_x <<- 0.01
+        pval_thresh <<- 1
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="specs_n"){
+        .score_specs <<- liana:::.score_specs
+        top_fun <<- "top_n"
+        top_x <<- 1000
+        pval_thresh <<- 1
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="comp_n"){
+        .score_specs <<- .score_comp
+        top_fun <<- "top_n"
+        top_x <<- 1000
+        pval_thresh <<- 0.05
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="comp_frac"){
+        .score_specs <<- .score_comp
+        top_fun <<- "top_frac"
+        top_x <<- 0.01
+        pval_thresh <<- 0.05
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else if(setting=="house_n"){
+        .score_specs <<- liana:::.score_housekeep
+        top_fun <<- "top_n"
+        top_x <<- 1000
+        pval_thresh <<- 1 #!!!
+        sca_thresh <<- 0
+        de_thresh <<- 0.05
+    } else{
+        stop("Setting is wrong!")
+    }
+}

@@ -1,5 +1,5 @@
 # Script used for the ADT-LR, ADT-RNA correlation (~Proteomics benchmark)
-
+#
 # Note that to work this pipeline requires a single {"_seurat.RDS"} object
 # containing a v4 seurat_object with RNA and ADT assays
 # additionally, it requires {"liana_res"}-containing objects which contain the
@@ -45,7 +45,6 @@ list.files(citeseq_dir) %T>%
                                        'call_connectome', 'logfc', 'cellchat',
                                        'call_sca', 'cellphonedb', "cytotalk"
                             ),
-                            squidpy.params=list(seed = as.integer(1004)),
                             expr_prop = 0.1,
                             cellchat.params = list(nboot=1000,
                                                    expr_prop = 0,
@@ -58,8 +57,7 @@ list.files(citeseq_dir) %T>%
                             ),
                             resource = "custom",
                             external_resource = murine_resource,
-                            organism = "mouse",
-
+                            organism = "mouse"
                             )
         } else { # human
             wrap_liana_wrap(subdir = subdir,
@@ -68,7 +66,6 @@ list.files(citeseq_dir) %T>%
                                        'call_connectome', 'logfc', 'cellchat',
                                        'call_sca', 'cellphonedb', "cytotalk"
                             ),
-                            squidpy.params=list(seed = as.integer(1004)),
                             expr_prop = 0.1,
                             cellchat.params = list(nboot=1000,
                                                    expr_prop = 0),

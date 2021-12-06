@@ -1,3 +1,82 @@
+#' Function to run the Cytosig-Agreement Evaluation
+#'
+#' @param .eval how we deal with evaluation
+#' @param score_mode type of scores
+#' @param generate whether to generate the pseudobulk cytosig results (this is done
+#' per seurat object -> no need to generate for each run)
+#'
+#' @details
+#' how we deal with evaluation
+#' `max` - missing interactions imputed as the max rank
+#' `independent` - missing interactions imputed as NAs
+#' (i.e. each method is independent - not the same ground truth universe)
+#' `intersect` - we only consider the intersect (same univerve, i.e. all have the same ground truth)
+#'
+#' types of scoring functions:
+#' `house` = liana:::.score_housekeep
+#' `specs` = liana:::.score_specs
+#' `.score_comp` = specs /w cellchat and cpdb means, filtered by p-val
+cytosig_eval_wrap <- function(.eval,
+                              score_mode,
+                              generate,
+                              path_tibble = NULL,
+                              outpath = "data/output/cytosig_out/"){
+
+    # path_tibble (relative paths to the relevant objects)
+    path_tibble %<>% `%||%`(
+        tibble(dataset = c("ER",
+                           "HER2",
+                           "TNBC"),
+               # BRCA seurat objects used throughout the manuscript
+               seurat_path = c("data/input/spatial/Wu_etal_2021_BRCA/deconv/ER_celltype_minor/ER_celltype_minor_seurat.RDS",
+                               "data/input/spatial/Wu_etal_2021_BRCA/deconv/HER2_celltype_minor/HER2_celltype_minor_seurat.RDS",
+                               "data/input/spatial/Wu_etal_2021_BRCA/deconv/TNBC_celltype_minor/TNBC_celltype_minor_seurat.RDS"
+                               ),
+               # liana results generated from extract_evals.sh
+               liana_path = c(file.path("data/output/aggregates", str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")),
+                              file.path("data/output/aggregates", str_glue("HER2_{.eval}_{score_mode}_liana_res.RDS")),
+                              file.path("data/output/aggregates", str_glue("TNBC_{.eval}_{score_mode}_liana_res.RDS"))
+                              ))
+        )
+
+    # get cytosig
+    cytosig_net <- load_cytosig()
+
+    # Run Cytosig Evaluation
+    cytosig_eval <- path_tibble %>%
+        mutate(cytosig_res =
+                   pmap(path_tibble,
+                        function(dataset, seurat_path, liana_path){
+                            # Load Seurat Object
+                            message(str_glue("Now running: {dataset}"))
+
+                            seurat_object <- readRDS(seurat_path)
+                            print(seurat_object)
+
+                            # read liana
+                            liana_res <- readRDS(liana_path)
+
+                            # Run Cytosig Evaluation
+                            cyto_res <- run_cytosig_eval(seurat_object = seurat_object,
+                                                         liana_res = liana_res,
+                                                         cytosig_net = cytosig_net,
+                                                         z_scale = FALSE,
+                                                         expr_prop = 0.1,
+                                                         assay = "RNA",
+                                                         sum_count_thresh = 5,
+                                                         NES_thresh = 1.645,
+                                                         subtype = dataset,
+                                                         generate = generate) #!
+                            gc()
+                            return(cyto_res)
+                        }))
+    saveRDS(cytosig_eval,
+            file.path(outpath,
+                      str_glue("cytosig_res_{.eval}_{score_mode}.RDS")))
+
+}
+
+
 #' Pipeline Function to build eval curves on cytokine activity as ground truth
 #'
 #' @param seurat_object Seurat object with celltypes
@@ -8,7 +87,7 @@
 #' @param assay Assay to consider
 #' @param sum_count_thresh minimum (summed) counts per gene
 #' @param NES_thresh NES threshold to be considered as ground truth
-#'
+#' @param generate whether to generate the pseudobulk cytosig results
 #'
 #'  @return a tibble with nested roc, prc, and corr for each method
 run_cytosig_eval <- function(seurat_object,
@@ -22,9 +101,6 @@ run_cytosig_eval <- function(seurat_object,
                              subtype,
                              generate = TRUE){
 
-    # aggregate liana
-    # liana_res <- liana_res %>% liana_aggregate()
-
     # get pseudobulk and filter
     if(generate){
         pseudo <- get_pseudobulk(seurat_object,
@@ -37,7 +113,7 @@ run_cytosig_eval <- function(seurat_object,
         pseudo_cytosig <- pseudo %>%
             mutate(cytosig_res = logcounts %>%
                        map(function(logc){
-                           run_viper(
+                           run_wmean(
                                logc,
                                cytosig_net,
                                .source = "cytokine",
@@ -56,10 +132,14 @@ run_cytosig_eval <- function(seurat_object,
                                       NES=score,
                                       p_value)
                        }))
-        saveRDS(pseudo_cytosig, str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
+
+        pseudo_cytosig %>%
+            select(celltype, cytosig_res) %>%
+            saveRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
 
     } else{
-        pseudo_cytosig <- readRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
+        pseudo_cytosig <-
+            readRDS(str_glue("data/output/cytosig_out/BRCA_{subtype}_cytosig.RDS"))
 
     }
 
@@ -84,7 +164,6 @@ run_cytosig_eval <- function(seurat_object,
 
     # cytosig results format
     cytosig_res <- pseudo_cytosig %>%
-        select(celltype, cytosig_res) %>%
         unnest(cytosig_res) %>%
         left_join(alias_tib, by = "cytokine") %>%
         mutate(aliases = if_else(is.na(aliases),
@@ -118,6 +197,7 @@ run_cytosig_eval <- function(seurat_object,
                                   1,
                                   0)) %>%
         mutate(response = factor(response, levels = c(1, 0))) # first level is the truth
+    print(cytosig_eval %>% arrange(NES))
 
     message("Calculating AUCs")
     # ROC and Correlations
@@ -245,6 +325,74 @@ load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_ce
         ungroup()
 
     return(cytosig_net)
+}
+
+
+
+#' Helper function to generate CytoSig plot
+#' @param .eval eval type (independent, max, intersect)
+#' @param score_mode mixed, specs, house
+#' @param inputpath path to cytosig results / output of `cytosig_eval_wrap`
+#'
+#' @returns a ggplot2 object
+#'
+plot_cytosig_aucs <- function(.eval,
+                              score_mode,
+                              inputpath = NULL){
+
+    inputpath %<>% `%||%`(
+        file.path("data", "output", "cytosig_out",
+                  str_glue("cytosig_res_{.eval}_{score_mode}.RDS"))
+    )
+
+    # Read results
+    cytosig_eval <- readRDS(inputpath) %>%
+        select(dataset, cytosig_res) %>%
+        unnest(cytosig_res)
+
+    aucs <- cytosig_eval %>%
+        select(-c(cyto_liana, corr)) %>%
+        unnest(prc) %>%
+        select(dataset, method_name, roc, prc_auc = auc) %>%
+        distinct() %>%
+        unnest(roc) %>%
+        select(dataset, method_name, roc_auc = auc, prc_auc) %>%
+        distinct() %>%
+        group_by(method_name) %>%
+        mutate(roc_mean = mean(roc_auc),
+               prc_mean = mean(prc_auc)) %>%
+        ungroup() %>%
+        mutate(method_name = gsub("\\..*","", method_name)) %>%
+        mutate(method_name = recode_methods(method_name))
+
+
+    roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
+    prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
+
+    p <- ggplot(aucs,
+                aes(x=roc_mean,
+                    y=prc_mean,
+                    color=method_name)) +
+        geom_point(shape = 9, size = 12, alpha=1) +
+        geom_point(aes(x = roc_auc,
+                       y = prc_auc,
+                       shape=dataset),
+                   size = 6,
+                   alpha = 0.3) +
+        theme(text = element_text(size=16)) +
+        xlab('AUROC') +
+        ylab('AUPRC') +
+        xlim(roc_min, 1) +
+        ylim(prc_min, 1) +
+        geom_hline(yintercept = 0.5, colour = "pink",
+                   linetype = 2, size = 1.2) +
+        geom_vline(xintercept = 0.5, colour = "pink",
+                   linetype = 2, size = 1.2) +
+        theme_bw(base_size = 30) +
+        guides(shape=guide_legend(title="Dataset"),
+               color=guide_legend(title="Method"))
+
+    return(p)
 }
 
 

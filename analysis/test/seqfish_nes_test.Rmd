@@ -57,7 +57,6 @@ def get_adata_nes(adata, cluster_key, spatial_key = "spatial", **kwargs):
 adata = sq.datasets.seqfish()
 seq_adata_nes = get_adata_nes(adata, cluster_key="celltype_mapped_refined", method="ward")
 
-
 # https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_seqfish.html#sphx-glr-auto-tutorials-tutorial-seqfish-py
 adata = sq.datasets.seqfish()
 sq.gr.spatial_neighbors(adata, coord_type="generic")
@@ -110,6 +109,8 @@ saveRDS(nes, "data/input/spatial/fishes/seqFISH_nes.RDS")
 require(liana)
 require(tidyverse)
 require(magrittr)
+
+seurat_object <- readRDS("data/input/spatial/fishes/seqFISH_seurat.RDS")
 
 op_resource <- readRDS("data/input/murine_omnipath.RDS")
 liana_res <- liana_wrap(seurat_object,

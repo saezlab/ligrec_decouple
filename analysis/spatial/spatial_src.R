@@ -1,3 +1,50 @@
+
+#' Get LR co-localized
+#'
+#' @param liana_agg_path point to aggregated liana
+#' @param spatial_corr_path point to condition co-loc output
+#' @param condition name of the condition
+#' @param corr_thresh correlation threshold
+#' @param n_ranks vector of ranks
+#'
+#' @return `get_fet_boxplot_data` output
+get_lr_colocalized <- function(liana_agg_path,
+                               spatial_corr_path,
+                               condition,
+                               corr_thresh = 1.645,
+                               n_ranks = c(100, 250, 500, 1000,
+                                           2500, 5000, 10000)
+                               ){
+    # LIANA and Format
+    # Colocalized or not
+    spatial_correlations <- readRDS(spatial_corr_path)
+
+    # Load Liana
+    liana_format <- readRDS(liana_agg_path) %>%
+        liana_agg_to_long()
+    # Bind to LIANA
+    liana_loc <- liana_format %>%
+        left_join(spatial_correlations, by = c("source"="celltype1",
+                                               "target"="celltype2")) %>%
+        # FILTER AUTOCRINE
+        filter(source!=target) %>%
+        ungroup()
+    lr_loc <- liana_loc %>%
+        dplyr::mutate(
+            localisation = case_when(estimate >= corr_thresh ~ "colocalized",
+                                     estimate < corr_thresh ~ "not_colocalized")
+        ) %>%
+        mutate(dataset = condition) %>%
+        na.omit()
+
+    print(lr_loc %>% check_coloc())
+    lr_loc %>%
+        get_fet_boxplot_data(., n_ranks = n_ranks) %>%
+        ungroup()
+}
+
+
+
 #' Function to reshape estimate to long format
 #' @param estimate_mat diagonal df/matrix with colocalisation estimates
 #' @param z_scale whether to z-tranform the estimate column
@@ -68,6 +115,8 @@ run_coloc_fet <- function(liana_loc, n_rank){
                                message("Only NOT colocalized are present")
                                tibble(pval=1,
                                       odds_ratio=-9999)
+                           } else{
+                               stop("Only positive class is present!!!")
                            }
                        } else{ # run enrichment
                            cont_tab %>% enrich3
@@ -173,25 +222,33 @@ get_fet_boxplot_data <- function(lr_coloc, n_ranks){
 #' > Aggregated Ranks    2.17e- 9  9.21  5.07e- 9   9.21       50  Cortex Anterior 1
 #' @returns a ggplot odds-ratio boxplot across methods and datasets
 get_spatial_boxplot <- function(boxplot_data){
+
+    if(length(unique(boxplot_data$dataset)) > 3){
+       box_or_not <- geom_boxplot(alpha = 0.15,
+                     outlier.size = 1.5,
+                     width = 0.2,
+                     show.legend = FALSE)
+    } else{
+        box_or_not <- NULL
+    }
+
     # plot Enrichment of colocalized in top vs total
     boxplot <- ggplot(boxplot_data,
                       aes(x = n_rank, y = odds_ratio,
-                          color = method_name)) +
-        geom_boxplot(alpha = 0.15,
-                     outlier.size = 1.5,
-                     width = 0.2,
-                     show.legend = FALSE)  +
-        geom_jitter(aes(shape = dataset), width = 0) +
+                          color = dataset)) +
+        box_or_not +
+        geom_point(aes(shape = dataset), size = 5, alpha = 0.9) +
         facet_grid(~method_name, scales='free_x', space='free', switch="x") +
         theme_bw(base_size = 24) +
         geom_hline(yintercept = 1, colour = "pink",
                    linetype = 2, size = 1.5) +
         theme(strip.text.x = element_text(angle = 90),
-              axis.text.x = element_text(angle = 45, hjust=1)
+              axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.5)
         ) +
         labs(shape=guide_legend(title="Dataset")) +
         ylab("Odds Ratio") +
-        xlab("#Ranks Considered")
+        xlab("#Ranks Considered") +
+        guides(color = "none")
 
     return(boxplot)
 }

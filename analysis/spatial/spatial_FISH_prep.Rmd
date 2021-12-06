@@ -82,6 +82,7 @@ adata_to_seurat <- function(adata){
 # seqFISH
 # https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_seqfish.html#sphx-glr-auto-tutorials-tutorial-seqfish-py
 adata = sq.datasets.seqfish()
+adata = adata[adata.obs["celltype_mapped_refined"]!='Low quality']
 seq_adata_nes = get_adata_nes(adata, cluster_key="celltype_mapped_refined", method="ward")
 ```
 
@@ -94,7 +95,7 @@ seq_seurat <- adata_to_seurat(py$seq_adata_nes$adata)
 # format meta and remove low quality cells
 seq_seurat@meta.data %<>% 
     filter(celltype_mapped_refined!="Low quality") %>%
-    mutate(celltype_mapped_refined = str_replace(celltype_mapped_refined, "/", " ")) %>%
+    mutate(celltype_mapped_refined = gsub("[/]", ".", celltype_mapped_refined)) %>%
     mutate(seurat_clusters = 
                as.factor(str_replace_all(celltype_mapped_refined,
                                          " ", "\\."))) 
@@ -124,6 +125,7 @@ saveRDS(nes, "data/input/spatial/fishes/seqFISH_nes.RDS")
 # merFISH
 # https://squidpy.readthedocs.io/en/stable/auto_tutorials/tutorial_merfish.html#sphx-glr-auto-tutorials-tutorial-merfish-py
 adata = sq.datasets.merfish()
+adata = adata[adata.obs["Cell_class"]!='Ambiguous']
 mer_adata_nes = get_adata_nes(adata, cluster_key="Cell_class", spatial_key="spatial3d", method="single", cmap="inferno", vmin=-50, vmax=100)
 ```
 
@@ -154,7 +156,7 @@ saveRDS(mer_seurat, "data/input/spatial/fishes/merFISH_seurat.RDS")
 
 # get and save UNFORMATTED NES results (clusters to be rename and filtered)
 nes <- py$mer_adata_nes$nes %>%
-        py_to_r() 
+        py_to_r()
 
 saveRDS(nes, "data/input/spatial/fishes/merFISH_nes.RDS")
 ```
