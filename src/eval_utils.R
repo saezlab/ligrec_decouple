@@ -401,8 +401,6 @@ liana_aggregate_enh <- function(liana_res,
             ungroup()
     }
 
-
-
     return(liana_res)
 }
 

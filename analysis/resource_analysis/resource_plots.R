@@ -5,7 +5,6 @@ require(magrittr)
 require(proxy)
 require(viridis)
 require(RCurl)
-require(UpSetR)
 require(liana)
 require(shadowtext)
 require(logger)
@@ -34,10 +33,6 @@ descript <- readRDS("data/output/descript.RDS")
 .resource_env <- descript
 xtemp <- patchwork_resources()
 
-
-
-
-
 # Assemble Main Figure 2 ----
 path <- figure_path("Main_Fig2.pdf")
 pp <- patchwork::wrap_plots(list(
@@ -61,8 +56,6 @@ cairo_pdf(filename = path,
 print(pp)
 dev.off()
 
-
-
 # Assemble Main Fig. 3 ----
 cust_theme <- theme(text = element_text(size = 13))
 
@@ -78,7 +71,7 @@ pp3 <- patchwork::wrap_plots(
         ),
     ncol=2, nrow(2)
     ) +
-    plot_annotation(tag_levels = 'A'), tag_suffix = ')') &
+    plot_annotation(tag_levels = 'A', tag_suffix = ')') &
     theme(plot.tag = element_text(face = 'bold', size = 18))
 
 cairo_pdf(filename = path,

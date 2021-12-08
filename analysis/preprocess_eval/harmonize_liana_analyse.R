@@ -84,3 +84,18 @@ coloc_tibble %<>%
     bind_rows()
 saveRDS(coloc_tibble,"data/output/eval_harmonize/harmonize_lr_coloc.RDS")
 
+
+# 3) Harmonized Plot ----
+cytosig_harmonize_data <- get_cytosig_fets(
+    inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS"
+)
+cytosig_harmonize <- cytosig_harmonize_data %>%
+    get_eval_boxplot(eval_type = "cytosig")
+space_harmonize <- readRDS("data/output/eval_harmonize/harmonize_lr_coloc.RDS") %>%
+    get_eval_boxplot(eval_type = "space")
+
+path <- file.path("figures",
+                  "SuppFigure21_Harmonize_CytoSpace.RDS")
+cyto_space_patch(cytosig_harmonize,
+                 space_harmonize,
+                 path)
