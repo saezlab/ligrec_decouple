@@ -273,7 +273,8 @@ recode_methods <- function(methods){
                 "squidpy" = "CellPhoneDB",
                 "cellphonedb" = "CellPhoneDB",
                 "cellchat" = "CellChat",
-                "aggregate_rank" = "Aggregated Ranks",
+                "aggregate_rank" = "Consensus*",
+                "Aggregated Ranks" = "Consensus*",
                 "logfc" = "LogFC Mean",
                 "cytotalk" = "Crosstalk scores",
 
@@ -293,3 +294,49 @@ recode_methods <- function(methods){
                 "RNA-ADT" = "RNA-ADT Baseline"
   )
 }
+
+
+
+#' Recode colours for Eval figs
+recode_colours <- function(colours){
+  dplyr::recode(colours %>% sort(),
+                "ER+ BRCA" = "#FFA44FFA",
+                "TNBC" = "#7264B9",
+                "HER2+ BRCA" =  "#DEDA00",
+                "Brain Cortex" = "#1B9E77",
+                "seqFISH" = "#73477A",
+                "merFISH" = "#BD6A40"
+  )
+}
+
+#' @title Recode dataset names
+#' @param dataset - vector /w dataset names
+recode_datasets <- function(datasets){
+  dplyr::recode(datasets,
+                # CITE-Seq
+                "10k_malt" = "10kMALT",
+                "10k_pbmcs" = "10kPBMCs",
+                "5k_pbmcs" = "5kPBMCs ",
+                "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
+                "cmbcs" = "3kCBMCs",
+                "spleen_lymph_101" = "SLN111",
+                "spleen_lymph_206" = "SLN208",
+
+                # Mouse Brain Cortex visium
+                "anterior1" = "Cortex Anterior 1",
+                "anterior2" = "Cortex Anterior 2",
+                "posterior1" = "Cortex Posterior 1",
+                "posterior2" = "Cortex Posterior 2",
+
+                "1142243F" = "TNBC1 (1142243F)",
+                "1160920F" = "TNBC2 (1160920F)",
+                "CID4290" = "ER1 (CID4290)",
+                "CID4465" = "TNBC3 (CID4465)",
+                "CID4535" = "ER2 (CID4535)",
+                "CID44971" = "TNBC4 (CID44971)",
+                "ER" = "ER+ BRCA",
+                "TNBC" = "TNBC",
+                "HER2" = "HER2+ BRCA"
+  )
+}
+

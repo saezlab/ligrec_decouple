@@ -1953,8 +1953,11 @@ cairo_pdf_enh <- function(filename,
 #' use to save every resource plot. Then this function converts it into a list
 #' and compiles all supp. figs.
 patchwork_resources <- function(){
-    # convert env to tibble
-    resource_env <- as.list(.resource_env)
+    # convert env to tibble and filter geneset figures
+    resource_env <- as.list(.resource_env) %>%
+        enframe(name = "plotname") %>%
+        filter(!str_detect(plotname, "geneset")) %>%
+        deframe()
     resource_outs <- tibble(s_name = resource_env %>% names,
                             plot = resource_env %>% unname) %>%
         arrange(s_name)
@@ -1984,6 +1987,9 @@ patchwork_resources <- function(){
     i <<- 0
     # Letters for Subfigs
     subi <- 0
+    # reset complete fig
+    subfigs_complete <- map(dbs, function(db) list()) %>%
+        setNames(dbs)
 
     map(ptypes, function(plot_type){
         message(str_glue("Now compiling: {plot_type}"))
@@ -2024,11 +2030,11 @@ patchwork_resources <- function(){
 
             tag.levels <-
                 if(plot_type=="enrich_heatmap"){
-                    LETTERS[1:4]
+                    LETTERS[1:3]
                     } else if(plot_type=="classes_perc"){
-                        LETTERS[5:8]
+                        LETTERS[4:6]
                         } else if(plot_type=="classes_enrich"){
-                            LETTERS[9:12]
+                            LETTERS[7:9]
                         }
             print(tag.levels)
 
@@ -2046,10 +2052,15 @@ patchwork_resources <- function(){
                     filter(str_detect(s_name, db)) %>%
                     pluck("plot")
 
-                # patchwork
+                # append to large fig
+                subfigs_complete[[db]] <<- append(subfigs_complete[[db]],
+                                                  resource_outs_filt_plots)
+
+
+                # patchwork by fig
                 pp <- patchwork::wrap_plots(resource_outs_filt_plots,
                                             ncol=2,
-                                            nrow(3)) +
+                                            nrow(2)) +
                     plot_annotation(tag_levels = list(tag.levels),
                                     tag_suffix = ')') &
                     theme(plot.tag = element_text(face = 'bold',
@@ -2064,6 +2075,32 @@ patchwork_resources <- function(){
             })
         }
     })
+
+    num = 2
+    # Compile SubFigures
+    imap(subfigs_complete, function(x, i){
+        num <<- num+1
+        # patchwork by fig
+        pp <- patchwork::wrap_plots(x,
+                                    ncol=2,
+                                    nrow(5)) +
+            plot_annotation(tag_levels = 'A',
+                            tag_suffix = ')') &
+            theme(plot.tag = element_text(face = 'bold',
+                                          size = 16))
+        path <- figure_path(
+            'SuppFig_%s_%s.pdf',
+            num, i,
+            outdir = "figures/assembled")
+
+        # to pdf
+        cairo_pdf(filename = path,
+                  width = 14,
+                  height = 18)
+        print(pp)
+        dev.off()
+    })
+
 
     return(resource_env)
 }

@@ -186,6 +186,11 @@ enrich3 <- function(cont_tab, response = "localisation"){
 #' @returns a ggplot odds-ratio boxplot across methods and datasets
 get_eval_boxplot <- function(boxplot_data, eval_type = NULL){
 
+    # Make sure all are consistent
+    boxplot_data %<>%
+        mutate(method_name = recode_methods(method_name)) %>%
+        mutate(dataset = recode_datasets(dataset))
+
     if(length(unique(boxplot_data$dataset)) > 3){
         box_or_not <- geom_boxplot(alpha = 0.15,
                                    outlier.size = 1.5,
@@ -228,47 +233,6 @@ get_eval_boxplot <- function(boxplot_data, eval_type = NULL){
         xlab("Ranked Interactions Range") +
         guides(shape = "none")
     boxplot
-}
-
-#' Recode colours for Eval figs
-recode_colours <- function(colours){
-    dplyr::recode(colours %>% sort(),
-                  "ER+ BRCA" = "#FFA44FFA",
-                  "TNBC" = "#7264B9",
-                  "HER2+ BRCA" =  "#DEDA00",
-                  "Brain Cortex" = "#1B9E77"
-    )
-}
-
-#' @title Recode dataset names
-#' @param dataset - vector /w dataset names
-recode_datasets <- function(datasets){
-    dplyr::recode(datasets,
-                  # CITE-Seq
-                  "10k_malt" = "10kMALT",
-                  "10k_pbmcs" = "10kPBMCs",
-                  "5k_pbmcs" = "5kPBMCs ",
-                  "5k_pbmcs_nextgem" = "5kPBMCs (nextgem)",
-                  "cmbcs" = "3kCBMCs",
-                  "spleen_lymph_101" = "SLN111",
-                  "spleen_lymph_206" = "SLN208",
-
-                  # Mouse Brain Cortex visium
-                  "anterior1" = "Cortex Anterior 1",
-                  "anterior2" = "Cortex Anterior 2",
-                  "posterior1" = "Cortex Posterior 1",
-                  "posterior2" = "Cortex Posterior 2",
-
-                  "1142243F" = "TNBC1 (1142243F)",
-                  "1160920F" = "TNBC2 (1160920F)",
-                  "CID4290" = "ER1 (CID4290)",
-                  "CID4465" = "TNBC3 (CID4465)",
-                  "CID4535" = "ER2 (CID4535)",
-                  "CID44971" = "TNBC4 (CID44971)",
-                  "ER" = "ER+ BRCA",
-                  "TNBC" = "TNBC",
-                  "HER2" = "HER2+ BRCA"
-                  )
 }
 
 

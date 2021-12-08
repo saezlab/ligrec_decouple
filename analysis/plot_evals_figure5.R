@@ -43,23 +43,28 @@ cyto_space_patch(cytosig_mixed,
                  space_mixed,
                  path)
 
-
-# Specificities Method specifics
-space_specs <- readRDS("data/output/spatial_out/all_fets_specs.RDS") %>%
-    get_spatial_boxplot()
-cytosig_specs <- plot_cytosig_aucs(.eval = "independent", score_mode = "specs")
-
-path <- file.path("figures",
-                  "SuppFigure20_Evals_Specific.RDS")
-cyto_space_patch(space_specs,
-                 cytosig_specs,
-                 path)
-
-
+#
+# # Specificities Method specifics
+# space_specs <- readRDS("data/output/spatial_out/all_fets_specs.RDS") %>%
+#     get_spatial_boxplot()
+# cytosig_specs <- plot_cytosig_aucs(.eval = "independent", score_mode = "specs")
+#
+# path <- file.path("figures",
+#                   "SuppFigure20_Evals_Specific.RDS")
+# cyto_space_patch(space_specs,
+#                  cytosig_specs,
+#                  path)
+#
+#
 # Harmonized Plot
-cytosig_harmonize <- plot_cytosig_aucs(inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS")
+cytosig_harmonize_data <- get_cytosig_fets(
+    inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS"
+    )
+cytosig_harmonize <- cytosig_harmonize_data %>%
+    get_eval_boxplot(eval_type = "cytosig")
 space_harmonize <- readRDS("data/output/eval_harmonize/harmonize_lr_coloc.RDS") %>%
-    get_spatial_boxplot()
+    get_eval_boxplot(eval_type = "space")
+
 path <- file.path("figures",
                   "SuppFigure21_Harmonize_CytoSpace.RDS")
 cyto_space_patch(cytosig_harmonize,

@@ -30,8 +30,7 @@ print_cyto_plot <- function(.eval,
 }
 
 # Test FET plots
-fet_data <- get_cytosig_fets(.eval = "independent",
-                             score_mode = "mixed")
+fet_data <- get_cytosig_fets(inputpath = "data/output/eval_harmonize/cytosig_res_independent_comp.RDS")
 fet_data %>%
     mutate(dataset = recode_datasets(dataset))
 

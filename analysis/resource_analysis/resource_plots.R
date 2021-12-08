@@ -27,9 +27,10 @@ ligrec <- readRDS("data/input/ligrec.RDS")
 descript <- descriptive_plots(ligrec)
 saveRDS(descript, "data/output/descript.RDS")
 
-
-# Purgatory ----
+# Save Plots
 descript <- readRDS("data/output/descript.RDS")
+
+# Reproduce Compiled Plots
 .resource_env <- descript
 xtemp <- patchwork_resources()
 

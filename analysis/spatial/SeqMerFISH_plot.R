@@ -11,9 +11,10 @@ source("src/plot_utils.R")
 
 ### Mer/Seq Supp. Fig
 ### Seq/MerFISH
-n_ranks <- c(25, 50, 100,
+n_ranks <- c(50, 100,
              250, 500,
-             2500)
+             1000, 2500,
+             5000)
 
 
 seqfish_lr_coloc <- readRDS("data/output/spatial_out/fish/fish_lrcoloc.RDS") %>%
@@ -28,7 +29,7 @@ seqfish_lr_coloc %>%
 # 2) FET boxplot
 p <- seqfish_lr_coloc %>%
     get_fet_boxplot_data(., n_ranks = n_ranks) %>%
-    get_spatial_boxplot()
+    get_eval_boxplot(eval_type = "space")
 
 
 # Print Supp Fig
