@@ -1044,7 +1044,8 @@ jacc_all_boxplot  <- function(jacc_tibb,
 comp_summ_plot <- function(pattern,
                            comparison_out,
                            box_name,
-                           heat_name){
+                           heat_name,
+                           only_simple_box = FALSE){
     # Load Jaccard Index Across Resources using the same Method
     dirs <- list.files(comparison_out,
                        pattern=pattern)
@@ -1147,6 +1148,11 @@ comp_summ_plot <- function(pattern,
         xlab("") +
         ylim(0, 1) +
         labs(shape="Dataset")
+
+    if(only_simple_box){
+        return(simple_box)
+    }
+
 
     # Plots assembled with patchwork (box_name)
     cairo_pdf(file.path("figures", box_name),

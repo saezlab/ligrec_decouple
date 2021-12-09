@@ -11,6 +11,7 @@ require(logger)
 require(rlang)
 library(patchwork)
 library(ggplotify)
+require(UpSetR)
 
 # Source required functions
 source("src/plot_utils.R")

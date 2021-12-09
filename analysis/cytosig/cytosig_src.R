@@ -113,20 +113,15 @@ run_cytosig_eval <- function(seurat_object,
         pseudo_cytosig <- pseudo %>%
             mutate(cytosig_res = logcounts %>%
                        map(function(logc){
-                           run_wmean(
+                           run_mlm(
                                logc,
                                cytosig_net,
                                .source = "cytokine",
                                .target = "target",
                                .mor = "mor",
                                .likelihood = "weight",
-                               times = 1000,
-                               seed = 1234,
-                               sparse = TRUE,
-                               randomize_type = "cols_independently"
-                               ) %>%
-                               # keep only norm weighted mean
-                               filter(statistic == "norm_wmean") %>%
+                               sparse = FALSE
+                           ) %>%
                                # rename
                                select(cytokine=source,
                                       NES=score,
@@ -299,7 +294,8 @@ get_pseudobulk <- function(seurat_object,
 #'
 #' @details reads cytosig matrix and converts it to long tibble in decoupleR
 #' network format
-load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_centroid.csv"){
+load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_centroid.csv",
+                         n_gene = 500){
     ## read CytoSig
     # models/signatures were obtained from https://github.com/data2intelligence/CytoSig/tree/master/CytoSig
     cyto_signatures <- read.table(cytosig_path,
@@ -315,9 +311,9 @@ load_cytosig <- function(cytosig_path = "data/input/cytosig/cytosig_signature_ce
                      values_to = "weight") %>%
         # keep top 500 genes per cytokine
         group_by(cytokine) %>%
-        slice_max(n=500, order_by = abs(weight)) %>%
+        slice_max(n=n_gene, order_by = abs(weight)) %>%
         select(cytokine, target, weight) %>%
-        mutate(mor = if_else(weight>0, 1, -1)) %>%
+        mutate(mor = if_else(weight>=0, 1, -1)) %>%
         mutate(weight = abs(weight)) %>%
         mutate(cytokine = if_else(cytokine=="A",
                                   "Activin_A",

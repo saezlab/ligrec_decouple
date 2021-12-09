@@ -1,7 +1,6 @@
 # Script to Re-do the Cytosig and Visium-Spatial evaluations
 # with harmonized filtering
 
-
 # load required libraries
 require(magrittr)
 require(tidyverse)
