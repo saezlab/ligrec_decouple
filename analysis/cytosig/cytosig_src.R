@@ -64,7 +64,7 @@ cytosig_eval_wrap <- function(.eval,
                                                          expr_prop = 0.1,
                                                          assay = "RNA",
                                                          sum_count_thresh = 5,
-                                                         NES_thresh = 1.645,
+                                                         NES_thresh = 0,
                                                          subtype = dataset,
                                                          generate = generate) #!
                             gc()
