@@ -19,7 +19,7 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 # Unchanged variables:
-.eval = c("independent", "max")
+.eval = c("max", "independent")
 correlation <- TRUE
 
 # Different settings to use
@@ -131,6 +131,6 @@ pmap(combinations, function(.eval, .setting){
             setNames(list.files(citeseq_dir)) %>%
             enframe(name = "dataset") %>%
             unnest(value)
-        saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations_{.setting}_{.eval}.RDS")
+        saveRDS(corr_table, str_glue("data/output/citeseq_out/citeseq_correlations_{.setting}_{.eval}.RDS"))
         }
     })

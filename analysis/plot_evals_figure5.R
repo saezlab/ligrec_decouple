@@ -11,12 +11,16 @@ source("analysis/spatial/spatial_src.R")
 
 # Mixed/Comp Method specifics
 cytosig_mixed_data <- get_cytosig_fets(.eval = "independent",
-                                       score_mode = "mixed")
+                                       score_mode = "mixed") %>%
+    filter(dataset!="ER+ Breast Cancer")
 cytosig_mixed <- cytosig_mixed_data %>%
     get_eval_boxplot(eval_type = "cytosig")
 #plot
 space_mixed <- readRDS("data/output/spatial_out/all_fets_mixed.RDS") %>%
+    filter(dataset!="ER+ BRCA") %>%
     get_eval_boxplot(eval_type="space")
+
+
 path <- file.path("figures",
                   "Figure5_Evals_Composite.RDS")
 cyto_space_patch(cytosig_mixed,

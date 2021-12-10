@@ -300,9 +300,9 @@ recode_methods <- function(methods){
 #' Recode colours for Eval figs
 recode_colours <- function(colours){
   dplyr::recode(colours %>% sort(),
-                "ER+ BRCA" = "#FFA44FFA",
-                "TNBC" = "#7264B9",
-                "HER2+ BRCA" =  "#DEDA00",
+                "ER+ Breast Cancer" = "#FFA44FFA",
+                "Triple N. Breast Cancer" = "#7264B9",
+                "HER2+ Breast Cancer" =  "#DEDA00",
                 "Brain Cortex" = "#1B9E77",
                 "seqFISH" = "#73477A",
                 "merFISH" = "#BD6A40"
@@ -334,9 +334,12 @@ recode_datasets <- function(datasets){
                 "CID4465" = "TNBC3 (CID4465)",
                 "CID4535" = "ER2 (CID4535)",
                 "CID44971" = "TNBC4 (CID44971)",
-                "ER" = "ER+ BRCA",
-                "TNBC" = "TNBC",
-                "HER2" = "HER2+ BRCA"
+                "ER" = "ER+ Breast Cancer",
+                "ER+ BRCA" = "ER+ Breast Cancer",
+                "TNBC BRCA" = "Triple N. Breast Cancer",
+                "TNBC" = "Triple N. Breast Cancer",
+                "HER2" = "HER2+ Breast Cancer",
+                "HER2+ BRCA" = "HER2+ Breast Cancer"
   )
 }
 

@@ -1125,7 +1125,7 @@ comp_summ_plot <- function(pattern,
                                                   "Different\nResources"
                                                   )))
 
-    # Simpler Boxplot (A)
+    # Simpler Boxplot
     simple_box <- ggplot(simple_box_data,
                          aes(x = entity,
                              y = med_jacc,
@@ -1261,38 +1261,38 @@ recode_resources <- function(resources){
     )
 }
 
-.dataset_keys = c("er_specs_n" = "ER+ BRCA",
-                  "her2_specs_n" = "HER2+ BRCA",
-                  "tnbc_specs_n" = "TNBC BRCA",
-                  "cbmc_specs_n" = "CBMCs",
+.dataset_keys = c("er_specs_n" = "ER+ Breast Cancer",
+                  "her2_specs_n" = "HER2+ Breast Cancer",
+                  "tnbc_specs_n" = "Triple Negative Breast Cancer",
+                  "cbmc_specs_n" = "Cord Blood Mononuclear Cells",
                   "crc_specs_n" = "Colorectal Cancer",
                   "panc8_specs_n" = "Pancreatic Islets",
 
-                  "er_specs_frac" = "ER+ BRCA",
-                  "her2_specs_frac" = "HER2+ BRCA",
-                  "tnbc_specs_frac" = "TNBC BRCA",
-                  "cbmc_specs_frac" = "CBMCs",
+                  "er_specs_frac" = "ER+ Breast Cancer",
+                  "her2_specs_frac" = "HER2+ Breast Cancer",
+                  "tnbc_specs_frac" = "Triple Negative Breast Cancer",
+                  "cbmc_specs_frac" = "Cord Blood Mononuclear Cells",
                   "crc_specs_frac" = "Colorectal Cancer",
                   "panc8_specs_frac" = "Pancreatic Islets",
 
-                  "er_house_n" = "ER+ BRCA",
-                  "her2_house_n" = "HER2+ BRCA",
-                  "tnbc_house_n" = "TNBC BRCA",
-                  "cbmc_house_n" = "CBMCs",
+                  "er_house_n" = "ER+ Breast Cancer",
+                  "her2_house_n" = "HER2+ Breast Cancer",
+                  "tnbc_house_n" = "Triple Negative Breast Cancer",
+                  "cbmc_house_n" = "Cord Blood Mononuclear Cells",
                   "crc_house_n" = "Colorectal Cancer",
                   "panc8_house_n" = "Pancreatic Islets",
 
-                  "er_comp_n" = "ER+ BRCA",
-                  "her2_comp_n" = "HER2+ BRCA",
-                  "tnbc_comp_n" = "TNBC BRCA",
-                  "cbmc_comp_n" = "CBMCs",
+                  "er_comp_n" = "ER+ Breast Cancer",
+                  "her2_comp_n" = "HER2+ Breast Cancer",
+                  "tnbc_comp_n" = "Triple Negative Breast Cancer",
+                  "cbmc_comp_n" = "Cord Blood Mononuclear Cells",
                   "crc_comp_n" = "Colorectal Cancer",
                   "panc8_comp_n" = "Pancreatic Islets",
 
-                  "er_comp_frac" = "ER+ BRCA",
-                  "her2_comp_frac" = "HER2+ BRCA",
-                  "tnbc_comp_frac" = "TNBC BRCA",
-                  "cbmc_comp_frac" = "CBMCs",
+                  "er_comp_frac" = "ER+ Breast Cancer",
+                  "her2_comp_frac" = "HER2+ Breast Cancer",
+                  "tnbc_comp_frac" = "Triple Negative Breast Cancer",
+                  "cbmc_comp_frac" = "Cord Blood Mononuclear Cells",
                   "crc_comp_frac" = "Colorectal Cancer",
                   "panc8_comp_frac" = "Pancreatic Islets"
 )
