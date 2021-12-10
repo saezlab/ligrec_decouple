@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH	-p single
 #SBATCH -N 1
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
 #SBATCH --mem=60000
 #SBATCH --job-name="subset_iterator"
 #SBATCH --output="out/subset_iterator.out"
