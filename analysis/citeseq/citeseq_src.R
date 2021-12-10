@@ -24,6 +24,12 @@ run_adt_pipe <- function(subdir = subdir,
                          .eval = "max",
                          ...){
 
+    print(subdir)
+    print(dir)
+    print(.eval)
+    print(organism)
+    print(adt_pipe_type)
+
     # read seurat
     seurat_object_path <- list.subfiles(subdir = subdir,
                                         dir = citeseq_dir,
@@ -39,8 +45,6 @@ run_adt_pipe <- function(subdir = subdir,
         liana_aggregate_enh(...,
                             .eval = .eval
                             )
-
-
 
     # Get Symbols of Receptors from OP
     receptor_syms <- str_to_symbol(op_resource$target_genesymbol, organism)
@@ -78,7 +82,7 @@ run_adt_pipe <- function(subdir = subdir,
 
         adt_lr_roc <-
             generate_specificity_roc(
-                seurat_object = readRDS(seurat_object_path),
+                seurat_object = seurat_object,
                 liana_res = liana_res,
                 op_resource = op_resource,
                 cluster_key = cluster_key,
@@ -143,7 +147,6 @@ wrap_adt_corr <- function(seurat_object,
 
     return(adt_corr)
 }
-
 
 
 #' Obtain ADT and RNA correlation
