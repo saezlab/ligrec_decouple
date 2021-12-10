@@ -1,5 +1,4 @@
 #!/bin/bash
-
 extractscript="analysis/comparison/extract_aggregates.R"
 
 ## BRCA

@@ -16,7 +16,6 @@ eval_vec <- c("independent", "max", "intersect")
 score_mode_vec <- c("mixed", "specs", "house")
 
 comb_tibble <- expand_grid(eval_vec, score_mode_vec)
-
 print_cyto_plot <- function(.eval,
                             score_mode){
     cairo_pdf(file.path("data/output/temp/",
@@ -28,10 +27,11 @@ print_cyto_plot <- function(.eval,
                             score_mode = score_mode))
     dev.off()
 }
+pmap(comb_tibble, ~print_cyto_plot(.x, .y))
+
 
 # Test FET plots
-fet_data <- get_cytosig_fets(inputpath = "data/output/cytosig_out/cytosig_res_independent_specs.RDS")
+fet_data <- get_cytosig_fets(inputpath = "data/output/cytosig_out/cytosig_res_independent_mixed.RDS")
 
 fet_data %>%
     get_eval_boxplot(eval_type = "cytosig")
-

@@ -16,7 +16,6 @@ n_ranks <- c(50, 100,
              1000, 2500,
              5000)
 
-
 seqfish_lr_coloc <- readRDS("data/output/spatial_out/fish/fish_lrcoloc.RDS") %>%
     filter(setting == "comp_n") %>%
     na.omit()
@@ -34,7 +33,7 @@ p <- seqfish_lr_coloc %>%
 
 # Print Supp Fig
 path <- file.path("figures",
-                  "SuppFigure19_Fish_Spatial.RDS")
+                  "SuppFigure17_Fish_Spatial.RDS")
 cairo_pdf(path,
           height = 12,
           width = 18,

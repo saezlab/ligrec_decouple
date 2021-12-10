@@ -80,8 +80,8 @@ n_tibble %>%
 ## V. House_n ----
 house_tibble <- comp_summ_plot(pattern = "house_n",
                                comparison_out = comparison_out,
-                               box_name = "SuppFig_16_housekeeping_n.pdf",
-                               heat_name = "SuppFig17_house_n_JI_heat.pdf")
+                               box_name = "SuppFig_19_housekeeping_n.pdf",
+                               heat_name = "SuppFig20_house_n_JI_heat.pdf")
 house_tibble %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),

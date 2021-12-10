@@ -419,21 +419,30 @@ get_cytosig_fets <- function(.eval = .eval,
                   str_glue("cytosig_res_{.eval}_{score_mode}.RDS"))
     )
 
-    map(n_ranks, function(n_rank){
+
         map(c("ER", "HER2", "TNBC"), function(ds){
 
-            # Obtain top
+            # Obtain cytosig_liana predictions
             cytolr <- readRDS(inputpath) %>%
                 filter(dataset==ds)  %>%
                 pluck("cytosig_res") %>%
                 pluck(1) %>%
                 select(-c(roc, prc, corr))  %>%
-                unnest(cyto_liana)
+                unnest(cyto_liana) %>%
+                group_by(method_name) %>%
+                mutate(predictor = min_rank(predictor*-1))
+
+            # Obtain max ranks for each method
+            max_ranks <- cytolr %>%
+                select(method_name, predictor) %>%
+                group_by(method_name) %>%
+                na.omit() %>%
+                summarise(max_rank = max(predictor))
+
+            map(n_ranks, function(n_rank){
 
             # Count total vs top
             ranks_counted <- cytolr %>%
-                group_by(method_name) %>%
-                mutate(predictor = min_rank(predictor*-1)) %>%
                 group_by(method_name, response) %>%
                 mutate(total = n())  %>%
                 # count in x rank (Alt)
@@ -483,14 +492,18 @@ get_cytosig_fets <- function(.eval = .eval,
                 ) %>%
                 arrange(desc(enrichment))
             fet_results %>%
-                mutate(dataset=ds)
+                mutate(n_rank = n_rank)
         }) %>%
             bind_rows() %>%
-            mutate(n_rank = n_rank)
+                mutate(dataset=ds) %>%
+                # fix missing ranks
+                left_join(max_ranks) %>%
+                # mutate(n_rank = ifelse(n_rank > max_rank, max_rank, n_rank)) %>%
+                mutate(odds_ratio = ifelse(n_rank > max_rank, NA, odds_ratio))
     }) %>% bind_rows %>%
-        mutate(n_rank = as.factor(n_rank)) %>%
-        mutate(method_name = gsub("\\..*","", method_name)) %>%
-        mutate(method_name = recode_methods(method_name)) %>%
-        mutate(dataset = recode_datasets(dataset))
+            mutate(n_rank = as.factor(n_rank)) %>%
+            mutate(method_name = gsub("\\..*","", method_name)) %>%
+            mutate(method_name = recode_methods(method_name)) %>%
+            mutate(dataset = recode_datasets(dataset))
 }
 

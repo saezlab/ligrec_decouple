@@ -35,14 +35,16 @@ descript <- readRDS("data/output/descript.RDS")
 xtemp <- patchwork_resources()
 
 # Assemble Main Figure 2 ----
-path <- figure_path("Main_Fig2.pdf")
+path <- file.path("figures", "Main_Fig2.pdf")
 pp <- patchwork::wrap_plots(list(
     as.ggplot(descript$size_overlap_combined +
                   theme(
                       text = element_text(size = 23),
                       axis.text.x = element_text(size=21, angle = 90,
                                                    vjust = 0.5,
-                                                   hjust=1))),
+                                                   hjust=1)) +
+                  xlab("Total Size")
+              ),
     as.ggplot(descript$interactions_jaccard_heat)
     ),
     ncol=1,

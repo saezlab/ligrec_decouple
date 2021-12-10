@@ -18,16 +18,19 @@ op_resource <- select_resource("OmniPath")[[1]]
 murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
-
 # Unchanged variables:
-.eval = "independent"
+.eval = c("independent", "max")
 correlation <- TRUE
 
 # Different settings to use
-settings_vec <- c("specs_n", "comp_n", "house_n")  # n makes no difference
+setting <- c("specs_n",
+                  "comp_n"#,
+                  #"house_n"
+                  )  # n makes no difference
+combinations <- expand_grid(.eval, setting)
+combinations
 
-map(settings_vec,
-    function(setting){
+pmap(combinations, ~{
         set_aggregation_settings(setting)
 
         ### Receptor Specificity ROC -----

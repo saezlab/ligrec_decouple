@@ -1153,20 +1153,17 @@ comp_summ_plot <- function(pattern,
         return(simple_box)
     }
 
-
     # Plots assembled with patchwork (box_name)
     cairo_pdf(file.path("figures", box_name),
-              height = 24,
-              width = 32,
+              height = 21,
+              width = 28,
               family = 'DINPro')
-    print((simple_box |
-                (resource_jacc_box/ method_jacc_box)) +
-              plot_layout(guides = 'collect', widths = c(1, 6)) +
+    print(resource_jacc_box/ method_jacc_box +
+              plot_layout(guides = 'collect') +
               plot_annotation(tag_levels = 'A',
                               tag_suffix = ')') &
               theme(plot.tag = element_text(face = 'bold',
-                                            size = 48),
-                    legend.position = 'bottom', legend.box = "horizontal"))
+                                            size = 48)))
     dev.off()
 
     # Merged Heat
