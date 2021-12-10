@@ -85,7 +85,7 @@ pmap(combinations, function(.eval, .setting){
         unnest(value)
 
     # Save obj
-    saveRDS(pr_roc_tibble, str_glue("data/output/citeseq_out/citeseq_aurocs_{setting}_{.eval}.RDS"))
+    saveRDS(pr_roc_tibble, str_glue("data/output/citeseq_out/citeseq_aurocs_{.setting}_{.eval}.RDS"))
 
 
     ### Supp) Correlations ----
@@ -131,6 +131,6 @@ pmap(combinations, function(.eval, .setting){
             setNames(list.files(citeseq_dir)) %>%
             enframe(name = "dataset") %>%
             unnest(value)
-        saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations_{setting}_{.eval}.RDS")
+        saveRDS(corr_table, "data/output/citeseq_out/citeseq_correlations_{.setting}_{.eval}.RDS")
         }
     })
