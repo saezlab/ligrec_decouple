@@ -619,8 +619,6 @@ str_to_symbol <- function(string, organism, ...){
     }
 }
 
-
-# Spatial ROC-Specific funcs -----
 #' Helper function used to prepare `adt_rank` elements
 #'
 #' @param df `get_rank_adt()` output.
