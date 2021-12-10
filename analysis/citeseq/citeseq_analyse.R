@@ -131,6 +131,7 @@ pmap(combinations, function(.eval, .setting){
             setNames(list.files(citeseq_dir)) %>%
             enframe(name = "dataset") %>%
             unnest(value)
+
         saveRDS(corr_table, str_glue("data/output/citeseq_out/citeseq_correlations_{.setting}_{.eval}.RDS"))
         }
     })
