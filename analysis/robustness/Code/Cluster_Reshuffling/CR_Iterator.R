@@ -132,8 +132,7 @@ wrap_cluster_Iterator <-
            reshuffle_or_subset = "reshuffle",
            mismatch_props = c(seq(0.05, 0.40, 0.05)),
            top_n = 250,
-
-           number_seeds = 10,
+           number_seeds = 5,
            methods_vector = c("call_connectome",
                               "call_natmi",
                               "call_sca",

@@ -141,14 +141,12 @@ wrap_resource_Iterator <-
   function(testdata,
            testdata_type,
            NATMI_tag,
-           number_seeds = 10,
+           number_seeds = 5,
            feature_type = "variable",
            modify_baseline = FALSE,
            preserve_topology = FALSE,
            dilution_props = c(seq(0.05, 0.40, 0.05)),
-
            top_n = 250,
-
            methods_vector = c("call_connectome",
                               "call_natmi",
                               "call_sca",
