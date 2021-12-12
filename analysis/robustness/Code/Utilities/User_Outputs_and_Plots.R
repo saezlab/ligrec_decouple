@@ -253,7 +253,6 @@ format_robustness_plot <- function(p, descript){
   p +
     facet_grid(~Method, scales='free_x', space='free', switch="x") +
     theme_bw(base_size = 24) +
-    geom_line(size = 1.9, alpha = 0.6) +
     theme(strip.text.x = element_text(angle = 90, face="bold", colour="white"),
           strip.background = element_rect(fill="darkgray"),
           legend.title = element_text(size = 28),

@@ -141,7 +141,7 @@ wrap_resource_Iterator <-
   function(testdata,
            testdata_type,
            NATMI_tag,
-           number_seeds = 5,
+           number_seeds = 10,
            feature_type = "variable",
            modify_baseline = FALSE,
            preserve_topology = FALSE,

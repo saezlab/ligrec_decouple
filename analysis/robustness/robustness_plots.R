@@ -10,17 +10,17 @@ source("src/eval_utils.R")
 source("analysis/robustness/Code/Utilities/User_Outputs_and_Plots.R")
 
 # Subsampling
-subsample <- readRDS("analysis/robustness/Outputs/Cluster_Reshuffling/Boxplot_CR_seurat_pbmc_subset_top100_2021-12-06_21-43.rds") %>%
+subsample <- readRDS("analysis/robustness/Outputs/Cluster_Reshuffling/Boxplot_CR_seurat_pbmc_subset_top250_2021-12-10_14-55.rds") %>%
     format_robustness_plot(., descript = "Cells Removed (%)")
 subsample
 
 # Cluster reshuffling
-reshuffle <- readRDS("analysis/robustness/Outputs/Cluster_Reshuffling/Boxplot_CR_seurat_pbmc_reshuffle_top100_2021-12-06_21-43.rds") %>%
+reshuffle <- readRDS("analysis/robustness/Outputs/Cluster_Reshuffling/Boxplot_CR_seurat_pbmc_reshuffle_top250_2021-12-10_14-55.rds") %>%
     format_robustness_plot(., descript = "Reshuffled Cell Labels (%)")
 reshuffle
 
 # Resource dilution
-dilution <- readRDS("analysis/robustness/Outputs/Resource_Dilution/Boxplot_RD_seurat_pbmc_rand_topo_variable_top100_2021-12-06_21-43.rds") %>%
+dilution <- readRDS("analysis/robustness/Outputs/Resource_Dilution/Boxplot_RD_seurat_pbmc_rand_topo_variable_top250_2021-12-10_14-55.rds") %>%
     format_robustness_plot(., descript = "Interactions Replaced (%)")
 dilution
 
@@ -28,7 +28,6 @@ dilution
 indilution <- readRDS("analysis/robustness/Outputs/Resource_Dilution/Boxplot_RD_seurat_pbmc_mod_baseline_rand_topo_variable_top100_2021-12-06_21-43.rds") %>%
     format_robustness_plot(., descript = "Indiscriminantly Replaced Interactions (%)")
 indilution
-
 
 ### Assemble Robustness Figure
 path <- file.path( "figures", "SuppFig16_robustness.pdf")
