@@ -126,7 +126,8 @@ run_cytosig_eval <- function(seurat_object,
                                select(cytokine=source,
                                       NES=score,
                                       p_value)
-                       }))
+                       })
+                   )
 
         pseudo_cytosig %>%
             select(celltype, cytosig_res) %>%
