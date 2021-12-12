@@ -30,7 +30,7 @@ if(dataset!="brain"){ # Brain is ran only with OmniPath
 liana_specs_agg <- liana_res %>%
     liana_aggregate_enh(
         pval_thresh = 1,
-        sca_thresh = 0,
+        sca_thresh = 0.5,
         de_thresh = 0.05,
         .score_mode = liana:::.score_specs,
         .eval = eval
@@ -44,7 +44,7 @@ gc()
 liana_house_agg <- liana_res %>%
     liana_aggregate_enh(
         pval_thresh = 0.05,
-        sca_thresh = 0,
+        sca_thresh = 0.5,
         de_thresh = 0.05,
         .score_mode = liana:::.score_housekeep,
         .eval = eval
@@ -58,7 +58,7 @@ gc()
 liana_mixed_agg <- liana_res %>%
     liana_aggregate_enh(
         pval_thresh = 0.05,
-        sca_thresh = 0,
+        sca_thresh = 0.5,
         de_thresh = 0.05,
         .score_mode = .score_comp,
         .eval = eval

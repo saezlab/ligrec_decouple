@@ -27,3 +27,6 @@ bash bash_scripts/generic_bash.sh $extractscript brain "data/input/spatial/brain
 
 ### Run Spatial Analyse
 # bash bash_scripts/large_bash.sh analysis/spatial/spatial_analyse.R space
+
+### Run Citeseq Analyse
+# bash bash_scripts/large_bash.sh analysis/citeseq/citeseq_analyse.R cite
