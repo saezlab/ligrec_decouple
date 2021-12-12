@@ -355,9 +355,15 @@ liana_aggregate_enh <- function(liana_res,
     }
 
     # Remove redudant 0s from Cytotalk's crosstalk score !!!
-    if(!is.null(liana_res$call_connectome)){
+    if(!is.null(liana_res$cytotalk)){
         liana_res$cytotalk %<>%
             filter(crosstalk_score>0)
+    }
+
+    # Remove LRscores > 0.05
+    if(!is.null(liana_res$call_sca)){
+        liana_res$call_sca %<>%
+            filter(LRscore>=0.5)
     }
 
     # Filter according to end threshold

@@ -112,6 +112,12 @@
     ## CellPhoneDB/Squidpy
     liana_results$cellphonedb %<>% filter(pvalue <= 0.05)
 
+    # SCA: Remove LRscores > 0.05
+    if(!is.null(liana_res$call_sca)){
+      liana_res$call_sca %<>%
+        filter(LRscore>=0.5)
+    }
+
     return(liana_results)
 
   }

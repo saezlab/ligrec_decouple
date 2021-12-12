@@ -1310,35 +1310,35 @@ set_aggregation_settings <<- function(setting){
         top_fun <<- "top_frac"
         top_x <<- 0.01
         pval_thresh <<- 1
-        sca_thresh <<- 0
+        sca_thresh <<- 0.5
         de_thresh <<- 0.05
     } else if(setting=="specs_n"){
         .score_specs <<- liana:::.score_specs
         top_fun <<- "top_n"
         top_x <<- 1000
         pval_thresh <<- 1
-        sca_thresh <<- 0
+        sca_thresh <<- 0.5
         de_thresh <<- 0.05
     } else if(setting=="comp_n"){
         .score_specs <<- .score_comp
         top_fun <<- "top_n"
         top_x <<- 1000
         pval_thresh <<- 0.05
-        sca_thresh <<- 0
+        sca_thresh <<- 0.5
         de_thresh <<- 0.05
     } else if(setting=="comp_frac"){
         .score_specs <<- .score_comp
         top_fun <<- "top_frac"
         top_x <<- 0.01
         pval_thresh <<- 0.05
-        sca_thresh <<- 0
+        sca_thresh <<- 0.5
         de_thresh <<- 0.05
     } else if(setting=="house_n"){
         .score_specs <<- liana:::.score_housekeep
         top_fun <<- "top_n"
         top_x <<- 1000
         pval_thresh <<- 1 #!!!
-        sca_thresh <<- 0
+        sca_thresh <<- 0.5
         de_thresh <<- 0.05
     } else{
         stop("Setting is wrong!")

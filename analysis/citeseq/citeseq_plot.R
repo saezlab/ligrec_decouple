@@ -8,16 +8,17 @@ require(tidyverse)
 require(Seurat)
 require(ComplexHeatmap)
 require(magrittr)
-
+require(patchwork)
 
 ### CURVES ----
-score_mode <- c("specs_n", "comp_n")
-.eval <- c("max", "independent")
+score_mode <- c("comp_n", "specs_n")
+.eval <- c("independent", "max", "intersect")
 
-tib <- expand_grid(score_mode, .eval)
-tib
+plot_tib <- expand_grid(score_mode, .eval) %>%
+    arrange(.eval)
+plot_tib
 
-pmap(tib, function(score_mode, .eval){
+plot_tib %<>% pmap(function(score_mode, .eval){
 
     # Generate Plots
     pr_roc_tibble <- readRDS(
@@ -48,73 +49,54 @@ pmap(tib, function(score_mode, .eval){
     roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
     prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
 
+    p <- ggplot(aucs,
+                aes(x=roc_mean,
+                    y=prc_mean,
+                    color=method_name)) +
+        geom_point(shape = 9, size = 12, alpha=1) +
+        scale_shape_manual(values = rep(4:12, len = 20)) +
+        geom_point(aes(x = roc_auc,
+                       prc_auc,
+                       shape=dataset),
+                   size = 6,
+                   alpha = 0.3) +
+        theme(text = element_text(size=16)) +
+        xlab('AUROC') +
+        ylab('AUPRC') +
+        xlim(roc_min, 1) +
+        ylim(prc_min, 1) +
+        geom_hline(yintercept = 0.5, colour = "pink",
+                   linetype = 2, size = 1.2) +
+        geom_vline(xintercept = 0.5, colour = "pink",
+                   linetype = 2, size = 1.2) +
+        theme_bw(base_size = 30) +
+        guides(shape=guide_legend(title="Dataset"),
+               color=guide_legend(title="Method"))
 
-    path <- file.path("figures",
-                      str_glue("SuppFig20_citeseq_{score_mode}_{.eval}.RDS"))
-    cairo_pdf(path,
-              height = 15,
-              width = 20,
-              family = 'DINPro')
-    print(
-        ggplot(aucs,
-               aes(x=roc_mean,
-                   y=prc_mean,
-                   color=method_name)) +
-            geom_point(shape = 9, size = 12, alpha=1) +
-            scale_shape_manual(values = rep(4:12, len = 20)) +
-            geom_point(aes(x = roc_auc,
-                           prc_auc,
-                           shape=dataset),
-                       size = 6,
-                       alpha = 0.3) +
-            theme(text = element_text(size=16)) +
-            xlab('AUROC') +
-            ylab('AUPRC') +
-            xlim(roc_min, 1) +
-            ylim(prc_min, 1) +
-            geom_hline(yintercept = 0.5, colour = "pink",
-                       linetype = 2, size = 1.2) +
-            geom_vline(xintercept = 0.5, colour = "pink",
-                       linetype = 2, size = 1.2) +
-            theme_bw(base_size = 30) +
-            guides(shape=guide_legend(title="Dataset"),
-                   color=guide_legend(title="Method"))
-    )
-    dev.off()
-})
+    pname <- str_glue("citeseq_{score_mode}_{.eval}")
+
+    # Bind together
+    tibble_row(pname, p)
+
+    }) %>%
+    bind_rows()
 
 
-
-
-# # AUROC
-# auroc_tib <- get_auroc_heat(pr_roc_tibble,
-#                             "roc",
-#                             mat_only = TRUE)
-# pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
-#                                             data = auroc_tib,
-#                                             method = "t.test") %>%
-#     filter(p.adj <= 0.05)
-# pairwise_contrasts
-# pairwise_contrasts %>%
-#     dplyr::select(group1, group2, p, p.adj, p.signif) %>%
-#     as.data.frame() %>%
-#     write.csv("~/Downloads/auroc_specificity.csv", row.names = FALSE)
-# get_auroc_heat(pr_roc_tibble, "roc", auc_min = 0, auc_max = 1)
-#
-# # AUPRC
-# auprc_tib <- get_auroc_heat(pr_roc_tibble, "prc", mat_only = TRUE)
-# pairwise_contrasts <- ggpubr::compare_means(estimate ~ method,
-#                                             data = auprc_tib,
-#                                             method = "t.test") %>%
-#     filter(p.adj <= 0.05)
-# pairwise_contrasts
-# pairwise_contrasts %>%
-#     dplyr::select(group1, group2, p, p.adj, p.signif) %>%
-#     as.data.frame() %>%
-#     write.csv("~/Downloads/auprc_specificity.csv", row.names = FALSE)
-# get_auroc_heat(pr_roc_tibble, "prc", auc_min = 0, auc_max = 1)
-
-
+# Assemble and Print
+path <- file.path("figures",
+                  "SuppFig20_citeseq.RDS")
+pp <- patchwork::wrap_plots(
+    as.list(plot_tib$p),
+    ncol=1,
+    nrow(4)) +
+    plot_annotation(tag_levels = 'A', tag_suffix = ')') &
+    theme(plot.tag = element_text(face = 'bold', size = 42))
+cairo_pdf(path,
+          height = 45,
+          width = 18,
+          family = 'DINPro')
+print(pp)
+dev.off()
 
 
 ## Correlations plot ----

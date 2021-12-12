@@ -19,8 +19,8 @@ murine_resource <- readRDS("data/input/murine_omnipath.RDS")
 arbitrary_thresh = 1.645 # one-tailed alpha = 0.05
 
 # Unchanged variables:
-.eval = c("max", "independent")
-correlation <- TRUE
+.eval = c("max", "independent", "intersect")
+correlation <- FALSE
 
 # Different settings to use
 .setting <- c("specs_n",
