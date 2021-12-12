@@ -114,7 +114,6 @@
         filter(LRscore>=0.5)
     }
 
-
     return(liana_results)
 
   }
