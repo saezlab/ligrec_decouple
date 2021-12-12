@@ -109,8 +109,8 @@
     liana_results$cellphonedb %<>% filter(pvalue <= 0.05)
 
     # SCA: Remove LRscores > 0.05
-    if(!is.null(liana_res$call_sca)){
-      liana_res$call_sca %<>%
+    if(!is.null(liana_results$call_sca)){
+      liana_results$call_sca %<>%
         filter(LRscore>=0.5)
     }
 
