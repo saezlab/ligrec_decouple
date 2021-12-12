@@ -80,8 +80,8 @@ map(c("ER", "TNBC", "brain"), function(condition){
 
 # Loop over all combinations
 # eval does not matter here, unless it's intersect
-.eval <- c("independent"#,
-           #"max",
+.eval <- c(#"independent",
+           "max" #,
            #"intersect"
            )
 score_mode <- c("mixed",
