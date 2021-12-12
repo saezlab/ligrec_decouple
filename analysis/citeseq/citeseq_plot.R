@@ -11,16 +11,19 @@ require(magrittr)
 
 
 ### CURVES ----
-settings_vec <- c("specs_n", "comp_n", "house_n")
+score_mode <- c("specs_n", "comp_n")
+.eval <- c("max", "independent")
 
+tib <- expand_grid(score_mode, .eval)
+tib
 
-map(settings_vec, function(score_mode){
+pmap(tib, function(score_mode, .eval){
 
     # Generate Plots
     pr_roc_tibble <- readRDS(
         file.path(
             "data/output/citeseq_out/",
-            str_glue("citeseq_aurocs_{score_mode}_independent.RDS")
+            str_glue("citeseq_aurocs_{score_mode}_{.eval}.RDS")
             )
         )
 
@@ -47,7 +50,7 @@ map(settings_vec, function(score_mode){
 
 
     path <- file.path("figures",
-                      str_glue("SuppFig20_citeseq_{score_mode}.RDS"))
+                      str_glue("SuppFig20_citeseq_{score_mode}_{.eval}.RDS"))
     cairo_pdf(path,
               height = 15,
               width = 20,
