@@ -1326,6 +1326,13 @@ set_aggregation_settings <<- function(setting){
         pval_thresh <<- 0.05
         sca_thresh <<- 0.5
         de_thresh <<- 0.05
+    }  else if(setting=="comp_n250"){
+        .score_specs <<- .score_comp
+        top_fun <<- "top_n"
+        top_x <<- 250
+        pval_thresh <<- 0.05
+        sca_thresh <<- 0.5
+        de_thresh <<- 0.05
     } else if(setting=="comp_frac"){
         .score_specs <<- .score_comp
         top_fun <<- "top_frac"

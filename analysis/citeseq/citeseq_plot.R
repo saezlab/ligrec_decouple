@@ -12,7 +12,7 @@ require(patchwork)
 
 ### CURVES ----
 score_mode <- c("comp_n", "specs_n")
-.eval <- c("independent", "max", "intersect")
+.eval <- c("independent", "intersect", "max")
 
 plot_tib <- expand_grid(score_mode, .eval) %>%
     arrange(.eval)
@@ -84,7 +84,7 @@ plot_tib %<>% pmap(function(score_mode, .eval){
 
 # Assemble and Print
 path <- file.path("figures",
-                  "SuppFig20_citeseq.RDS")
+                  "SuppFig24_citeseq.pdf")
 pp <- patchwork::wrap_plots(
     as.list(plot_tib$p),
     ncol=1,
@@ -92,7 +92,7 @@ pp <- patchwork::wrap_plots(
     plot_annotation(tag_levels = 'A', tag_suffix = ')') &
     theme(plot.tag = element_text(face = 'bold', size = 42))
 cairo_pdf(path,
-          height = 45,
+          height = 65, #45
           width = 18,
           family = 'DINPro')
 print(pp)
