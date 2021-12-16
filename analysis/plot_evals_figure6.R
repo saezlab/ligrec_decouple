@@ -22,7 +22,7 @@ space_mixed <- readRDS("data/output/spatial_out/all_fets_mixed.RDS") %>%
 
 
 path <- file.path("figures",
-                  "Figure5_Evals_Composite.RDS")
+                  "Figure6_Evals_Composite.pdf")
 cyto_space_patch(cytosig_mixed,
                  space_mixed,
                  path)

@@ -1747,14 +1747,12 @@ interactions_shared <- function(ligrec_binary){
         ungroup() %>%
         unnest(intersect)
 
-
     shared_per_resource <- intersects_per_resource %>%
         mutate(resource2 = names(intersect)) %>%
         unnest(intersect) %>%
         select(resource, resource2, intersect, resource_len) %>%
         mutate(shared_prop = intersect/resource_len) %>%
         select(resource, resource2, shared_prop)
-
 
     mean_shared <- shared_per_resource %>%
         filter(resource != resource2) %>%

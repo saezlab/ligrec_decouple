@@ -35,14 +35,14 @@ descript <- readRDS("data/output/descript.RDS")
 xtemp <- patchwork_resources()
 
 # Assemble Main Figure 2 ----
-path <- file.path("figures", "Main_Fig2.pdf")
+path <- file.path("figures", "Main_Fig3.pdf")
 pp <- patchwork::wrap_plots(list(
     as.ggplot(descript$size_overlap_combined +
                   theme(
-                      text = element_text(size = 23),
-                      axis.text.x = element_text(size=21, angle = 90,
-                                                   vjust = 0.5,
-                                                   hjust=1)) +
+                      text = element_text(size = 18),
+                      axis.text.x = element_text(size=18, angle = 90,
+                                                 vjust = 0.5, hjust=1),
+                      axis.text.y = element_text(size=18)) +
                   xlab("Total Size")
               ),
     as.ggplot(descript$interactions_jaccard_heat)
@@ -50,7 +50,7 @@ pp <- patchwork::wrap_plots(list(
     ncol=1,
     nrow(2)) +
     plot_layout(heights = c(1.3, 2)) +
-    plot_annotation(tag_levels = list(c('B','C')), tag_suffix = ')') &
+    plot_annotation(tag_levels = list(c('A','B')), tag_suffix = ')') &
     theme(plot.tag = element_text(face = 'bold', size = 32))
 
 cairo_pdf(filename = path,

@@ -20,15 +20,14 @@ source("analysis/resource_analysis/resource_descriptive.R")
 # Obtain list with CCC Resources
 ligrec <- readRDS("data/input/ligrec.RDS")
 
-# Supp. Table 2 ----
 # Obtain Curated interactions from resources which are fully manually curated
 omni_curated <- OmnipathR::curated_ligand_receptor_interactions(
-    curated_resources = c("Guide2Pharma", "ICELLNET", # "HPMR", "Kirouac2010" # Too old
+    curated_resources = c("Guide2Pharma", "ICELLNET", "HPMR", "Kirouac2010", # Too old
                           "CellTalkDB", "CellChatDB", "connectomeDB2020"
-                          ),
+    ),
     cellphonedb = TRUE,
     cellinker = TRUE,
-    talklr = FALSE,
+    talklr = TRUE,
     signalink = TRUE)
 
 # Decomplexify and keep only relevant columns
@@ -37,6 +36,33 @@ omni_curated %<>%
     select(source, target) %>%
     mutate(curated_flag = 1)
 
+
+### Supp Figure 2 Panel D ----
+# keep only the curated interactions for each resource
+ligrec_curated <- ligrec %>%
+    transpose() %>%
+    pluck("interactions") %>%
+    map(function(res)
+        res %>%
+            left_join(omni_curated, by=c("source", "target")) %>%
+            mutate(curated_flag = as.factor(curated_flag)) %>%
+            filter(curated_flag == 1) %>%
+            select(source, target) %>%
+            distinct()
+        )
+
+# Reproduce Supp Fig 2A., but with curated alone
+binarize_curated <- ligrec_curated %>%
+    binarize_resources(c("source", "target"))
+
+# Save Figure
+overheat_save(interactions_shared(binarize_curated),
+              file.path("figures", str_glue("curated_shared_heat.pdf")),
+              str_glue("Contained % \nCurated Interactions"))
+
+
+
+# Supp. Table 2 (Overlap) ----
 # Obtain curated percentages
 curation_info <- select_resource("all") %>%
     compact() %>%
@@ -58,7 +84,7 @@ curation_info <- select_resource("all") %>%
     unnest(value) %>%
     filter(curated_flag == 1) %>%
     select(Resource, Percentage = perc) %>%
-    arrange(desc(Percentage))
+    arrange(Resource)
 
 curation_info %>%
     write.csv("tables/supp_table2_perc.csv", row.names = FALSE)
@@ -126,5 +152,99 @@ examples %>%
     #                                         "S"="Secreted"))) %>%
     write.csv("tables/supp_table4.csv", row.names = FALSE)
 
+
+
+
+# Response to R3A2 ----
+# Obtain Curated interactions from resources which are fully manually curated
+omni_curated <- OmnipathR::curated_ligand_receptor_interactions(
+    curated_resources = c("Guide2Pharma", "ICELLNET", "HPMR", "Kirouac2010", # Too old
+                          "CellTalkDB", "CellChatDB", "connectomeDB2020"
+    ),
+    cellphonedb = TRUE,
+    cellinker = TRUE,
+    talklr = TRUE,
+    signalink = TRUE)
+
+# Get all interactions by DB
+sep_cols <- c(str_glue("source{rep(1:50)}"))
+omni_curated_db <- omni_curated %>%
+    select(source, target, sources) %>%
+    separate(sources, sep=";",
+             into = sep_cols) %>%
+    pivot_longer(-c(source, target),
+                 names_to = "source_number",
+                 values_to = "db") %>%
+    na.omit() %>%
+    select(source, target, db)
+
+
+# Dependency dictionary
+dict_list <- list(
+    "Baccin2019" = c("Ramilowski2015", "KEGG", "Reactome"),
+    "CellCall" = c("connectomeDB2020", "Cellinker", "CellTalkDB", "CellChatDB", "STRING"),
+    "CellChatDB" = c("KEGG"),
+    "Cellinker" = c("CellPhoneDB", "Guide2Pharma", "HMPR", "DLRP"),
+    "CellPhoneDB" = c("Guide2Pharma", "I2D", "IntAct", "UniProt", "HPIDB"),
+    "CellTalkDB" = c("STRING"),
+    "connectomeDB2020" = c("Ramilowski2015", "CellPhoneDB", "Baccin2019", "LRdb", "ICELLNET"),
+    "EMBRACE" = c("Ramilowski2015"),
+    "Guide2Pharma" = c("Literature"),
+    "HPMR" = c("Literature"),
+    "ICELLNET" = c("STRING", "Ingenuity", "BioGRID", "Reactome", "CellPhoneDB"),
+    "iTALK" = c("Ramilowski2015", "Guide2Pharma", "HMPR"),
+    "Kirouac2010" = c("COPE"),
+    "LRdb"= c("Ramilowski2015", "Guide2Pharma", "HPMR", "HPRD", "Reactome", "UniProt"),
+    "Ramilowski2015" = c("DLRP", "HMPR", "IUPHAR", "HPRD", "STRING")#,
+    # "scConnect" = c("Guide2Pharma")
+    )
+
+dict_list[[1]]
+
+# Obtain Curated by source/db
+curated_by_db <- omni_curated_db %>%
+    filter(str_detect(db , dict_list[[1]])) %>%
+    mutate(curated_flag = 1)
+
+#
+ligrec$Baccin2019$interactions %>%
+    liana:::decomplexify() %>%
+    select(source, target) %>%
+    left_join(curated_by_db) %>%
+    mutate(curated_flag = as.factor(replace_na(curated_flag, 0))) %>%
+    mutate(total = n()) %>%
+    group_by(curated_flag, db) %>%
+    mutate(num =  n()) %>%
+    summarise(perc = num/total * 100) %>%
+    distinct() %>%
+    ungroup() %>%
+    mutate(db=replace_na(db, "Unknown"))
+
+xd <- imap(dict_list, function(dbs, resource){
+    curated_by_db <- omni_curated_db %>%
+        filter(str_detect(db , dict_list[[resource]])) %>%
+        mutate(curated_flag = 1)
+
+    ligrec[[resource]]$interactions %>%
+        liana:::decomplexify() %>%
+        select(source, target) %>%
+        left_join(curated_by_db, by = c("source", "target")) %>%
+        mutate(curated_flag = as.factor(replace_na(curated_flag, 0))) %>%
+        mutate(total = n()) %>%
+        group_by(db) %>%
+        mutate(num =  n()) %>%
+        summarise(perc = num/total * 100) %>%
+        distinct() %>%
+        ungroup() %>%
+        mutate(db=replace_na(db, "Own curation / Unknown")) %>%
+        mutate(resource = resource)
+    }) %>% bind_rows()
+
+xd_wide <- xd %>% pivot_wider(names_from = "resource",
+                   values_from = "perc",
+                   id_cols = "db"
+                   )
+
+xd %>% ComplexHeatmap::Heatmap()
 
 
