@@ -30,7 +30,6 @@ seurat_object <- subset(seurat_object, # cells = rownames(seurat_object@meta.dat
 
 # Save object
 saveRDS(seurat_object, file.path(rico_dir, "rico_subsample1234.RDS"))
-saveRDS(seurat_object, "rico_subsample1234.RDS")
 
 # test liana as is
 liana_res <- liana_wrap(seurat_object)
