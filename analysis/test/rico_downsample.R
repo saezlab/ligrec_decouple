@@ -14,15 +14,15 @@ seurat_object@meta.data$annotation <- as.factor(as.character(seurat_object@meta.
 print(seurat_object@meta.data$annotation)
 
 # Subsample
-seurat_object@meta.data %<>%
-    rownames_to_column(var = "barcode") %>%
-    as_tibble() %>%
-    group_by(.data[[cluster_key]]) %>%
-    slice_sample(n=500) %>%
-    mutate( {{ cluster_key }} := as.factor(.data[[cluster_key]])) %>%
-    ungroup() %>%
-    as.data.frame()
-rownames(seurat_object@meta.data) <- seurat_object@meta.data$barcode
+# seurat_object@meta.data %<>%
+#     rownames_to_column(var = "barcode") %>%
+#     as_tibble() %>%
+#     group_by(.data[[cluster_key]]) %>%
+#     slice_sample(n=500) %>%
+#     mutate( {{ cluster_key }} := as.factor(.data[[cluster_key]])) %>%
+#     ungroup() %>%
+#     as.data.frame()
+# rownames(seurat_object@meta.data) <- seurat_object@meta.data$barcode
 
 # Filter
 seurat_object <- subset(seurat_object, # cells = rownames(seurat_object@meta.data),
