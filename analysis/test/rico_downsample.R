@@ -13,10 +13,6 @@ seurat_object <- readRDS(file.path(rico_dir, "liana_endo_simple_obj.rds"))
 seurat_object@meta.data$annotation <- as.factor(as.character(seurat_object@meta.data$annotation))
 print(seurat_object@meta.data$annotation)
 
-# test liana as is
-liana_res <- liana_wrap(seurat_object)
-saveRDS(liana_res, file.path(rico_dir, "rico_liana123.RDS"))
-
 # Subsample
 seurat_object@meta.data %<>%
     rownames_to_column(var = "barcode") %>%
@@ -28,7 +24,15 @@ seurat_object@meta.data %<>%
     as.data.frame()
 rownames(seurat_object@meta.data) <- seurat_object@meta.data$barcode
 
-seurat_object <- subset(seurat_object, cells = rownames(seurat_object@meta.data))
+# Filter
+seurat_object <- subset(seurat_object, # cells = rownames(seurat_object@meta.data),
+                        subset = nFeature_RNA > 200 & nFeature_RNA < 10000 & nCount_RNA > 10)
 
 # Save object
-saveRDS(seurat_object, file.path(rico_dir, "rico_subsample123.RDS"))
+saveRDS(seurat_object, file.path(rico_dir, "rico_subsample1234.RDS"))
+
+# test liana as is
+liana_res <- liana_wrap(seurat_object)
+saveRDS(liana_res, file.path(rico_dir, "rico_liana1234.RDS"))
+
+
