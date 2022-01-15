@@ -19,3 +19,5 @@ This code has all the same dependencies as LIANA (mainly [Seurat](https://satija
 
 ## Steps.
 Obtain the Data via Code/GetData
+Run Bash Files in Bash_Files/analysis_bash
+

@@ -8,7 +8,6 @@
 
 4. Run `comparison_plot.R` to generate the plots for the manuscript.  
 
-
 ## Datasets
 #### CRC
 The processed single cell RNA-Seq data 23 for 23 Korean colorectal cancer patients were obtained from
@@ -19,4 +18,4 @@ The labelled scRNA-Seq data for pancreatic islet and cord blood mononuclear cell
 normalized with Seurat, and used for CCC inference without any further formatting and filtering.
 
 #### BRCA
-The processed and annotated Human Breast Cancer single-cell atlas (Wu et al. 2021) was obtained from [GSE176078](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE176078). 
+The processed and annotated subtypes of Human Breast Cancer single-cell atlas (Wu et al. 2021) were obtained from [GSE176078](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE176078). 

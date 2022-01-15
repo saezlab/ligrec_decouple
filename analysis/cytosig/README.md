@@ -7,4 +7,3 @@ CytoSig's Cytokine activity signatures were downloaded from https://github.com/d
 
 ## Datasets
 The [Wu et al., 21](https://www.nature.com/articles/s41588-021-00911-1) Human Breast Cancer (BRCA) atlas used in the spatial evaluation was also used here.
-CRC?
