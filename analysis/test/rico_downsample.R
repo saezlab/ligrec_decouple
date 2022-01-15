@@ -32,7 +32,11 @@ seurat_object <- subset(seurat_object, # cells = rownames(seurat_object@meta.dat
 saveRDS(seurat_object, file.path(rico_dir, "rico_subsample1234.RDS"))
 
 # test liana as is
-liana_res <- liana_wrap(seurat_object)
+# liana_res <- liana_wrap(seurat_object)
+liana_res <- liana_pipe(seurat_object = seurat_object,
+                        op_resource = select_resource("OmniPath")[[1]] %>%
+                            liana:::decomplexify()
+                        )
 saveRDS(liana_res, file.path(rico_dir, "rico_liana1234.RDS"))
 
 
