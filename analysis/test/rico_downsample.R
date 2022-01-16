@@ -28,6 +28,10 @@ print(seurat_object@meta.data$annotation)
 seurat_object <- subset(seurat_object, # cells = rownames(seurat_object@meta.data),
                         subset = nFeature_RNA > 200 & nFeature_RNA < 10000 & nCount_RNA > 10)
 
+# check and replace NAs
+print(seurat_object@assays$RNA@data[is.na(rowSums(seurat_object@assays$RNA@data)),])
+seurat_object@assays$RNA@data[is.na(seurat_object@assays$RNA@data)] <- 0
+
 # Save object
 saveRDS(seurat_object, file.path(rico_dir, "rico_subsample1234.RDS"))
 
