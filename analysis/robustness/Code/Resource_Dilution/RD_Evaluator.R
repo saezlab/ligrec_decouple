@@ -187,9 +187,9 @@ print_Title(str_glue("Iteration ",
 
     # We cut with ties
     top_ranks_OP_0[[method]] <-
-      get_top_ranks(data_set  = liana_results_OP_0[[method]],
-                      top_n   = number_ranks[[method]],
-                      method  = method) %>%
+      get_top_ranks(data_set = liana_results_OP_0[[method]],
+                    top_n = number_ranks[[method]],
+                    method = method) %>%
       format_top_ranks()
 
 
@@ -321,7 +321,7 @@ print_Title(str_glue("Iteration ",
 
         top_ranks_OP[[method]]$OmniPath_0$LR_Pair
 
-      })       %>%
+      }) %>%
       unlist() %>%
       unique()
 
@@ -350,13 +350,13 @@ print_Title(str_glue("Iteration ",
   # and remove any dilution proportion entries that were impossible
   dilutions_OP <-
     lapply(dilution_props, dilute_Resource,
-           resource          = resources_OP$OmniPath_0,
-           top_rank_list     = top_rank_list,
+           resource = resources_OP$OmniPath_0,
+           top_rank_list = top_rank_list,
            preserve_topology = preserve_topology,
-           data_set          = testdata,
-           feature_type      = feature_type,
-           verbose           = TRUE,
-           master_seed       = master_seed) %>%
+           data_set = testdata,
+           feature_type = feature_type,
+           verbose = TRUE,
+           master_seed = master_seed) %>%
     discard(is_null)
 
 
@@ -368,7 +368,6 @@ print_Title(str_glue("Iteration ",
   rm(dilutions_OP, top_rank_list)
 
 
-
   } # end of subpoint
 
 }
@@ -376,7 +375,7 @@ print_Title(str_glue("Iteration ",
 
 
 #------------------------------------------------------------------------------#
-# 3. Rerun Liana and contrast predictions --------------------------------------
+# 3. Re-run Liana and contrast predictions --------------------------------------
 {
   print_Title(
     str_glue("3. Rerun Liana and contrast predictions","  --  Iteration ",
@@ -393,17 +392,14 @@ print_Title(str_glue("Iteration ",
   liana_dilutions_OP <-
     lapply(resources_OP[-1],
            res_liana_with_warnings,
+           testdata = testdata,
+           methods_vector = methods_vector,
+           resource = c('custom'),
 
-           testdata        = testdata,
-           methods_vector  = methods_vector,
-           resource        = c('custom'),
-
-           liana_warnings  = liana_warnings,
+           liana_warnings = liana_warnings,
            warning_logfile = warning_logfile,
-
            tag = tag,
-
-           expr_prop       = 0.1,
+           expr_prop = 0.1,
            cellchat.params = list(nboot = cellchat_nperms,
                                   expr_prop = 0.1,
                                   thresh = 1))
@@ -429,7 +425,7 @@ print_Title(str_glue("Iteration ",
 
   # Create a named methods list from methods_vector, when we map over the list
   # the names will be passed to the map output.
-  methods_list        <- as.list(methods_vector)
+  methods_list <- as.list(methods_vector)
   names(methods_list) <- methods_vector
 
   # Start with a double map, as the get_top_ranks function is method-specific
@@ -459,7 +455,7 @@ print_Title(str_glue("Iteration ",
 
       overlaps[[method]] <-
         lapply(top_ranks_OP[[method]],
-               rank_overlap,
+               tpr_overlaps,
                main_ranks = top_ranks_OP[[method]]$OmniPath_0)
 
   }
@@ -473,14 +469,12 @@ print_Title(str_glue("Iteration ",
            function(x) { c(x, rep(NA, length(dilution_props)+1-length(x)))})
 
 
-
-
   # reformatting overlap as a tibble
-  top_ranks_overlap <- as_tibble(overlaps)        %>%
-    unnest(cols = all_of(methods_vector))         %>%
-    mutate(dilution_prop = c(0, dilution_props))  %>%
-    unnest(cols = c(dilution_prop))               %>%
-    relocate("dilution_prop")                     %>%
+  top_ranks_overlap <- as_tibble(overlaps) %>%
+    unnest(cols = all_of(methods_vector)) %>%
+    mutate(dilution_prop = c(0, dilution_props)) %>%
+    unnest(cols = c(dilution_prop)) %>%
+    relocate("dilution_prop") %>%
     tibble()
 
   # removing superfluous values
@@ -532,13 +526,12 @@ print_Title(str_glue("Iteration ",
   # 5.3 Bundling Outputs and returning Results
   {
     # Create one bundled object for the script to return
-    results  <- list("liana_results_OP"   = liana_results_OP,
-                     "resources_OP"       = resources_OP,
-                     "top_ranks_OP"       = top_ranks_OP,
+    results  <- list("liana_results_OP" = liana_results_OP,
+                     "resources_OP" = resources_OP,
+                     "top_ranks_OP" = top_ranks_OP,
                      "top_ranks_overlap" = top_ranks_overlap,
-
-                     "runtime"            = runtime,
-                     "testdata"           = testdata)
+                     "runtime" = runtime,
+                     "testdata" = testdata)
 
     # Filter it by the outputs the user requested
     results <- results[bundled_outputs]

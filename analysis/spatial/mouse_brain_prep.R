@@ -5,7 +5,6 @@ require(Seurat)
 require(liana)
 require(SPOTlight)
 
-
 # brain analysis directory
 brain_dir <- "data/input/spatial/brain_cortex"
 

@@ -501,8 +501,6 @@ wrap_cluster_Iterator <-
                        "CCI predictions"),
               super = TRUE)
 
-
-
   top_ranks <-
     # We extract the top ranked interactions of all our LIANA++ results
     map(methods_list, function(method) {
@@ -519,14 +517,11 @@ wrap_cluster_Iterator <-
           top_n = number_ranks[[method]]
         )
 
-    })  %>%
+    }) %>%
     # Now that we have the top_ranks in a nested list we map to the lowest level
     # and add an LR_Pair and LR_ID column to the tibbles, which we need to
     # compare overlaps.
     map_depth(., .depth = 3, format_top_ranks)
-
-
-
 
   # We map over all the top-ranks-filled tibbles and compare the overlap
   # between the original predictions and various later ones using the
@@ -537,28 +532,26 @@ wrap_cluster_Iterator <-
     overlaps_for_method <-  top_ranks[[method]] %>%
       map_depth(.,
                 .depth = 2,
-                rank_overlap,
+                tpr_overlap,
                 main_ranks = top_ranks[[method]]$Reshuffle_0[[1]],
                 verbose = TRUE)
 
   }) %>%
   # Turning top_ranks_overlap into one concise tibble (also helps plotting)
   # This code won't work if only one mismatch_prop was selected.
-    as_tibble()                             %>%
+    as_tibble() %>%
     mutate(Mismatch = c(0, mismatch_props)) %>%
-    unnest(cols = all_of(methods_vector))   %>%
-    unnest(cols = everything())             %>%
-    relocate(Mismatch)                      %>%
+    unnest(cols = all_of(methods_vector)) %>%
+    unnest(cols = everything()) %>%
+    relocate(Mismatch) %>%
     pivot_longer(cols = !(starts_with("Mismatch")),
-                 names_to = "Method")       %>%
-    arrange(Mismatch)                       %>%
-    arrange(Method)                         %>%
+                 names_to = "Method") %>%
+    arrange(Mismatch) %>%
+    arrange(Method) %>%
     rename("Overlap" = value)
-
 
   # print a sample of the output for the user
   print(head(top_ranks_overlap, 15))
-
 
 }
 

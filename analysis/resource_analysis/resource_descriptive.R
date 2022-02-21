@@ -705,11 +705,9 @@ ligand_receptor_classes <- function(
 ){
 
     if(resource == 'HGNC'){
-
         return(ligrec %>% hgnc_ligrec_classes(largest = largest))
 
-    }else if(resource == 'OP-L'){
-
+    } else if(resource == 'OP-L'){
         return(ligrec %>% localization_ligrec_classes)
 
     }
