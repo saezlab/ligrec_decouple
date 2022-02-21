@@ -14,7 +14,7 @@ get_lr_colocalized <- function(liana_agg_path,
                                corr_thresh = 1.645,
                                n_ranks = c(100, 250, 500, 1000,
                                            2500, 5000, 10000)
-                               ){
+){
     # LIANA and Format
     # Colocalized or not
     spatial_correlations <- readRDS(spatial_corr_path)
@@ -237,7 +237,7 @@ Load10X_Spatial_enh <- function(data.dir,
     if (length(x = data.dir) > 1) {
         warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
         data.dir <- data.dir[1]
-        }
+    }
     setwd(file.path(data.dir, filedir)) # SEURAT IS bad dude, doesn't work with the paths...
     data <-  Seurat::ReadMtx(mtx = "matrix.mtx.gz",
                              cells = "barcodes.tsv.gz",
@@ -245,22 +245,22 @@ Load10X_Spatial_enh <- function(data.dir,
                              feature.column = 1)
     object <- CreateSeuratObject(counts = data, assay = assay)
 
-        if (is.null(x = image)) {
-            image <- Read10X_Image(
-                image.dir = file.path(data.dir, 'spatial'),
-                filter.matrix = filter.matrix
-            )
-        } else {
-            if (!inherits(x = image, what = "VisiumV1"))
-                stop("Image must be an object of class 'VisiumV1'.")
-        }
-        image <- image[Cells(x = object)]
-        DefaultAssay(object = image) <- assay
-        object[[slice]] <- image
+    if (is.null(x = image)) {
+        image <- Read10X_Image(
+            image.dir = file.path(data.dir, 'spatial'),
+            filter.matrix = filter.matrix
+        )
+    } else {
+        if (!inherits(x = image, what = "VisiumV1"))
+            stop("Image must be an object of class 'VisiumV1'.")
+    }
+    image <- image[Cells(x = object)]
+    DefaultAssay(object = image) <- assay
+    object[[slice]] <- image
 
-        setwd(project_dir)
+    setwd(project_dir)
 
-        return(object)
+    return(object)
 }
 
 

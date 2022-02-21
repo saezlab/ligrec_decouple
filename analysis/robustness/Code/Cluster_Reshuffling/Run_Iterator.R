@@ -131,7 +131,7 @@ robustness_reshuffle_default <-
                                            "cytotalk",
                                            "logfc"),
                         number_seeds = 2,
-                        top_n = 100,
+                        top_n = 250,
                         mismatch_props = c(0.2, 0.4),
-                        trial_run = TRUE)
+                        trial_run = FALSE)
 

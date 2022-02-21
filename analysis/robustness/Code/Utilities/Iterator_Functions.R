@@ -91,7 +91,7 @@
 
       return(topranks)
 
-  } #end of function
+    } #end of function
 }
 
 # extract_Testdata()
@@ -141,60 +141,94 @@
 }
 
 
-# rank_overlap()
-{
-  #' Takes get_n_top_ranks outputs that have an LR_ID and determines their
-  #' Jaccard Index
-  #'
-  #' @description An LR_ID is a unique identifier for a CC Interaction. It is
-  #' simply the concatenated source name, target name, ligand name and receptor
-  #' name. A CCI is fully characterized by its LR_ID, which is why they can be
-  #' used when comparing two tibbles with top ranked interactions.
-  #'
-  #' @param main_ranks A tibble of of top ranked interactions
-  #' @param comparison_ranks A tibble of top ranked interactions
-  #' @param verbose Should the function describe the JI to you or not?
-  #'
-  #' @return The JI (0-1) between the two input frames in contents of the
-  #' LR_ID column, as well as an optional print statement that gives more
-  #' detail.
+#' Takes get_n_top_ranks outputs that have an LR_ID and determines their
+#' Jaccard Index
+#'
+#' @description An LR_ID is a unique identifier for a CC Interaction. It is
+#' simply the concatenated source name, target name, ligand name and receptor
+#' name. A CCI is fully characterized by its LR_ID, which is why they can be
+#' used when comparing two tibbles with top ranked interactions.
+#'
+#' @param main_ranks A tibble of of top ranked interactions (Usually no dilution,
+#'  i.e  ground truth interactions)
+#' @param comparison_ranks A tibble of top ranked interactions
+#' @param verbose Should the function describe the JI to you or not?
+#'
+#' @return The JI (0-1) between the two input frames in contents of the
+#' LR_ID column, as well as an optional print statement that gives more
+#' detail.
+rank_overlap <- function(main_ranks,
+                         comparison_ranks,
+                         verbose = TRUE) {
 
-  rank_overlap <-
-    function(main_ranks,
-             comparison_ranks,
-             verbose = TRUE) {
+  # calculate overlap between LR_IDs
+  LRID_intersect <- sum(comparison_ranks$LR_ID %in% main_ranks$LR_ID)
+  LRID_union     <- c(comparison_ranks$LR_ID, main_ranks$LR_ID) %>%
+    unique() %>%
+    length()
 
-      # calculate overlap between LR_IDs
-      LRID_intersect <- sum(comparison_ranks$LR_ID %in% main_ranks$LR_ID)
-      LRID_union     <- c(comparison_ranks$LR_ID, main_ranks$LR_ID) %>%
-        unique() %>%
-        length()
-
-      jaccard_index <- LRID_intersect / LRID_union
+  jaccard_index <- LRID_intersect / LRID_union
 
 
-      # describe the output to the user
-      if (verbose == TRUE) {
-        print(str_glue(""))
-        cat(
-          str_wrap(
-            str_glue(
-              "The main ranking and the comparison ranking have ",
-              as.character(LRID_intersect),
-              " LR_IDs in common. This corresponds to a jaccard index of ",
-              round(jaccard_index, 2),
-              "."),
-            width = 60), "\n")
-      }
+  # describe the output to the user
+  if (verbose == verbose) {
+    print(str_glue(""))
+    cat(
+      str_wrap(
+        str_glue(
+          "The main ranking and the comparison ranking have ",
+          as.character(LRID_intersect),
+          " LR_IDs in common. This corresponds to a jaccard index of ",
+          round(jaccard_index, 2),
+          "."),
+        width = 60), "\n")
+  }
 
-
-
-      return(jaccard_index)
-
-    } #end of function
-
+  return(jaccard_index)
 
 }
+
+#' Takes get_n_top_ranks outputs that have an LR_ID and determines their
+#' TPR
+#'
+#' @description An LR_ID is a unique identifier for a CC Interaction. It is
+#' simply the concatenated source name, target name, ligand name and receptor
+#' name. A CCI is fully characterized by its LR_ID, which is why they can be
+#' used when comparing two tibbles with top ranked interactions.
+#'
+#' @param main_ranks A tibble of of top ranked interactions (Usually no dilution,
+#'  i.e  ground truth interactions)
+#' @param comparison_ranks A tibble of top ranked interactions
+#' @param verbose Should the function describe the calc or not
+tpr_overlap <- function(main_ranks,
+                        comparison_ranks,
+                        verbose = TRUE) {
+
+  # calculate overlap between LR_IDs
+  LRID_intersect <- sum(comparison_ranks$LR_ID %in% main_ranks$LR_ID)
+  total_length <- length(comparison_ranks$LR_ID)
+
+  tpr <- LRID_intersect / total_length
+
+
+  # describe the output to the user
+  if (verbose == verbose) {
+    print(str_glue(""))
+    cat(
+      str_wrap(
+        str_glue(
+          "The main ranking and the comparison ranking have ",
+          as.character(LRID_intersect),
+          " LR_IDs in common. This corresponds to a TPR of ",
+          round(tpr, 2),
+          "."),
+        width = 60), "\n")
+  }
+
+  return(tpr)
+
+}
+
 
 
 # calculate_Runtime()
