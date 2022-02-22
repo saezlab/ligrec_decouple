@@ -9,6 +9,9 @@ source("src/plot_utils.R")
 source("src/eval_utils.R")
 source("analysis/robustness/Code/Utilities/User_Outputs_and_Plots.R")
 
+
+### Jaccard Index Plots ----
+
 # Subsampling
 subsample <- readRDS("analysis/robustness/Outputs/Cluster_Reshuffling/Boxplot_CR_seurat_pbmc_subset_top250_2021-12-10_14-55.rds") %>%
     format_robustness_plot(., descript = "Cells Removed (%)")
@@ -45,6 +48,11 @@ cairo_pdf(filename = path,
           width = 18)
 print(pp)
 dev.off()
+
+
+
+#
+
 
 
 

@@ -108,9 +108,14 @@
         filter(p_val_adj.rec <= 0.05)
     }
     ## CellChat
-    liana_results$cellchat %<>% filter(pval <= 0.05)
+    if(!is.null(liana_results$cellchat)){
+      liana_results$cellchat %<>% filter(pval <= 0.05)
+    }
+
     ## CellPhoneDB/Squidpy
-    liana_results$cellphonedb %<>% filter(pvalue <= 0.05)
+    if(!is.null(liana_results$cellphonedb)){
+      liana_results$cellphonedb %<>% filter(pvalue <= 0.05)
+    }
 
     # SCA: Remove LRscores > 0.05
     if(!is.null(liana_results$call_sca)){
