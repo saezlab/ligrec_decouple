@@ -360,22 +360,29 @@ plot_cytosig_aucs <- function(.eval,
                prc_mean = mean(prc_auc)) %>%
         ungroup() %>%
         mutate(method_name = gsub("\\..*","", method_name)) %>%
-        mutate(method_name = recode_methods(method_name))
+        mutate(method_name = recode_methods(method_name)) %>%
+        filter(dataset!="HER2")
 
 
     roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
     prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
 
-    p <- ggplot(aucs,
-                aes(x=roc_mean,
-                    y=prc_mean,
+    # p <- ggplot(aucs, # with centroid
+    #             aes(x=roc_mean,
+    #                 y=prc_mean,
+    #                 color=method_name)) +
+    #     geom_point(shape = 9, size = 12, alpha=1) +
+    #     geom_point(aes(x = roc_auc,
+    #                    y = prc_auc,
+    #                    shape=dataset),
+    #                size = 6,
+    #                alpha = 0.3) +
+    p <- ggplot(aucs, # without centroid
+                aes(x = roc_auc,
+                    y = prc_auc,
+                    shape=dataset,
                     color=method_name)) +
-        geom_point(shape = 9, size = 12, alpha=1) +
-        geom_point(aes(x = roc_auc,
-                       y = prc_auc,
-                       shape=dataset),
-                   size = 6,
-                   alpha = 0.3) +
+        geom_point(size = 12, alpha=1) +
         theme(text = element_text(size=16)) +
         xlab('AUROC') +
         ylab('AUPRC') +
