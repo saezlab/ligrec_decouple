@@ -43,12 +43,16 @@
   #' @return A file name that starts with the prefix, ends with the suffix and
   #' contains a bunch of parameter tags in between. This way the user can
   #' identify the save file by the parameters it was set up with.
+
+
   clust_auto_file_Name <- function(prefix,
                                    suffix,
+
                                    trial_run,
                                    testdata_type,
                                    reshuffle_or_subset,
-                                   number_ranks) {
+                                   number_ranks,
+                                   time_of_run) {
 
     # We define individual comments related to relevant parameters and then
     # string them all together for the save file name.
@@ -86,6 +90,7 @@
         testdata_comment,
         subset_comment,
         top_ranks_comment,
+        time_of_run,
         suffix
       )
 
@@ -94,126 +99,137 @@
 
 }
 
+# clust_plot_Description()
+{
+  #' Automatically creates a verbose caption of a top ranks overlap plot
+  #'
+  #' @param mismatch_props As a named list of proportions between 0 and 1. To
+  #' what degree were the cluster annotations mismatched?
+  #'
+  #' @param trial_run Is this a trial run of the iterator or serious results?
+  #' Takes a boolean. If this is a trial run, the save file names, logs and plot
+  #' captions will reflect this.
+  #'
+  #' @param top_ranks_overlap As a tibble in the form of a extract_top_ranks
+  #' output, though ideally it will be preprocessed for plotting (better method
+  #' names, no NAs, etc.). This is the top_ranks_overlap that would be plotted
+  #' with this caption. The function takes data from the tibble's general
+  #' structure to describe it accurately.
+  #'
+  #' @param trial_run The same parameter from wrap_resource_Iterator(). Used
+  #' in the file name to mark the file.
+  #'
+  #' @param reshuffle_or_subset A string that indicates if these results were
+  #' gained using cluster annotation reshuffling or subsetting.
+  #'
+  #' @param testdata_type A string that serves as a name or label for your
+  #' testdata. It will be included in the plot description and save file names
+  #' (if the results is saved to the outputs folder).
+  #'
+  #' @param seed_list As a named list of the seeds that were used in the
+  #' iterator.
+  #'
+  #' @param number_ranks A named list of which top-ranks were considered
+  #' significant per method.
+  #'
+  #' @param time_of_run The char tag of the time the script started being
+  #' executed.
+  #'
+  #'
+  #' @return A verbose caption describing the parameters used to generate the
+  #' results in the plot.
+
+  clust_plot_Description <- function(mismatch_props,
+                                     trial_run,
+                                     testdata_type,
+                                     reshuffle_or_subset,
+                                     seed_list,
+                                     number_ranks,
+                                     time_of_run) {
+
+    ## Comment on reshuffling or subsetting parameters and general stuff
+    {
+
+      if (reshuffle_or_subset == "reshuffle") {
+
+        general_comment <- str_glue(
+          "This plot was created using the ",
+          testdata_type,
+          " data. ",
+          "The cluster annotations were reshuffled in ",
+          (mismatch_props[[2]] - mismatch_props[[1]]) * 100,
+          " % intervals to a maximum of ",
+          max(unlist(mismatch_props)) * 100,
+          " %. \n",
+          "When an annotation was being reshuffled, ",
+          "it was replaced by a random sign from ",
+          "all annotations that did not match itself."
+        )
 
 
+      } else if (reshuffle_or_subset == "subset") {
 
-#' Automatically creates a verbose caption of a top ranks overlap plot
-#'
-#' @param mismatch_props As a named list of proportions between 0 and 1. To
-#' what degree were the cluster annotations mismatched?
-#'
-#' @param trial_run Is this a trial run of the iterator or serious results?
-#' Takes a boolean. If this is a trial run, the save file names, logs and plot
-#' captions will reflect this.
-#'
-#' @param top_ranks_overlap As a tibble in the form of a extract_top_ranks
-#' output, though ideally it will be preprocessed for plotting (better method
-#' names, no NAs, etc.). This is the top_ranks_overlap that would be plotted
-#' with this caption. The function takes data from the tibble's general
-#' structure to describe it accurately.
-#'
-#' @param trial_run The same parameter from wrap_resource_Iterator(). Used
-#' in the file name to mark the file.
-#'
-#' @param reshuffle_or_subset A string that indicates if these results were
-#' gained using cluster annotation reshuffling or subsetting.
-#'
-#' @param testdata_type A string that serves as a name or label for your
-#' testdata. It will be included in the plot description and save file names
-#' (if the results is saved to the outputs folder).
-#'
-#' @param seed_list As a named list of the seeds that were used in the
-#' iterator.
-#'
-#' @param number_ranks A named list of which top-ranks were considered
-#' significant per method.
-#'
-#'
-#'
-#' @return A verbose caption describing the parameters used to generate the
-#' results in the plot.
-clust_plot_Description <- function(mismatch_props,
-                                   trial_run,
-                                   testdata_type,
-                                   reshuffle_or_subset,
-                                   seed_list,
-                                   number_ranks,
-                                   time_of_run) {
-
-  ## Comment on reshuffling or subsetting parameters and general stuff
-  {
-
-    if (reshuffle_or_subset == "reshuffle") {
-
-      general_comment <- str_glue(
-        "This plot was created using the ",
-        testdata_type,
-        " data. ",
-        "The cluster annotations were reshuffled in ",
-        (mismatch_props[[2]] - mismatch_props[[1]]) * 100,
-        " % intervals to a maximum of ",
-        max(unlist(mismatch_props)) * 100,
-        " %. \n",
-        "When an annotation was being reshuffled, ",
-        "it was replaced by a random sign from ",
-        "all annotations that did not match itself."
-      )
+        general_comment <- str_glue(
+          "This plot was created using the ",
+          testdata_type,
+          " data. ",
+          "Each cell cluster in the testdata was subset in ",
+          (mismatch_props[[2]] - mismatch_props[[1]]) * 100,
+          " % intervals to a maximum of ",
+          max(unlist(mismatch_props)) * 100,
+          " %. \n",
+          "This mimics an analysis with less samples."
+        )
 
 
-    } else if (reshuffle_or_subset == "subset") {
+      }
 
-      general_comment <- str_glue(
-        "This plot was created using the ",
-        testdata_type,
-        " data. ",
-        "Each cell cluster in the testdata was subset in ",
-        (mismatch_props[[2]] - mismatch_props[[1]]) * 100,
-        " % intervals to a maximum of ",
-        max(unlist(mismatch_props)) * 100,
-        " %. \n",
-        "This mimics an analysis with less samples."
-      )
 
 
     }
 
 
+    ## Nperms and top_ranks comment
+    {
+      top_ranks_permutations_comment <-
+        str_glue(
+          "The overlap was compared between the ",
+          median(unlist(number_ranks)),
+          " highest ranked interactions over ",
+          length(seed_list),
+          " permutations."
+        )
 
-  }
-
-
-  ## Nperms and top_ranks comment
-  {
-    top_ranks_permutations_comment <-
-      str_glue(
-        "The overlap was compared between the ",
-        median(unlist(number_ranks)),
-        " highest ranked interactions over ",
-        length(seed_list),
-        " permutations."
-      )
-
-  }
-
-  ## Assemple plotting caption
-  plotting_caption <-
-    str_glue(general_comment,
-             "\n\n",
-             top_ranks_permutations_comment)
+    }
 
 
-  ## Add addendum if trial run
-  if (trial_run == TRUE) {
+    ## Date and time comment
+    time_comment <- str_glue("Generated at ",
+                             time_of_run,
+                             ".")
+
+
+    ## Assemple plotting caption
     plotting_caption <-
-      str_glue(plotting_caption, "   --   [TRIAL RUN]")
-  }
+      str_glue(general_comment,
+               "\n\n",
+               top_ranks_permutations_comment,
+               "\n",
+               time_comment)
 
-  return(plotting_caption)
 
+    ## Add addendum if trial run
+    if (trial_run == TRUE) {
+      plotting_caption <-
+        str_glue(plotting_caption, "   --   [TRIAL RUN]")
+    }
+
+    return(plotting_caption)
+
+
+  }  # end of function
 
 }
-
-
 
 # clust_summarise_Metadata()
 {
@@ -276,6 +292,9 @@ clust_plot_Description <- function(mismatch_props,
   #'
   #' @return Returns a compiled list of metadata, parameters and save file
   #' locations (if files were saved to the computer).
+
+
+
   clust_summarise_Metadata <- function(seed_list,
                                        mismatch_props,
                                        methods_list,
@@ -392,19 +411,19 @@ clust_plot_Description <- function(mismatch_props,
                                  iterator_results_save_path) {
     # Save both plots
     saveRDS(
-        object = plot_box,
-        file = str_glue(
-            "analysis/robustness/Outputs/Cluster_Reshuffling/",
-            box_plot_rds_name
-            )
+      object = plot_box,
+      file = str_glue(
+        "analysis/robustness/Outputs/Cluster_Reshuffling/",
+        box_plot_rds_name
+      )
     )
 
     saveRDS(
-        object = plot_line,
-        file = str_glue(
-            "analysis/robustness/Outputs/Cluster_Reshuffling/",
-            line_plot_rds_name
-        )
+      object = plot_line,
+      file = str_glue(
+        "analysis/robustness/Outputs/Cluster_Reshuffling/",
+        line_plot_rds_name
+      )
     )
 
 

@@ -267,3 +267,93 @@ format_robustness_plot <- function(p, descript){
     guides(shape = "none")
 }
 
+
+
+#' Function to plot TPR as Box plots
+#'
+#' @param res_to_tpr results converted to tpr (obtained via `convert_to_tpr`)
+#' @param descirpt X-axis name
+#'
+#' @return a ggplot2 boxplot
+plot_tpr <- function(res_to_tpr, descript){
+  res_to_tpr %>%
+    ggplot(aes(x = value,
+               y = tpr,
+               group = shuffle,
+               colour = Method))  +
+    geom_boxplot(outlier.shape = NA) +
+    geom_point(alpha = 0.4) +  # plot semi transparent plots over them so
+    # make sure the scale is the same on both axes, since both are in percent
+    scale_y_continuous(breaks = seq(0, 1, 0.20), limits = c(0, 1)) +
+    scale_x_continuous(breaks = seq(0, 100, 20)) +
+    # add text
+    ylab("True Positive Rate (1 - False Positive Rate)") +
+    labs(subtitle = "Boxplot by Method.",
+         color = "Method") +
+    facet_grid(~Method, scales='free_x', space='free', switch="x") +
+    theme_bw(base_size = 24) +
+    theme(strip.text.x = element_text(angle = 90, face="bold", colour="white"),
+          strip.background = element_rect(fill="darkgray"),
+          legend.title = element_text(size = 28),
+          legend.text = element_text(size = 25)
+    ) +
+    labs(colour=guide_legend(title="Method"),
+         caption = NULL,
+         title = NULL,
+         subtitle = NULL) +
+    xlab(str_glue("{descript}")) +
+    guides(shape = "none")
+
+}
+
+#' Function to calculate TPR from robustness results
+#'
+#' @param result_path path to the .rdata with the results from all runs.
+#'
+#' @return a tibble method, shuffle, and tpr
+calculate_tpr <- function(result_path, analysis_focus){
+  # load data
+  load(result_path)
+
+  # extract top ranks from all methods
+  if(analysis_focus == "cluster"){
+    top_ranks <- iterator_results$reshuffling_results$top_ranks
+  } else if(analysis_focus == "resource"){
+    top_ranks <- iterator_results$collated_robustness_results$top_ranks_OP
+  }
+
+  # calculate tpr in regards to 0 reshuffling
+  res_to_tpr <- imap(top_ranks, function(method_res, method_name){
+
+    # establish ground truth
+    if(analysis_focus == "cluster"){
+      gt_res <- top_ranks[[method_name]]$Reshuffle_0$Seed_1
+    } else if(analysis_focus == "resource"){
+      gt_res <- top_ranks[[method_name]]$OmniPath_0_Seed_1
+    }
+
+    method_res %>%
+      enframe(name='shuffle', value = 'results') %>%
+      {`if`(analysis_focus == 'cluster', unnest(., results), .)} %>%
+      mutate(jacc = map_dbl(results, function(res){
+        rank_overlap(comparison_ranks = res, main_ranks = gt_res)
+      })
+      ) %>%
+      mutate(tpr = map_dbl(results, function(res){
+        tpr_overlap(comparison_ranks = res, main_ranks = gt_res)
+      })
+      ) %>%
+      select(-results)
+  }) %>%
+    enframe(name = 'Method') %>%
+    unnest(value) %>%
+    # Remove seed from resource-focused results
+    mutate(shuffle = gsub("_Seed_.", "", shuffle)) %>%
+    separate(shuffle, into = c("x", "value"), remove = FALSE) %>%
+    select(-x) %>%
+    mutate(value = as.numeric(value)) %>%
+    mutate(Method = recode_methods(Method))
+
+  return(res_to_tpr)
+}
+

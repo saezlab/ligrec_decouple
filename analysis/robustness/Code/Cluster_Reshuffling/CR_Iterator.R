@@ -252,6 +252,7 @@ wrap_cluster_Iterator <-
             reshuffle_or_subset = reshuffle_or_subset,
             testdata_type       = testdata_type,
             number_ranks        = number_ranks,
+            time_of_run         = time_of_run,
             trial_run           = trial_run)
 
       }
@@ -263,32 +264,35 @@ wrap_cluster_Iterator <-
         box_plot_rds_name <-
           clust_auto_file_Name(
             prefix = "Boxplot_CR_",
-            suffix = ".RDS",
+            suffix = ".rds",
 
             reshuffle_or_subset = reshuffle_or_subset,
             testdata_type       = testdata_type,
             number_ranks        = number_ranks,
+            time_of_run         = time_of_run,
             trial_run           = trial_run)
 
         line_plot_rds_name <-
           clust_auto_file_Name(
             prefix = "Lineplot_CR_",
-            suffix = ".RDS",
+            suffix = ".rds",
 
             reshuffle_or_subset = reshuffle_or_subset,
-            testdata_type = testdata_type,
-            number_ranks = number_ranks,
-            trial_run = trial_run)
+            testdata_type       = testdata_type,
+            number_ranks        = number_ranks,
+            time_of_run         = time_of_run,
+            trial_run           = trial_run)
 
         iterator_results_save_path <-
           clust_auto_file_Name(
             prefix =
               "analysis/robustness/Outputs/Cluster_Reshuffling/Iterator_Results_CR_",
-            suffix = ".RDS",
+            suffix = ".RData",
 
             reshuffle_or_subset = reshuffle_or_subset,
             testdata_type       = testdata_type,
             number_ranks        = number_ranks,
+            time_of_run         = time_of_run,
             trial_run           = trial_run)
 
       }

@@ -28,7 +28,7 @@ dilution <- readRDS("analysis/robustness/Outputs/Resource_Dilution/Boxplot_RD_se
 dilution
 
 # Indiscriminant resource dilution
-indilution <- readRDS("analysis/robustness/Outputs/Resource_Dilution/Boxplot_RD_seurat_pbmc_mod_baseline_rand_topo_variable_top100_2021-12-06_21-43.rds") %>%
+indilution <- readRDS("analysis/robustness/Outputs/Resource_Dilution/Boxplot_RD_seurat_pbmc_mod_baseline_rand_topo_variable_top250_2021-12-10_14-55.rds") %>%
     format_robustness_plot(., descript = "Indiscriminantly Replaced Interactions (%)")
 indilution
 
@@ -51,7 +51,8 @@ dev.off()
 
 
 
-#
+# TPR figures
+
 
 
 
