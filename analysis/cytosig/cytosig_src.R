@@ -361,7 +361,7 @@ plot_cytosig_aucs <- function(.eval,
         ungroup() %>%
         mutate(method_name = gsub("\\..*","", method_name)) %>%
         mutate(method_name = recode_methods(method_name)) %>%
-        filter(dataset!="HER2")
+        filter(dataset!="ER")
 
 
     roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
