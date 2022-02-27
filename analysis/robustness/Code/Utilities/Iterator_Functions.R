@@ -200,34 +200,19 @@ rank_overlap <- function(main_ranks,
 #'  i.e  ground truth interactions)
 #' @param comparison_ranks A tibble of top ranked interactions
 #' @param verbose Should the function describe the calc or not
-tpr_overlap <- function(main_ranks,
-                        comparison_ranks,
+tpr_overlap <- function(main_ranks, # p_ranks (only condition positives)
+                        comparison_ranks, # all test ranks
                         verbose = TRUE) {
 
-  # calculate overlap between LR_IDs
-  LRID_intersect <- sum(comparison_ranks$LR_ID %in% main_ranks$LR_ID)
-  total_length <- length(comparison_ranks$LR_ID)
-
-  tpr <- LRID_intersect / total_length
-
-
-  # describe the output to the user
-  if (verbose == verbose) {
-    print(str_glue(""))
-    cat(
-      str_wrap(
-        str_glue(
-          "The main ranking and the comparison ranking have ",
-          as.character(LRID_intersect),
-          " LR_IDs in common. This corresponds to a TPR of ",
-          round(tpr, 2),
-          "."),
-        width = 60), "\n")
-  }
+  # calculate TPR
+  tp <- sum(comparison_ranks$LR_ID %in% main_ranks$LR_ID)
+  cp <- length(comparison_ranks$LR_ID)
+  tpr <- tp / cp # cp = all condition positives
 
   return(tpr)
 
 }
+
 
 
 
@@ -291,13 +276,13 @@ tpr_overlap <- function(main_ranks,
 
 
     # summarize all the runtime data in a tibble
-    runtime <- runtime               %>%
-      as_tibble_col()                %>%
-      unnest(cols = c(value))        %>%
+    runtime <- runtime %>%
+      as_tibble_col() %>%
+      unnest(cols = c(value)) %>%
       rename("Start Time" = "value") %>%
-      add_column("Step Name"      = runtime_labels, .before = 1) %>%
-      add_column("Step Duration"  = step_duration) %>%
-      add_column("Time Elapsed"   = time_elapsed)
+      add_column("Step Name" = runtime_labels, .before = 1) %>%
+      add_column("Step Duration" = step_duration) %>%
+      add_column("Time Elapsed" = time_elapsed)
 
 
     # Get rid of clutter in the environment
@@ -344,3 +329,87 @@ tpr_overlap <- function(main_ranks,
 
 
 }
+
+
+#' Function to calculate FPR from robustness results
+#'
+#' @param result_path path to the .rdata with the results from all runs.
+#'
+#' @return a tibble method, shuffle, and fpr
+calculate_fpr <- function(result_path, analysis_focus){
+  # load data
+  load(result_path)
+
+  # extract top ranks from all methods
+  if(analysis_focus == "cluster"){
+    top_ranks <- iterator_results$reshuffling_results$top_ranks
+    test_ranks <- iterator_results$reshuffling_results$liana_results
+  } else if(analysis_focus == "resource"){
+    top_ranks <- iterator_results$collated_robustness_results$top_ranks_OP
+    test_ranks <- iterator_results$collated_robustness_results$liana_results_OP
+  }
+
+  # Count N (i.e. number of Condition negatives)
+  cn_list <- imap(top_ranks, function(top_res, method_name){
+
+    # establish ground truth
+    if(analysis_focus == "cluster"){
+      all_gt_ranks <- test_ranks[[method_name]]$Reshuffle_0$Seed_1
+      top_gt_ranks <- top_res$Reshuffle_0$Seed_1
+
+    } else if(analysis_focus == "resource"){
+      all_gt_ranks <- test_ranks[[method_name]]$OmniPath_0_Seed_1
+      top_gt_ranks <- top_res$OmniPath_0_Seed_1
+    }
+
+    nrow(anti_join(all_gt_ranks,
+                   top_gt_ranks,
+                   by = c("source", "target",
+                          "ligand", "receptor"))
+    )
+  })
+
+
+  # calculate number of FPs in regards to 0 reshuffling
+  # (We only need the top ranks from both Condition and Test)
+  # We map test top_ranks
+  res_to_fpr <- imap(top_ranks, function(method_res, method_name){
+
+    # establish ground truth
+    if(analysis_focus == "cluster"){
+      top_gt_res <- top_ranks[[method_name]]$Reshuffle_0$Seed_1
+
+    } else if(analysis_focus == "resource"){
+      top_gt_res <- top_ranks[[method_name]]$OmniPath_0_Seed_1
+    }
+
+    method_res %>%
+      enframe(name='shuffle', value = 'results') %>%
+      {`if`(analysis_focus == 'cluster', unnest(., results), .)} %>%
+      mutate(n_fp = map_dbl(results, function(res){
+        count_fp(top_test_ranks = res,
+                 top_gt_ranks = top_gt_res)
+      })
+      ) %>%
+      mutate(fpr = n_fp / cn_list[[method_name]]) %>%
+      select(-results)
+  }) %>%
+    enframe(name = 'Method') %>%
+    unnest(value) %>%
+    # Remove seed from resource-focused results
+    mutate(shuffle = gsub("_Seed_.", "", shuffle)) %>%
+    separate(shuffle, into = c("x", "value"), remove = FALSE) %>%
+    select(-x) %>%
+    mutate(value = as.numeric(value)) %>%
+    mutate(Method = recode_methods(Method))
+
+  return(res_to_fpr)
+}
+
+#' Helper function to count the number of FPs
+count_fp <- function(top_test_ranks,
+                     top_gt_ranks){
+  n_fp <- sum(!(top_test_ranks$LR_ID %in% top_gt_ranks$LR_ID))
+  return(n_fp)
+}
+

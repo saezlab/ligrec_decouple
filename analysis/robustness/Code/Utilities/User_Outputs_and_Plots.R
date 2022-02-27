@@ -271,14 +271,20 @@ format_robustness_plot <- function(p, descript){
 
 #' Function to plot TPR as Box plots
 #'
-#' @param res_to_tpr results converted to tpr (obtained via `convert_to_tpr`)
+#' @param res_to_tpr results converted to fpr/tpr (obtained via `convert_to_tpr`)
 #' @param descirpt X-axis name
 #'
 #' @return a ggplot2 boxplot
-plot_tpr <- function(res_to_tpr, descript){
+plot_rates <- function(res_to_tpr, descript, rate='tpr'){
+  if(rate=='tpr'){
+    ylabel = "True Positive Rate"
+  } else if(rate=='fpr'){
+    ylabel = "False Positive Rate"
+  }
+
   res_to_tpr %>%
     ggplot(aes(x = value,
-               y = tpr,
+               y = .data[[rate]],
                group = shuffle,
                colour = Method))  +
     geom_boxplot(outlier.shape = NA) +
@@ -287,7 +293,7 @@ plot_tpr <- function(res_to_tpr, descript){
     scale_y_continuous(breaks = seq(0, 1, 0.20), limits = c(0, 1)) +
     scale_x_continuous(breaks = seq(0, 100, 20)) +
     # add text
-    ylab("True Positive Rate (1 - False Positive Rate)") +
+    ylab(ylabel) +
     labs(subtitle = "Boxplot by Method.",
          color = "Method") +
     facet_grid(~Method, scales='free_x', space='free', switch="x") +

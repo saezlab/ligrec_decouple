@@ -7,7 +7,6 @@ require(SingleCellExperiment)
 # load old results
 tnbc_brca <- readRDS("data/output/cytosig_out/BRCA_TNBC_cytosig.RDS")
 
-
 source("analysis/cytosig/cytosig_src.R")
 source("src/eval_utils.R")
 source("src/plot_utils.R")

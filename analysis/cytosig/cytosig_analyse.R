@@ -17,7 +17,7 @@ source("src/plot_utils.R")
 ## A) Independent (missing imputed as NA)
 cytosig_eval_wrap(.eval = "independent",
                   score_mode = "specs",
-                  generate = TRUE) # only generate cytosig enrichments once
+                  generate = TRUE) # only generate cytosig enrichment once
 
 # ## B) Missing imputed as max
 cytosig_eval_wrap(.eval = "max",

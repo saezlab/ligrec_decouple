@@ -28,6 +28,9 @@ get_lr_colocalized <- function(liana_agg_path,
                                                "target"="celltype2")) %>%
         # FILTER AUTOCRINE
         filter(source!=target) %>%
+        ### re-rank (after removing autocrine signalling)
+        group_by(method_name) %>%
+        mutate(predictor = min_rank(predictor)) %>%
         ungroup()
     lr_loc <- liana_loc %>%
         dplyr::mutate(
