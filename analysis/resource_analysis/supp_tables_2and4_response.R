@@ -248,3 +248,42 @@ xd_wide <- xd %>% pivot_wider(names_from = "resource",
 xd %>% ComplexHeatmap::Heatmap()
 
 
+# Revisions2 Extend Organs + Tissue ----
+ligrec <- readRDS("data/input/ligrec.RDS")
+upset_args <- list()
+
+# Get Formatted ligrec
+ligrec %<>%
+    ligrec_decomplexify %T>%
+    ligrec_overheats %>%
+    ligrec_overlap %T>%
+    uniq_per_res %T>%
+    ligand_receptor_upset(upset_args = upset_args)
+
+
+# Top 50 Organ
+organ_top50 <- ligand_receptor_classes(ligrec,
+                                       resource = "HPA_tissue",
+                                       organ,
+                                       largest = 50,
+                                       filter_annot = (level %in% c("Medium", "High") & pathology=="False" & !(status %in% c(NA, "Uncertain"))),
+                                       label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
+)
+
+classes_enrich(organ_top50$interactions, "interactions",
+               resource="HPA_organ_top50", organ, largest = 50)
+
+
+
+# Top 50 Tissue
+tissue_top50 <- ligand_receptor_classes(ligrec,
+                                        resource = "HPA_tissue",
+                                        tissue,
+                                        largest = 50,
+                                        filter_annot = (level %in% c("Medium", "High") & pathology=="False" & !(status %in% c(NA, "Uncertain")) & (tissue!="glandular cells")),
+                                        label_annot = function(x){ str_split(x, "⊎", simplify = TRUE) %>% as.data.frame() %>% str_glue_data("{V2} ({V1})") %>% str_to_title()}
+                              )
+
+classes_enrich(tissue_top50$interactions, "interactions",
+               resource="HPA_tissue_top50", tissue, largest = 50)
+

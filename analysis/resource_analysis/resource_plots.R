@@ -34,7 +34,7 @@ descript <- readRDS("data/output/descript.RDS")
 .resource_env <- descript
 xtemp <- patchwork_resources()
 
-# Assemble Main Figure 2 ----
+# Assemble Main Figure 3 ----
 path <- file.path("figures", "Main_Fig3.pdf")
 pp <- patchwork::wrap_plots(list(
     as.ggplot(descript$size_overlap_combined +
@@ -59,14 +59,14 @@ cairo_pdf(filename = path,
 print(pp)
 dev.off()
 
-# Assemble Main Fig. 3 ----
+# Assemble Main Fig. 4 ----
 cust_theme <- theme(text = element_text(size = 13))
 
-path <- figure_path("Main_Fig3.pdf")
+path <- file.path("figures", "Main_Fig4.pdf")
 
-pp3 <- patchwork::wrap_plots(
+pp4 <- patchwork::wrap_plots(
     list(
-        as.ggplot(descript$classes_enrich_interactions_SignaLink_pathway + theme(text = element_text(size = 12),
+        as.ggplot(descript$classes_perc_interactions_SignaLink_pathway + theme(text = element_text(size = 12),
                                                                                  legend.text = element_text(size=10))),
         as.ggplot(descript$enrich_heatmap_interactions_SignaLink_pathway + cust_theme),
         as.ggplot(descript$enrich_heatmap_interactions_CancerSEA + cust_theme),
@@ -80,7 +80,8 @@ pp3 <- patchwork::wrap_plots(
 cairo_pdf(filename = path,
           height = 7,
           width = 12.5)
-print(pp3)
+print(pp4)
 dev.off()
+
 
 

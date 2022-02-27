@@ -708,7 +708,7 @@ ligand_receptor_classes <- function(
 
         return(ligrec %>% hgnc_ligrec_classes(largest = largest))
 
-    }else if(resource == 'OP-L'){
+    } else if(resource == 'OP-L'){
 
         return(ligrec %>% localization_ligrec_classes)
 
@@ -724,13 +724,15 @@ ligand_receptor_classes <- function(
         import_omnipath_annotations(resource = resource, wide = TRUE) %>%
         decomplexify(column = "uniprot") %>% #!!!
         filter(!!!filter_annot) %>%
+        { # handle case of HPA_tissue
+            `if`(resource == "HPA_tissue" & as_label(attr) == "tissue",
+                 unite(., organ, tissue, col = "tissue", sep="⊎"),
+                 .
+                 )
+        } %>%
         mutate(!!attr := label_annot(!!attr))
 
-    # if(resource == "DisGeNet"){
-    #     # Keep only diseases and DGA score >= 0.3 (at least 1 curation)
-    #     # info at: https://www.disgenet.org/dbinfo#score
-    #     annot %<>% filter(score >= 0.3)
-    # }
+
 
     ligrec$interactions %<>%
         annotated_network(annot = annot, !!attr) %>%
@@ -936,8 +938,8 @@ ligrec_classes_all <- function(ligrec){
         'HPA_tissue',
         tissue,
         15,
-        filter_annot = (level %in% c("Medium", "High") & pathology=="False" & !(status %in% c(NA, "Uncertain"))), # High vs Approved?
-        label_annot = function(x){str_to_title(str_sub(x, start = 0, end = 30))}
+        filter_annot = (level %in% c("Medium", "High") & pathology=="False" & !(status %in% c(NA, "Uncertain")) & (tissue!="glandular cells")),
+        label_annot = function(x){ str_split(x, "⊎", simplify = TRUE) %>% as.data.frame() %>% str_glue_data("{V2} ({V1})") %>% str_to_title()}
     ) %T>%
     ligrec_classes_bar_enrich(
         'HPA_tissue',
@@ -1208,7 +1210,7 @@ classes_bar_perc <- function(data, entity, resource, var){
 #' @importFrom ggplot2 ggplot aes geom_tile xlab ylab
 #' @importFrom ggplot2 theme_bw element_text theme
 #' @importFrom dplyr pull
-classes_enrich <- function(data, entity, resource, var, ...){
+classes_enrich <- function(data, entity, resource, var, largest = 15, ...){
 
     var <- ensym(var)
 
@@ -1222,12 +1224,14 @@ classes_enrich <- function(data, entity, resource, var, ...){
                 unique(
                     filter(., !is.infinite(enrichment)) %>% pull(!!var)
                 ),
-                n = 15
+                n = largest
             )
         ) %>%
         cluster_for_heatmap(!!var, resource, enrichment) %>%
         replace_inf(enrichment) %>%
         shorten_resources()
+
+    # return(data)
 
     lim <- data %>% pull(enrichment) %>% abs %>% max
 
