@@ -29,7 +29,7 @@ robustness_plots <- imap(tpr_tobe_calculated, function(result_path, descript){
 })
 
 require(patchwork)
-path <- file.path( "figures", "SuppFig11_robustness.pdf")
+path <- file.path( "figures", "SuppFig13_robustness.pdf")
 pp <- patchwork::wrap_plots(
     robustness_plots,
     ncol=1,

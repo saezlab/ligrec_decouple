@@ -359,10 +359,10 @@ plot_cytosig_aucs <- function(.eval,
         mutate(roc_mean = mean(roc_auc),
                prc_mean = mean(prc_auc)) %>%
         ungroup() %>%
+        filter(dataset!="ER") %>%
         mutate(method_name = gsub("\\..*","", method_name)) %>%
         mutate(method_name = recode_methods(method_name)) %>%
-        filter(dataset!="ER")
-
+        mutate(dataset = recode_datasets(dataset))
 
     roc_min <- ifelse(min(aucs$roc_auc) > 0.5, 0.5, min(aucs$roc_auc))
     prc_min <- ifelse(min(aucs$prc_auc) > 0.5, 0.5, min(aucs$prc_auc))
