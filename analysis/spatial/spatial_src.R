@@ -13,8 +13,7 @@ get_lr_colocalized <- function(liana_agg_path,
                                condition,
                                corr_thresh = 1.645,
                                n_ranks = c(100, 250, 500, 1000,
-                                           2500, 5000, 10000)
-){
+                                           2500, 5000, 10000)){
     # LIANA and Format
     # Colocalized or not
     spatial_correlations <- readRDS(spatial_corr_path)
@@ -25,20 +24,20 @@ get_lr_colocalized <- function(liana_agg_path,
     # Bind to LIANA
     liana_loc <- liana_format %>%
         left_join(spatial_correlations, by = c("source"="celltype1",
-                                               "target"="celltype2")) %>%
-        # FILTER AUTOCRINE
-        filter(source!=target) %>%
-        ### re-rank (after removing autocrine signalling)
-        group_by(method_name) %>%
-        mutate(predictor = min_rank(predictor)) %>%
-        ungroup()
+                                               "target"="celltype2"))
     lr_loc <- liana_loc %>%
         dplyr::mutate(
             localisation = case_when(estimate >= corr_thresh ~ "colocalized",
                                      estimate < corr_thresh ~ "not_colocalized")
         ) %>%
+        # FILTER AUTOCRINE
+        filter(source!=target) %>%
         mutate(dataset = condition) %>%
-        na.omit()
+        na.omit() %>%
+        ### re-rank (after removing autocrine signalling)
+        group_by(method_name) %>%
+        mutate(predictor = min_rank(predictor)) %>%
+        ungroup()
 
     print(lr_loc %>% check_coloc())
     lr_loc %>%
@@ -188,6 +187,7 @@ get_fet_boxplot_data <- function(lr_coloc, n_ranks){
         filter(predictor < max(n_ranks)) %>%
         summarise(count_ranks = n()) %>%
         filter(count_ranks > max(n_ranks))
+    print(ties_issue)
 
     # Fix issue with single-class cases
     n_issues <- fet_res %>%
@@ -195,19 +195,19 @@ get_fet_boxplot_data <- function(lr_coloc, n_ranks){
 
     message(str_glue("{nrow(n_issues)} of 1s appended due to single-class cases"))
     fets <- fet_res %>%
-        mutate(odds_ratio = if_else(odds_ratio==-9999,
-                                    1,
+        mutate(odds_ratio = ifelse(odds_ratio==-9999,
+                                    NA,
                                     odds_ratio))
 
     # Format for boxplot
     boxplot_data <- fets %>%
-        # replace squidpy_cellchat ranks
-        left_join(ties_issue) %>%
-        mutate(n_rank = ifelse(is.na(count_ranks),
-                               n_rank,
-                               count_ranks
-        )) %>%
-        select(-count_ranks) %>%
+        # # replace squidpy_cellchat ranks
+        # left_join(ties_issue) %>%
+        # mutate(n_rank = ifelse(is.na(count_ranks),
+        #                        n_rank,
+        #                        count_ranks
+        # )) %>%
+        # select(-count_ranks) %>%
         mutate(n_rank = as.factor(n_rank)) %>%
         distinct_at(.vars = c("method_name", "enrichment", "n_rank", "dataset"),
                     .keep_all = TRUE) %>%

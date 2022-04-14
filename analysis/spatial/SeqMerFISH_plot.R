@@ -33,7 +33,7 @@ p <- seqfish_lr_coloc %>%
 
 # Print Supp Fig
 path <- file.path("figures",
-                  "SuppFigure12_Fish_Spatial.RDS")
+                  "SuppFigure15_Fish_Spatial.RDS")
 cairo_pdf(path,
           height = 12,
           width = 18,

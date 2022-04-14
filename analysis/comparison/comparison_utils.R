@@ -603,10 +603,54 @@ get_jacc <- function(sig_list, methods, resources){
         get_simil_dist(sim_dist = "simil", "Jaccard")
 }
 
+#' Helper function to Assemble heatmaps per celltype
+#' @param pattern pattern e.g. house_n or comp_n
+#' @param relevant_files cp_strength or cp_frequencies.RDS
+#' @param main_title main_title
+#' @param fignum number of the figure
+compile_celltype_heatmaps <- function(pattern="house_n",
+                                      relevant_files = "cp_strength.RDS",
+                                      main_title = "Relative\nStrength",
+                                      fignum = 24){
+
+    relevant_dirs <- list.files(comparison_out, pattern = pattern)
+    relevant_dirs <- relevant_dirs[order(relevant_dirs[c(1,2,3,4,6,5)])]
+
+    cps <- map(relevant_dirs, function(cdir){
+        # readRDS(file.path(comparison_out, cdir, "cp_frequencies.RDS")) %>%
+        # get_ct_heatmap(main_title="Relative\nFrequency") %>%
+        heatdata <- readRDS(file.path(comparison_out, cdir, relevant_files))
+        # replace super long name (does not fit)
+        colnames(heatdata) <- gsub("Endothelial.Lymphatic",
+                                   "Endo-Lymph.",
+                                   colnames(heatdata))
+
+        heatdata %>%
+            get_ct_heatmap(main_title=main_title) %>%
+            as.ggplot()
+    }) %>%
+        setNames(relevant_dirs)
+
+    # Pathwork them -> Print Supp Fig
+    path <- file.path("figures",
+                      sprintf("SuppFigure%g_HeatComp.pdf", fignum))
+    cairo_pdf(path,
+              height = 110,
+              width = 30,
+              family = 'DINPro')
+    print(patchwork::wrap_plots(cps) +
+              plot_layout(guides = 'keep', ncol = 1,
+                          widths = c(12.5, 1.5, 4)) +
+              plot_annotation(tag_levels = 'A',
+                              tag_suffix = ')') &
+              theme(plot.margin = margin(),
+                    plot.tag = element_text(face = 'bold',
+                                            size = 40)))
+    dev.off()
+}
 
 
-
-# Seurat Formatting helpers ----
+# Formatting helpers ----
 
 
 #' Helper function to convert CRC data to sparse Seurat
@@ -1125,6 +1169,16 @@ comp_summ_plot <- function(pattern,
                                                   "Different\nResources"
                                                   )))
 
+    if(pattern=="comp_n"){
+        write.csv(resource_jacc_box$data,
+                  file.path("manuscript", "Figures_Data", "Figure5A.csv"),
+                  row.names = FALSE)
+
+        write.csv(method_jacc_box$data,
+                  file.path("manuscript", "Figures_Data", "Figure5B.csv"),
+                  row.names = FALSE)
+        }
+
     # Simpler Boxplot
     simple_box <- ggplot(simple_box_data,
                          aes(x = entity,
@@ -1351,3 +1405,5 @@ set_aggregation_settings <<- function(setting){
         stop("Setting is wrong!")
     }
 }
+
+

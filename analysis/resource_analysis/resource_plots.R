@@ -84,4 +84,14 @@ print(pp4)
 dev.off()
 
 
+## Save Figure Data
+# Figure 3. ----
+write.csv(descript$size_overlap_combined$data, "manuscript/Figures_Data/Fig3A.csv", row.names = FALSE) # A
+write.csv(descript$interactions_jaccard_heat$data, "manuscript/Figures_Data/Fig3B.csv", row.names = FALSE) # B
+
+# Figure 4. ----
+write.csv(descript$classes_perc_interactions_SignaLink_pathway$data, "manuscript/Figures_Data/Fig4A.csv", row.names = FALSE) # A
+write.csv(descript$enrich_heatmap_interactions_SignaLink_pathway$data, "manuscript/Figures_Data/Fig4B.csv", row.names = FALSE) # B
+write.csv(descript$enrich_heatmap_interactions_CancerSEA$data, "manuscript/Figures_Data/Fig4C.csv", row.names = FALSE) # C
+write.csv(descript$enrich_heatmap_interactions_HPA_tissue_organ$data, "manuscript/Figures_Data/Fig4D.csv", row.names = FALSE) # D
 

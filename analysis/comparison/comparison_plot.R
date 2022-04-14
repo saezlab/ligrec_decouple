@@ -29,7 +29,7 @@ comparison_out <- "data/output/comparison_out/"
 comp_tibble <- comp_summ_plot(pattern = "comp_n",
                               comparison_out = comparison_out,
                               box_name = "Figure5.pdf",
-                              heat_name = "SuppFig13_mixed_n_JI_heat.pdf")
+                              heat_name = "SuppFig16_mixed_n_JI_heat.pdf")
 comp_tibble %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
@@ -37,13 +37,15 @@ comp_tibble %>%
            maximum = max(med_jacc))
 # Note CBMC has ~identical Jaccard for different resources and methods
 
+# Save Source Data
+comp_tibble
 
 
 ## II. Comp_frac ----
 comp_tibble_frac <- comp_summ_plot(pattern = "comp_frac",
                                    comparison_out = comparison_out,
-                                   box_name = "SuppFig_10_Composite_frac.pdf",
-                                   heat_name = "SuppFig14_mixed_frac_JI_heat.pdf")
+                                   box_name = "SuppFig_12_Composite_frac.pdf",
+                                   heat_name = "SuppFig17_mixed_frac_JI_heat.pdf")
 comp_tibble_frac %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
@@ -54,8 +56,8 @@ comp_tibble_frac %>%
 ## III. Specs_n ----
 n_tibble <- comp_summ_plot(pattern = "specs_n",
                            comparison_out = comparison_out,
-                           box_name = "SuppFig_15_Specificity_n.pdf",
-                           heat_name = "SuppFig16_specs_n_JI_heat.pdf")
+                           box_name = "SuppFig_18_Specificity_n.pdf",
+                           heat_name = "SuppFig19_specs_n_JI_heat.pdf")
 n_tibble %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
@@ -80,43 +82,34 @@ n_tibble %>%
 ## V. House_n ----
 house_tibble <- comp_summ_plot(pattern = "house_n",
                                comparison_out = comparison_out,
-                               box_name = "SuppFig_17_housekeeping_n.pdf",
-                               heat_name = "SuppFig18_house_n_JI_heat.pdf")
+                               box_name = "SuppFig_20_housekeeping_n.pdf",
+                               heat_name = "SuppFig21_house_n_JI_heat.pdf")
 house_tibble %>%
     group_by(entity) %>%
     mutate(minimum = min(med_jacc),
            med = median(med_jacc),
            maximum = max(med_jacc))
 
+
+
 ## Compile by celltype heatmap plots ----
-relevant_dirs <- list.files(comparison_out, pattern = "house_n")
-relevant_dirs <- relevant_dirs[order(relevant_dirs[c(1,2,3,4,6,5)])]
+compile_celltype_heatmaps(pattern="comp_n",
+                          relevant_files = "cp_frequencies.RDS",
+                          main_title = "Relative\nFrequency",
+                          fignum = 22)
 
-cps <- map(relevant_dirs, function(cdir){
-    # readRDS(file.path(comparison_out, cdir, "cp_frequencies.RDS")) %>%
-        # get_ct_heatmap(main_title="Relative\nFrequency") %>%
-    readRDS(file.path(comparison_out, cdir, "cp_strength.RDS")) %>%
-        get_ct_heatmap(main_title="Relative\nStrength") %>%
-        as.ggplot()
-    }) %>%
-    setNames(relevant_dirs)
+compile_celltype_heatmaps(pattern="house_n",
+                          relevant_files = "cp_frequencies.RDS",
+                          main_title = "Relative\nFrequency",
+                          fignum = 23)
 
+compile_celltype_heatmaps(pattern="comp_n",
+                          relevant_files = "cp_strength.RDS",
+                          main_title = "Relative\nStrength",
+                          fignum = 24)
 
-
-# Pathwork them -> Print Supp Fig
-path <- file.path("figures",
-                  "SuppFigure19_CompFreq.RDS")
-cairo_pdf(path,
-          height = 110,
-          width = 30,
-          family = 'DINPro')
-print(patchwork::wrap_plots(cps) +
-          plot_layout(guides = 'keep', ncol = 1) +
-          plot_annotation(tag_levels = 'A',
-                          tag_suffix = ')') &
-          theme(plot.tag = element_text(face = 'bold',
-                                        size = 40)))
-dev.off()
-
-# Output them seperately in temp
+compile_celltype_heatmaps(pattern="house_n",
+                          relevant_files = "cp_strength.RDS",
+                          main_title = "Relative\nStrength",
+                          fignum = 25)
 

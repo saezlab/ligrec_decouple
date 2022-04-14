@@ -428,7 +428,9 @@ get_cytosig_fets <- function(.eval = .eval,
     )
 
 
-    map(c("ER", "HER2", "TNBC"), function(ds){
+    map(c(#"ER",
+          "HER2",
+          "TNBC"), function(ds){
 
         # Obtain cytosig_liana predictions
         cytolr <- readRDS(inputpath) %>%

@@ -17,7 +17,6 @@ cytosig_mixed <- cytosig_mixed_data %>%
     get_eval_boxplot(eval_type = "cytosig")
 #plot
 space_mixed <- readRDS("data/output/spatial_out/all_fets_mixed.RDS") %>%
-    filter(!str_detect(pattern = "ER", string = dataset)) %>%
     get_eval_boxplot(eval_type="space")
 
 
@@ -26,5 +25,10 @@ path <- file.path("figures",
 cyto_space_patch(cytosig_mixed,
                  space_mixed,
                  path)
+
+## Save Data
+write.csv(cytosig_mixed_data, file.path("manuscript", "Figures_Data", "Figure6A.csv"))
+write.csv(space_mixed$data, file.path("manuscript", "Figures_Data", "Figure6B.csv"))
+
 
 

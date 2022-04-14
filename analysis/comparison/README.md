@@ -14,7 +14,7 @@ The processed single cell RNA-Seq data 23 for 23 Korean colorectal cancer patien
 [GSE132465](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE132465)
 
 #### CBMC and panc8
-The labelled scRNA-Seq data for pancreatic islet and cord blood mononuclear cells were obtained via SeuratData,
+The labelled scRNA-Seq data for pancreatic islet and cord blood mononuclear cells were obtained via [SeuratData](https://github.com/satijalab/seurat-data),
 normalized with Seurat, and used for CCC inference without any further formatting and filtering.
 
 #### BRCA

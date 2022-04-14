@@ -102,13 +102,13 @@ comb_tibble %>%
         coloc_tibble <- tibble::tribble(~condition, # condition name
                                         ~liana_agg_path, # path to aggregated liana
                                         ~spatial_corr_path, # path to lr_corr output
-
-                                        "ER+ BRCA",
-                                        file.path(
-                                            "data/output/aggregates/",
-                                            str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")
-                                            ),
-                                        "data/output/spatial_out/deconv_summ/ER_coloc_corr.RDS",
+#
+#                                         "ER+ BRCA",
+#                                         file.path(
+#                                             "data/output/aggregates/",
+#                                             str_glue("ER_{.eval}_{score_mode}_liana_res.RDS")
+#                                             ),
+#                                         "data/output/spatial_out/deconv_summ/ER_coloc_corr.RDS",
 
                                         "TNBC",
                                         file.path(
@@ -139,3 +139,4 @@ comb_tibble %>%
 
         saveRDS(type_lr_coloc, str_glue("data/output/spatial_out/all_fets_{score_mode}.RDS"))
     })
+
