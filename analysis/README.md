@@ -29,3 +29,7 @@ The code to reproduce the Correlation/Specificity analysis of methods with CITE-
 ### VI) Robustness
 The code to reproduce the robustness analyses can be found at:
 [analysis/robustness](https://github.com/saezlab/ligrec_decouple/tree/main/analysis/robustness)
+
+
+Note that `plot_evals_figure6.R` is the script ran on both CytoSig and Spatial output to 
+produce the figure presented in the manuscript.
