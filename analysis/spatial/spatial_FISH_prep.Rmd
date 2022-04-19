@@ -148,7 +148,7 @@ mer_seurat %<>%
     Seurat::SCTransform(verbose = FALSE) %>%
     Seurat::FindVariableFeatures() %>%
     Seurat::RunPCA(., verbose = FALSE) %>%
-    Seurat::RunUMAP(., dims = 1:30, verbose = FALSE) 
+    Seurat::RunUMAP(., dims = 1:30, verbose = FALSE)
 
 # save object
 mer_seurat
