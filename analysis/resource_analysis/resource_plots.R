@@ -25,12 +25,12 @@ saveRDS(ligrec, "data/input/ligrec.RDS")
 # Run figure pipeline
 ligrec <- readRDS("data/input/ligrec.RDS")
 descript <- descriptive_plots(ligrec)
-saveRDS(descript, "data/output/descript.RDS")
 
 # Save Plots
-descript <- readRDS("data/output/descript.RDS")
+saveRDS(descript, "data/output/descript.RDS")
 
 # Reproduce Compiled Plots
+descript <- readRDS("data/output/descript.RDS")
 .resource_env <- descript
 xtemp <- patchwork_resources()
 
