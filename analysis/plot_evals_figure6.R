@@ -11,8 +11,7 @@ source("analysis/spatial/spatial_src.R")
 
 # Mixed/Comp Method specifics
 cytosig_mixed_data <- get_cytosig_fets(.eval = "max",
-                                       score_mode = "mixed") %>%
-    filter(!str_starts(pattern = "ER", string = dataset))
+                                       score_mode = "mixed")
 cytosig_mixed <- cytosig_mixed_data %>%
     get_eval_boxplot(eval_type = "cytosig")
 #plot
