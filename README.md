@@ -37,6 +37,6 @@ git clone https://github.com/saezlab/ligrec_decouple
 ```
 
 Use `initiate_environment.R` to restore the R environment used to produce the results in the publication.
-Refer to [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) for instructions how to set-up the LIANA environment used to call the different external tools.
 
-Finally, make sure that [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) is set up appropriately.
+Finally, refer to [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) for instructions how to set-up the LIANA environment used to call the different external tools.
+
