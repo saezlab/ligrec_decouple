@@ -1159,14 +1159,14 @@ classes_bar_perc <- function(data, entity, resource, var){
         ylab(str_to_title(entity)) +
         xlab('Resources') +
         scale_y_continuous(labels = scales::percent) +
-        geom_text(
-            aes(label = if_else(perc>0.029, str_glue("{round(perc*100)}%"), "")),
-            position = position_stack(vjust = 0.5), size = 2, color = "white"
-        ) +
+        geom_text(aes(label = if_else(perc>0.029, str_glue("{round(perc*100)}%"), "")),
+                  position = position_stack(vjust = 0.5), size = 1.2, color = "white"
+                  )  +
         theme_bw() +
         theme(
-            axis.text.x = element_text(angle = 45,
-                                       size = 7, hjust = 1),
+            text = element_text(size = 7),
+            axis.text.x = element_text(angle = 90,
+                                       size = 5.5, hjust = 1),
             axis.text.y = element_text(vjust = 1,
                                        size = 6, hjust = 1),
             axis.title.x = element_blank(),
@@ -1174,8 +1174,8 @@ classes_bar_perc <- function(data, entity, resource, var){
             panel.border = element_blank(),
             panel.background = element_blank(),
             axis.ticks = element_blank(),
-            legend.title = element_text(size=8),
-            legend.text = element_text(size=7),
+            legend.title = element_text(size=7),
+            legend.text = element_text(size=6),
             strip.text.x = element_blank(),
             legend.key.size = unit(3, 'mm')
         )
@@ -1843,28 +1843,28 @@ jaccheat_save <- function(df, plotname, guide_title){
         theme_minimal() +
         theme(
             axis.text.x = element_text(vjust = 1, angle = 45,
-                                       size = 16, hjust = 1),
+                                       size = 7, hjust = 1),
             axis.text.y = element_text(vjust = 1,
-                                       size = 16, hjust = 1),
+                                       size = 7, hjust = 1),
             axis.title.x = element_blank(),
             axis.title.y = element_blank(),
             panel.grid.major = element_blank(),
             panel.border = element_blank(),
             panel.background = element_blank(),
             axis.ticks = element_blank(),
-            legend.title = element_text(size=16),
-            legend.text = element_text(size=12),
+            legend.title = element_text(size=7),
+            legend.text = element_text(size=6),
             strip.text.x = element_blank()
         ) +
         xlab("Resource") +
         geom_text(aes(name, resource,
                       label = round(value, digits = 2)),
-                  color = "white", size = 5) +
+                  color = "white", size = 2) +
         scale_y_discrete(limits=rev)
 
     cairo_pdf_enh(plotname,
                   plot = p,
-                  width = 16, height = 9, family = 'DINPro')
+                  width = 8, height = 4.5, family = 'DINPro')
 }
 
 

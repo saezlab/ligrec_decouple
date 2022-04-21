@@ -1048,13 +1048,14 @@ jacc_all_boxplot  <- function(jacc_tibb,
            aes(x = .data[[entity]],
                y = jacc,
                color = .data[[entity]])) +
-        geom_boxplot(alpha = 0.3,
-                     outlier.size = 1.3,
-                     width = 0.7,
+        geom_boxplot(alpha = 0.2,
+                     outlier.size = 0.5,
+                     width = 0.4,
+                     lwd=0.3,
                      colour = "grey")  +
         # geom_jitter(aes(shape=combination), size = 4, alpha = 0.3, width = 0.15) +
         # scale_shape_manual(values = rep(1:20, len = length(unique(jacc_tibb$combination)))) +
-        theme_bw(base_size = 24) +
+        theme_bw(base_size = 7) +
         theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5),
               strip.background = element_rect(fill=facet_col),
               strip.text = element_text(colour = 'white'),
@@ -1068,11 +1069,11 @@ jacc_all_boxplot  <- function(jacc_tibb,
         # Same Method, Different Resources (X axis entity=resource)
         geom_hline(aes(yintercept=med_jacc),
                    data = median_across_resource, color = "#de2d26",
-                   size=1.3, linetype="dashed") +
+                   size=0.7, linetype="dashed") +
         # Same Resource, Different Methods (X axis entity=method)
         geom_hline(aes(yintercept=med_jacc),
                    data = median_across_method, color = "#3182bd",
-                   size=1.3, linetype="dashed") +
+                   size=0.7, linetype="dashed") +
         facet_grid(rows=~dataset_setting, scales='free_x', space='free',
                    labeller = as_labeller(.dataset_keys))
 
@@ -1193,7 +1194,7 @@ comp_summ_plot <- function(pattern,
         geom_jitter(aes(shape=dataset_setting), size = 7, alpha = 0.9, width = 0.05) +
         scale_colour_manual(values=c("#3182bd", "#de2d26")) +
         scale_shape_manual(values = rep(12:25, len = length(unique(simple_box_data$dataset_setting)))) +
-        theme_bw(base_size = 32) +
+        theme_bw(base_size = 26) +
         theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.5),
               panel.grid.major.x = element_blank()) +
         guides(fill = "none",
@@ -1209,15 +1210,15 @@ comp_summ_plot <- function(pattern,
 
     # Plots assembled with patchwork (box_name)
     cairo_pdf(file.path("figures", box_name),
-              height = 21,
-              width = 28,
+              height = 6.3,
+              width = 8.2,
               family = 'DINPro')
     print(resource_jacc_box/ method_jacc_box +
               plot_layout(guides = 'collect') +
               plot_annotation(tag_levels = 'A',
                               tag_suffix = ')') &
               theme(plot.tag = element_text(face = 'bold',
-                                            size = 48)))
+                                            size = 14)))
     dev.off()
 
     # Merged Heat

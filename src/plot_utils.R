@@ -351,15 +351,15 @@ cyto_space_patch <- function(cytosig_p,
                              path
 ){
   cairo_pdf(path,
-            height = 24,
-            width = 22,
+            height = 8,
+            width = 7.5,
             family = 'DINPro')
   print((cytosig_p / space_p) +
           plot_layout(guides = 'keep', heights = c(1, 1)) +
           plot_annotation(tag_levels = 'A',
                           tag_suffix = ')') &
           theme(plot.tag = element_text(face = 'bold',
-                                        size = 40)))
+                                        size = 16)))
   dev.off()
 }
 

@@ -193,7 +193,7 @@ get_eval_boxplot <- function(boxplot_data, eval_type = NULL){
 
     if(length(unique(boxplot_data$dataset)) > 3){
         box_or_not <- geom_boxplot(alpha = 0.15,
-                                   outlier.size = 1.5,
+                                   outlier.size = 0.7,
                                    width = 0.2,
                                    show.legend = FALSE)
     } else{
@@ -215,18 +215,18 @@ get_eval_boxplot <- function(boxplot_data, eval_type = NULL){
                       aes(x = n_rank, y = odds_ratio,
                           color = dataset, group=dataset)) +
         box_or_not +
-        geom_point(aes(shape = dataset), size = 4, alpha = 0.8) +
+        geom_point(aes(shape = dataset), size = 0.9, alpha = 0.8) +
         scale_colour_manual(values=recode_colours(unique(boxplot_data$dataset))) +
         facet_grid(~method_name, scales='free_x', space='free', switch="x") +
-        theme_bw(base_size = 24) +
-        geom_line(size = 1.9, alpha = 0.6) +
+        theme_bw(base_size = 8) +
+        geom_line(size = 0.7, alpha = 0.6) +
         geom_hline(yintercept = 1, colour = random_color,
-                   linetype = 2, size = 1.7) +
+                   linetype = 2, size = 0.6) +
         theme(strip.text.x = element_text(angle = 90, face="bold", colour="white"),
               axis.text.x = element_text(angle = 90, hjust=1, vjust = 0.5),
               strip.background = element_rect(fill=facet_color),
-              legend.title = element_text(size = 28),
-              legend.text = element_text(size = 25)
+              legend.title = element_text(size = 7.5),
+              legend.text = element_text(size = 6.5)
         ) +
         labs(colour=guide_legend(title="Dataset")) +
         ylab("Odds Ratio") +

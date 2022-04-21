@@ -38,36 +38,37 @@ xtemp <- patchwork_resources()
 path <- file.path("figures", "Main_Fig3.pdf")
 pp <- patchwork::wrap_plots(list(
     as.ggplot(descript$size_overlap_combined +
+                  theme_bw(base_size = 7) +
                   theme(
-                      text = element_text(size = 18),
-                      axis.text.x = element_text(size=18, angle = 90,
+                      text = element_text(size = 8),
+                      axis.text.x = element_text(size=8, angle = 90,
                                                  vjust = 0.5, hjust=1),
-                      axis.text.y = element_text(size=18)) +
+                      axis.text.y = element_text(size=8)) +
                   xlab("Total Size")
               ),
     as.ggplot(descript$interactions_jaccard_heat)
     ),
     ncol=1,
     nrow(2)) +
-    plot_layout(heights = c(1.3, 2)) +
+    plot_layout(heights = c(1.3, 1.7)) +
     plot_annotation(tag_levels = list(c('A','B')), tag_suffix = ')') &
-    theme(plot.tag = element_text(face = 'bold', size = 32))
+    theme(plot.tag = element_text(face = 'bold', size = 16))
 
 cairo_pdf(filename = path,
-          height = 17,
-          width = 15)
+          height = 8,
+          width = 7)
 print(pp)
 dev.off()
 
 # Assemble Main Fig. 4 ----
-cust_theme <- theme(text = element_text(size = 13))
+cust_theme <- theme(text = element_text(size = 7),
+                    legend.text = element_text(size = 6))
 
 path <- file.path("figures", "Main_Fig4.pdf")
 
 pp4 <- patchwork::wrap_plots(
     list(
-        as.ggplot(descript$classes_perc_interactions_SignaLink_pathway + theme(text = element_text(size = 12),
-                                                                                 legend.text = element_text(size=10))),
+        as.ggplot(descript$classes_perc_interactions_SignaLink_pathway),
         as.ggplot(descript$enrich_heatmap_interactions_SignaLink_pathway + cust_theme),
         as.ggplot(descript$enrich_heatmap_interactions_CancerSEA + cust_theme),
         as.ggplot(descript$enrich_heatmap_interactions_HPA_tissue_organ + cust_theme)
@@ -75,11 +76,11 @@ pp4 <- patchwork::wrap_plots(
     ncol=2, nrow(2)
     ) +
     plot_annotation(tag_levels = 'A', tag_suffix = ')') &
-    theme(plot.tag = element_text(face = 'bold', size = 18))
+    theme(plot.tag = element_text(face = 'bold', size = 12))
 
 cairo_pdf(filename = path,
-          height = 7,
-          width = 12.5)
+          height = 5,
+          width = 8.2)
 print(pp4)
 dev.off()
 
