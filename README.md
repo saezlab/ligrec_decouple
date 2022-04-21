@@ -36,7 +36,7 @@ The code to reproduce the robustness analyses can be found at:
 git clone https://github.com/saezlab/ligrec_decouple
 ```
 
-Use `initiate_environment.R` to restore the R environment used to produce the results in the publication.
+Use `analysis/initiate_environment.R` to restore the R environment used to produce the results in the publication.
 
 Finally, refer to [LIANA++](https://saezlab.github.io/liana/articles/liana_devel.html) for instructions how to set-up the LIANA environment used to call the different external tools.
 
