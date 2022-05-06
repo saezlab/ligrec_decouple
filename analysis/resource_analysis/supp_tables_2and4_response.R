@@ -287,3 +287,9 @@ tissue_top50 <- ligand_receptor_classes(ligrec,
 classes_enrich(tissue_top50$interactions, "interactions",
                resource="HPA_tissue_top50", tissue, largest = 50)
 
+
+# Read all resource data and save to RDS
+descript <- readRDS("data/output/descript.RDS")
+descript$supp_fig8_data <- organ_top50$interactions
+descript$supp_fig10_data <- tissue_top50$interactions
+saveRDS(descript, "data/output/resource_source_data.RDS")
