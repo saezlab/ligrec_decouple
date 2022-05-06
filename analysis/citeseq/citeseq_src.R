@@ -285,9 +285,9 @@ load_and_cluster <- function(dir, subdir, pattern = ".h5"){
     set.seed(1234)
     seurat_object[["ADT"]] <- CreateAssayObject(counts = mats$`Antibody Capture`)
     seurat_object %<>%
-        FindVariableFeatures(verbose = FALSE) %>%
         NormalizeData(verbose = FALSE) %>%
         ScaleData() %>%
+        FindVariableFeatures(verbose = FALSE) %>%
         RunPCA(verbose = FALSE) %>%
         FindNeighbors(reduction = "pca") %>%
         # need to optimize silhuette scores, and save the 'best' to seurat_clusters
