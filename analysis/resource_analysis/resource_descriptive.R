@@ -1247,9 +1247,9 @@ classes_enrich <- function(data, entity, resource, var, largest = 15, ...){
                     ifelse(
                         padj <= 0.01 & abs(enrichment) >= 1,
                         ifelse(padj <= 0.001 & abs(enrichment) >= 1,
-                               '\u274B',
-                               '\u273B'),
-                        '\u2723'
+                               '\u274B', # asterisk
+                               '\u25B2'), # triangle
+                        '\U29EB' # rhomboid
                     ),
                     ''
                 )
