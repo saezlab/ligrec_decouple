@@ -28,6 +28,9 @@ robustness_plots <- imap(tpr_tobe_calculated, function(result_path, descript){
         plot_rates(descript = descript, rate = 'tpr')
 })
 
+saveRDS(robustness_plots, "data/output/robustness_plots.RDS")
+
+
 require(patchwork)
 path <- file.path( "figures", "SuppFig13_robustness.pdf")
 pp <- patchwork::wrap_plots(
